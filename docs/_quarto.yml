@@ -1,0 +1,16 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: "Algorithm Viewer Documentation"
+  sidebar:
+    style: "docked"
+    contents:
+      - index.qmd
+
+format:
+  html:
+    theme: cosmo
+    css: styles.css
+    toc: true
