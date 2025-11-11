@@ -8,6 +8,7 @@ website:
     style: "docked"
     contents:
       - index.qmd
+      - requirements.qmd
 
 format:
   html:

@@ -1,0 +1,473 @@
+---
+title: "Requirements Document"
+---
+
+# Algorithm Viewer Application - Requirements Document
+
+**Project:** Interactive Web Application for Understanding Predictor Effects
+in Statistical Algorithms  
+**Version:** 1.0  
+**Focus Use Case:** HTNPoRT (Hypertension Population Risk Tool)  
+**Date:** November 2025
+
+## Executive Summary
+
+The Algorithm Viewer is a generalizable web-based application that helps
+users understand how different predictors in statistical algorithms affect
+outcomes. Version 1.0 focuses on visualizing how odds ratios for each
+predictor change across ages, with specific support for interaction terms
+with age in logistic regression models.
+
+## 1. Data Ingestion and Model Coefficients Management
+
+**Objective:** Establish a standardized format for importing model
+coefficients and metadata from R objects.
+
+### Requirements
+
+#### Must-Have
+
+- **R Object Structure:** Define a standard R object structure that
+  contains:
+  - Model coefficients (main effects)
+  - Interaction term coefficients
+  - Model metadata (model name, description, outcome definition)
+  - Sex-specific indicators (for models with multiple variants)
+  
+- **Coefficient Organization:** The R object must clearly distinguish:
+  - Main effect terms (coefficient name, coefficient value)
+  - Interaction terms (both variables involved, coefficient value,
+    interaction type)
+  - Predictor names in their pre-transformed form (as they appear in
+    study datasets)
+
+- **Import Mechanism:** Implement a process to export the R object in a
+  format loadable by the Shinylive application (e.g., JSON, CSV, or
+  other structured format)
+
+#### Should-Have
+
+- Documentation of the R object export process with example code for
+  analysts
+- Version tracking for model coefficients in the exported data
+- Support for multiple model variants within a single application
+  instance
+
+## 2. Metadata Management and Integration
+
+**Objective:** Establish metadata sources and structures needed for
+visualization generation.
+
+### Requirements
+
+#### Must-Have
+
+- **Metadata Source Definition:** Create or identify required metadata
+  elements from Model Parameters including:
+  - Baseline/reference categories for categorical variables
+  - Age range for visualization (minimum and maximum age values)
+  - Reference points for calculating odds ratios for continuous
+    predictors
+  - Variable transformation specifications (how predictors are
+    transformed from study form to model form)
+  - Predictor type classification (continuous vs. categorical)
+  - Predictor units (e.g., years, mmHg, kg/m²)
+  - Display names for predictors and categories
+
+- **Metadata Structure for HTNPoRT:** Define metadata schema
+  specifically for HTNPoRT models:
+  - Male and female model variants
+  - All main effect predictors
+  - All interaction terms with age
+  - Age-specific ranges for each model
+  - Categorical variable coding (reference category for each)
+
+- **Fallback Handling:** Establish a clear process for what to do if
+  required metadata is missing (error messaging, documentation
+  requirements)
+
+#### Should-Have
+
+- Metadata versioning aligned with model coefficient versions
+- Automated validation that all required metadata exists for imported
+  models
+- JSON schema definition for metadata structure
+
+## 3. Visualization Engine - Odds Ratio Curves
+
+**Objective:** Generate interactive visualizations showing how odds
+ratios change across age for selected predictors.
+
+### Requirements
+
+#### Must-Have
+
+- **Basic Visualization:**
+  - X-axis: Age (continuous scale)
+  - Y-axis: Odds ratio (OR) for the selected predictor
+  - OR value at each age represents: the multiplicative change in odds
+    of the outcome per one-unit increase in the predictor at that
+    specific age
+  - Support user selection of predictor to visualize
+
+- **Interaction Term Handling:**
+  - For continuous predictors with age interactions: Calculate OR at
+    each age using the formula:
+    OR(age) = exp(β_main + β_interaction × age), where β_main is the
+    main effect and β_interaction is the interaction coefficient
+  - For multiple age interactions on the same predictor: Sum all
+    relevant interaction terms in the calculation
+  - Handle age transformation if metadata specifies (e.g., centered
+    age)
+
+- **Categorical Predictor Support:**
+  - Each category visualized as a separate OR curve
+  - All curves compared against the reference category (OR = 1)
+  - Reference category labeled clearly
+  - Only show non-reference categories
+
+- **Age Range Configuration:**
+  - Use age range from metadata (minimum and maximum)
+  - Generate smooth curves by calculating OR at appropriate intervals
+    (e.g., every year)
+
+- **Curve Generation:**
+  - Use model coefficients and age values to compute OR at each point
+  - Visualize as a continuous line (not discrete points) for
+    continuous predictors
+  - Ensure mathematical accuracy of OR calculations accounting for all
+    interaction terms
+
+#### Should-Have
+
+- Confidence intervals or uncertainty bands around OR curves
+- Interactive tooltips showing exact OR value at specific ages
+- Ability to toggle between different categorical predictors within a
+  plot
+
+## 4. User Interface and Interaction
+
+**Objective:** Provide an intuitive interface for selecting and exploring
+predictor effects across ages.
+
+### Requirements
+
+#### Must-Have
+
+- **Model/Sex Selection:** 
+  - Dropdown or selection interface to choose between male and female
+    models
+  - Clear indication of currently selected model variant
+
+- **Predictor Selection:**
+  - List or dropdown of all available predictors in the model
+  - Display predictor name and type (continuous/categorical)
+  - Show predictor units where applicable
+  - Update visualization immediately when predictor is selected
+
+- **Main Visualization Area:**
+  - Prominently display the OR curve for the selected predictor
+  - Show clear axis labels with units
+  - Include predictor name and interaction information in title or
+    subtitle
+
+- **Information Display:**
+  - Show whether the selected predictor has age interaction terms
+  - For continuous predictors: display reference point used in OR
+    calculation
+  - For categorical predictors: clearly label reference category
+
+- **Browser Compatibility:**
+  - Must function correctly on Chrome browser
+  - Responsive design for common screen sizes (desktop minimum)
+
+#### Should-Have
+
+- Side-by-side comparison of male and female model curves for the same
+  predictor
+- Comparison view showing multiple predictors simultaneously
+- Ability to download or export the visualization as an image
+- Search functionality for finding predictors in large model lists
+
+## 5. Variable Transformation System
+
+**Objective:** Implement variable transformations to convert raw
+predictors to model form for accurate OR calculations.
+
+### Requirements
+
+#### Must-Have
+
+- **Transformation Metadata Storage:**
+  - Store transformation specifications in metadata (not in R object)
+  - Support common transformation types: centering, scaling, spline
+    transformations, polynomial transformations
+  - Clearly define any reference values used (e.g., centering values)
+
+- **Transformation Application:**
+  - Transform predictor values before use in OR calculations
+  - Example: If age is centered in the model, apply centering with the
+    specified mean
+  - Support for continuous predictor transformations
+
+- **Example Support (Age Transformation):**
+  - If age is transformed into spline terms, the application should:
+    - Accept age in its original continuous form from users/visualization
+    - Apply appropriate transformations internally
+    - Use transformed values in coefficient calculations
+
+#### Should-Have
+
+- Clear documentation of transformation logic per predictor
+- Ability to preview or inspect transformations during development
+
+## 6. Deployment and Technical Infrastructure
+
+**Objective:** Ensure the application can be deployed on static hosting
+and runs reliably in browsers.
+
+### Requirements
+
+#### Must-Have
+
+- **Technology Stack:**
+  - Use R Shinylive for interactive functionality
+  - Ensure full static HTML/CSS/JS generation for deployment to static
+    hosts
+
+- **Static Hosting Compatibility:**
+  - Application must be deployable to GitHub Pages or similar static
+    hosting platforms
+  - No server-side processing required
+  - All computation happens in the browser
+
+- **Dependency Management:**
+  - Use `renv` for R package management
+  - Lock file must be committed to repository
+  - Clear documentation of how to rebuild dependencies
+
+- **Performance:**
+  - OR calculations and curve generation must be fast enough for
+    interactive use (sub-second response)
+  - No optimization required for large datasets (expected data is
+    small)
+
+- **Repository Structure:**
+  - Organize code for easy maintenance
+  - Clear separation between R code, data, and documentation
+  - Build process documented
+
+#### Should-Have
+
+- Automated build process for generating static artifacts
+- Version pinning for all dependencies
+- Development setup documentation
+
+## 7. Data Format and Integration
+
+**Objective:** Define standard formats for model coefficients and metadata
+used by the application.
+
+### Requirements
+
+#### Must-Have
+
+- **Model Coefficients Format:**
+  - Structured format (JSON, CSV, or R data object) containing:
+    - Predictor names (pre-transformed form)
+    - Main effect coefficients
+    - Interaction term coefficients (with clear labeling of both
+      variables)
+    - Model type identifier
+    - Sex/variant identifier
+
+- **Metadata Format:**
+  - Structured format containing all metadata elements defined in
+    Task 2
+  - Linked to model coefficients through model identifier
+
+- **Integration with HTNPoRT:**
+  - Support import of HTNPoRT male and female model coefficients
+  - Load HTNPoRT-specific metadata (age ranges, categorical
+    references, etc.)
+
+#### Should-Have
+
+- Validation schema to ensure imported data meets requirements
+- Example datasets demonstrating expected format
+- Tooling to help analysts export models in correct format
+
+## 8. Integrated Tutorial and Documentation
+
+**Objective:** Help users understand what the application does and how to
+use it.
+
+### Requirements
+
+#### Must-Have
+
+- **Tutorial Content (Built into Application):**
+  - **What is the Algorithm Viewer?** - Brief explanation of
+    application purpose and use cases
+  - **Why was it developed?** - Explain the goal of understanding how
+    predictors affect outcomes in prediction models, with specific focus
+    on interaction effects with age
+  - **How to use it** - Step-by-step guide including:
+    - How to select a model variant (male/female)
+    - How to select a predictor
+    - How to interpret the resulting OR curve
+    - What interaction terms mean in the context of the visualization
+
+- **Audience Assumption:**
+  - Assume users have statistical background knowledge
+  - Define technical terms (odds ratio, interaction term) but don't
+    over-explain basic statistical concepts
+  - Use examples relevant to HTNPoRT context
+
+- **Accessibility from UI:**
+  - Tutorial must be easily accessible from the main application
+    interface (e.g., help button, info panel)
+  - Option to view tutorial without affecting current visualization
+
+- **Explanation of Interaction Terms:**
+  - Clearly explain that age interactions mean the effect of a
+    predictor changes with age
+  - Show example: "The effect of blood pressure on hypertension risk
+    is different for 40-year-olds versus 65-year-olds"
+
+#### Should-Have
+
+- Video walkthrough of application (optional)
+- Example interpretations of different curve shapes
+- FAQ section
+- Links to reference materials or publications
+
+## 9. Support for Multiple Models and Extensibility
+
+**Objective:** Design the system to support future models beyond HTNPoRT.
+
+### Requirements
+
+#### Must-Have
+
+- **Model-Agnostic Design:**
+  - Application architecture must not hard-code HTNPoRT-specific
+    logic
+  - Use metadata to define model-specific parameters rather than code
+    changes
+  - Clearly separate model-specific configuration from core
+    application logic
+
+- **Configuration System:**
+  - Metadata-driven approach where adding a new model requires:
+    - Model coefficients (R object or structured format)
+    - Metadata file
+    - No code changes to the core application
+
+- **Support for Logistic Regression Models:**
+  - Specifically support logistic regression models with interaction
+    terms
+  - Formula: Probability = 1 / (1 + exp(-(X·β)))
+
+#### Should-Have
+
+- Documentation on how to add new models
+- Example metadata templates for new models
+- Abstraction for different outcome measures (odds ratio for now, but
+  designed to support others)
+
+## 10. Testing and Quality Assurance
+
+**Objective:** Ensure mathematical accuracy and functional correctness.
+
+### Requirements
+
+#### Must-Have
+
+- **Mathematical Validation:**
+  - Test OR calculations against hand-calculated values
+  - Verify interaction term handling with example data
+  - Confirm curves are mathematically accurate for HTNPoRT models
+
+- **Functional Testing:**
+  - Test predictor selection and visualization updates
+  - Test categorical vs. continuous predictor handling
+  - Test male/female model switching
+  - Verify all metadata elements are correctly used
+
+- **Browser Testing:**
+  - Verify functionality on Chrome browser
+  - Test on standard desktop screen sizes
+
+#### Should-Have
+
+- Automated test suite for OR calculations
+- Visual regression testing for plots
+- Integration tests for full user workflows
+
+## 11. Documentation for Developers and Analysts
+
+**Objective:** Enable others to understand and extend the system.
+
+### Requirements
+
+#### Must-Have
+
+- **README:** Overview of project, what it does, how to run it
+- **Setup Instructions:** How to clone, install dependencies (renv),
+  and run locally
+- **Model Export Guide:** Instructions for analysts on how to export
+  HTNPoRT model coefficients in the required format
+- **Metadata Requirements:** Specification of required metadata elements
+  for new models
+- **Architecture Overview:** Explanation of how data flows through the
+  application
+
+#### Should-Have
+
+- Code comments for complex calculations
+- Data structure diagrams
+- Example metadata files annotated with explanations
+- Troubleshooting guide
+
+## 12. Acceptance Criteria and Success Metrics
+
+**Objective:** Define how to measure successful completion of version 1.0.
+
+### Success Criteria
+
+#### Must-Have
+
+- Application successfully visualizes OR curves for HTNPoRT predictors
+  as age varies
+- Calculated OR values are mathematically accurate (verified against
+  hand calculations)
+- Application supports both male and female HTNPoRT models
+- Application supports both continuous and categorical predictors
+- Age interactions are correctly incorporated into OR calculations
+- Application is deployable to static hosting (e.g., GitHub Pages)
+- Application runs in Chrome browser without errors
+- Integrated tutorial clearly explains what the application does and
+  how to use it
+- Code is documented and maintainable for future developers
+
+#### Should-Have
+
+- All core requirements met ahead of schedule
+- Performance is noticeably responsive (< 500ms visualization updates)
+- Users provide positive feedback on tutorial clarity
+- Framework is clearly extensible for future models
+
+## Notes on Implementation Approach
+
+- **UI Iteration:** Final UI details (layout, styling, specific control
+  types) will be determined iteratively after reviewing initial
+  implementations. Requirements prioritize functionality and data flow
+  over specific UI patterns.
+- **Mathematical Precision:** OR calculation accuracy is critical and
+  should be validated early and often.
+- **Metadata Design:** Metadata structure is critical for extensibility.
+  Careful design here enables easy addition of future models without
+  code changes.
+- **Browser Simplicity:** Version 1.0 targets Chrome only. Additional
+  browser support can be added in future versions.
