@@ -132,11 +132,33 @@ ratios change across age for selected predictors.
     (e.g., every year)
 
 - **Curve Generation:**
-  - Use model coefficients and age values to compute OR at each point
-  - Visualize as a continuous line (not discrete points) for
-    continuous predictors
-  - Ensure mathematical accuracy of OR calculations accounting for all
-    interaction terms
+   - Use model coefficients and age values to compute OR at each point
+   - Visualize as a continuous line (not discrete points) for
+     continuous predictors
+   - Ensure mathematical accuracy of OR calculations accounting for all
+     interaction terms
+
+- **Predictor Definition:**
+   - A predictor is defined as the pre-transformed form of a variable:
+     - For continuous variables: the original form as it appears in the
+       study dataset (before any transformations applied during modeling)
+     - For categorical variables: the dummy-coded form for each category
+       (before centering or other transformations)
+
+- **Variable Transformation Support:**
+   - The application must support transformations that convert predictors
+     from their raw form to the form used in model calculations
+   - Transformation specifications should come from either:
+     - The R object (if transformation code/parameters are included)
+     - Model metadata (if specifications are stored in model-parameters)
+   - Based on where transformation data originates, the application may
+     or may not need to implement a transformation engine:
+     - If transformation details are in the R object, the engine may be
+       optional
+     - If specifications are only in metadata, the application must
+       implement the transformation logic
+   - Support common transformation types: centering, scaling, spline
+     transformations, polynomial transformations
 
 #### Should-Have
 
@@ -189,115 +211,92 @@ predictor effects across ages.
 - Ability to download or export the visualization as an image
 - Search functionality for finding predictors in large model lists
 
-## 5. Variable Transformation System
+## 5. Deployment, Technical Infrastructure, and Data Format
 
-**Objective:** Implement variable transformations to convert raw
-predictors to model form for accurate OR calculations.
-
-### Requirements
-
-#### Must-Have
-
-- **Transformation Metadata Storage:**
-  - Store transformation specifications in metadata (not in R object)
-  - Support common transformation types: centering, scaling, spline
-    transformations, polynomial transformations
-  - Clearly define any reference values used (e.g., centering values)
-
-- **Transformation Application:**
-  - Transform predictor values before use in OR calculations
-  - Example: If age is centered in the model, apply centering with the
-    specified mean
-  - Support for continuous predictor transformations
-
-- **Example Support (Age Transformation):**
-  - If age is transformed into spline terms, the application should:
-    - Accept age in its original continuous form from users/visualization
-    - Apply appropriate transformations internally
-    - Use transformed values in coefficient calculations
-
-#### Should-Have
-
-- Clear documentation of transformation logic per predictor
-- Ability to preview or inspect transformations during development
-
-## 6. Deployment and Technical Infrastructure
-
-**Objective:** Ensure the application can be deployed on static hosting
-and runs reliably in browsers.
+**Objective:** Ensure the application can be deployed on static hosting,
+runs reliably in browsers, and uses standardized data formats for models
+and metadata.
 
 ### Requirements
 
 #### Must-Have
 
 - **Technology Stack:**
-  - Use R Shinylive for interactive functionality
-  - Ensure full static HTML/CSS/JS generation for deployment to static
-    hosts
+   - Application must enable interactive functionality with all
+     computation happening in the browser
+   - Generate full static HTML/CSS/JS for deployment to static hosting
+     platforms
+   - R Shinylive is one example technology that can be used, but not the
+     only option
 
 - **Static Hosting Compatibility:**
-  - Application must be deployable to GitHub Pages or similar static
-    hosting platforms
-  - No server-side processing required
-  - All computation happens in the browser
-
-- **Dependency Management:**
-  - Use `renv` for R package management
-  - Lock file must be committed to repository
-  - Clear documentation of how to rebuild dependencies
+   - Application must be deployable to GitHub Pages or similar static
+     hosting platforms
+   - No server-side processing required
+   - All computation happens in the browser
 
 - **Performance:**
-  - OR calculations and curve generation must be fast enough for
-    interactive use (sub-second response)
-  - No optimization required for large datasets (expected data is
-    small)
+   - OR calculations and curve generation must be fast enough for
+     interactive use (sub-second response)
+   - No optimization required for large datasets (expected data is small)
 
 - **Repository Structure:**
-  - Organize code for easy maintenance
-  - Clear separation between R code, data, and documentation
-  - Build process documented
+   - Organize code for easy maintenance
+   - Clear separation between R code, data, and documentation
+   - Build process documented
+
+- **Model Coefficients Format:**
+   - Structured format (JSON, CSV, or R data object) containing:
+     - Predictor names (pre-transformed form)
+     - Main effect coefficients
+     - Interaction term coefficients (with clear labeling of both
+       variables)
+     - Model type identifier
+     - Sex/variant identifier
+
+- **Metadata Format:**
+   - Structured format containing all metadata elements defined in
+     Section 2
+   - Linked to model coefficients through model identifier
+
+- **Integration with HTNPoRT:**
+   - Support import of HTNPoRT male and female model coefficients
+   - Load HTNPoRT-specific metadata (age ranges, categorical
+     references, etc.)
 
 #### Should-Have
 
 - Automated build process for generating static artifacts
 - Version pinning for all dependencies
 - Development setup documentation
+- Validation schema to ensure imported data meets requirements
+- Example datasets demonstrating expected format
+- Tooling to help analysts export models in correct format
 
-## 7. Data Format and Integration
+## 6. Data Integration with Model Parameters Repository
 
-**Objective:** Define standard formats for model coefficients and metadata
-used by the application.
+**Objective:** Ensure application integrates with the model-parameters
+repository for metadata sourcing.
 
 ### Requirements
 
 #### Must-Have
 
-- **Model Coefficients Format:**
-  - Structured format (JSON, CSV, or R data object) containing:
-    - Predictor names (pre-transformed form)
-    - Main effect coefficients
-    - Interaction term coefficients (with clear labeling of both
-      variables)
-    - Model type identifier
-    - Sex/variant identifier
-
-- **Metadata Format:**
-  - Structured format containing all metadata elements defined in
-    Task 2
-  - Linked to model coefficients through model identifier
-
-- **Integration with HTNPoRT:**
-  - Support import of HTNPoRT male and female model coefficients
-  - Load HTNPoRT-specific metadata (age ranges, categorical
-    references, etc.)
+- **Model Parameters Repository Integration:**
+   - Check model-parameters repository for required metadata when
+     available
+   - Support fallback mechanisms if metadata is not yet available in
+     model-parameters
+   - Document which metadata elements are sourced from model-parameters
+     vs. other sources
 
 #### Should-Have
 
-- Validation schema to ensure imported data meets requirements
-- Example datasets demonstrating expected format
-- Tooling to help analysts export models in correct format
+- Automated synchronization or update process with model-parameters
+  repository
+- Clear documentation of metadata versioning and compatibility
 
-## 8. Integrated Tutorial and Documentation
+## 7. Integrated Tutorial and Documentation
 
 **Objective:** Help users understand what the application does and how to
 use it.
@@ -342,7 +341,7 @@ use it.
 - FAQ section
 - Links to reference materials or publications
 
-## 9. Support for Multiple Models and Extensibility
+## 8. Support for Multiple Models and Extensibility
 
 **Objective:** Design the system to support future models beyond HTNPoRT.
 
@@ -376,7 +375,7 @@ use it.
 - Abstraction for different outcome measures (odds ratio for now, but
   designed to support others)
 
-## 10. Testing and Quality Assurance
+## 9. Testing and Quality Assurance
 
 **Objective:** Ensure mathematical accuracy and functional correctness.
 
@@ -405,7 +404,7 @@ use it.
 - Visual regression testing for plots
 - Integration tests for full user workflows
 
-## 11. Documentation for Developers and Analysts
+## 10. Documentation for Developers and Analysts
 
 **Objective:** Enable others to understand and extend the system.
 
@@ -430,7 +429,7 @@ use it.
 - Example metadata files annotated with explanations
 - Troubleshooting guide
 
-## 12. Acceptance Criteria and Success Metrics
+## 11. Acceptance Criteria and Success Metrics
 
 **Objective:** Define how to measure successful completion of version 1.0.
 
