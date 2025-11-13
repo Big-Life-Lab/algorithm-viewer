@@ -9,6 +9,7 @@ model works.
   working with the files in that folder. Always read and follow these
   instructions before making changes.
 * Follow an 80 character line length for all text files in this repository.
+* Make sure there aren't any trailing spaces in each line
 
 ## Folder Structure
 
