@@ -1,0 +1,7 @@
+variable,role,label,labelLong,section,subject,variableType,units,databaseStart,variableStart,description
+clc_age,Predictor,Age,Age,About You,Age,Continuous,years,limesurvey,limesurvey::age,
+fmh_15,Predictor,Hypertension family history,Hypertension family history,Health Profile,Family history,Categorical,N/A,limesurvey,limesurvey::fmh,
+height_cm,intermediate,Height,Height,Demographics,Height,Continuous,centimeters,limesurvey,limesurvey::cm,
+weight_kgs,intermediate,Weight,Weight,Demographics,Weight,Continuous,kilograms,limesurvey,limesurvey::kg,
+hwmdbmi,Predictor,Body mass index,Body mass index,Health Profile,Weight,Continuous,kg/m2,limesurvey,"DerivedVar::[height_cm, weight_kgs]",
+diabx,Predictor,Diabetes,Diabetes,Health Profile,Chronic disease,Categorical,N/A,limesurvey,limesurvey::diab,
