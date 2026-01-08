@@ -5,8 +5,7 @@ title: Predictor Transformations Specification
 ## Introduction
 
 Inputs for models used by the Algorithm Viewer may optionally be put through
-various transformations before inputted into the model for calculating odds
-ratio curves. Examples of transformations include centering, multiplying to
+various transformations before inputted into the model. Examples of transformations include centering, multiplying to
 obtain interaction terms, and applying restricted cubic splines. The
 transformations supported by the Algorithm Viewer, as well as how these
 transformations are specified, should conform to the specifications in the
