@@ -10,10 +10,7 @@ ui <- fluidPage(
   # fillPage(),
   # Application title
   titlePanel(
-    glue::glue(
-      "{model_definitions$meta$algorithm} v{model_definitions$meta$version} ",
-      "Algorithm Viewer"
-    )
+    htmlOutput("ui_title")
   ),
 
   # Sidebar layout
@@ -28,18 +25,8 @@ ui <- fluidPage(
           "Models",
           div(
             br(),
-            # Model selection
-            if(length(model_definitions$models) > 0)
-              checkboxGroupInput(
-                inputId = "model_id",
-                label = "Models:",
-                selected = unname(get_model_choices(model_definitions$models)),
-                choiceNames = get_model_titles(model_definitions$models, include_model_colors = TRUE),
-                choiceValues = get_model_ids(model_definitions$models)
-              )
-            else
-              h4("No models defined in configuration file")
-            ,
+
+            htmlOutput("ui_model_selection"),
 
             hr(),
 
@@ -59,7 +46,11 @@ ui <- fluidPage(
             hr(),
 
             # Log or non-log scale
-            checkboxInput("logarithmic", "Logarithmic", value = TRUE)
+            checkboxInput("logarithmic", "Logarithmic", value = TRUE),
+
+            hr(),
+
+            fileInput("upload", "Upload Algorithm (.zip):", accept = ".zip")
           )
         ),
         tabPanel(
