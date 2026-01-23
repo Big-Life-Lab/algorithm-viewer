@@ -118,6 +118,9 @@ Install all dependencies:
 ```r
 install.packages(c("shiny", "shinyWidgets", "bslib", "plotly", "ggplot2",
                    "dplyr", "rlang", "glue", "cli", "stringr"))
+
+install.packages("devtools")
+devtools::install_github("Big-Life-Lab/model-parameters-pipeline")
 ```
 
 ## License
