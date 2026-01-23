@@ -1,0 +1,24 @@
+meta:
+  algorithm: HTNPoRT
+  version: 1.0.0
+
+models:
+  female:
+    title: Female
+    model_export: ./HTNPoRT-female-model-export.csv
+    reference_group:
+      clc_age: 20
+      fmh_15: 2
+      hwmdbmi: 14.9
+      diabx: 2
+  male:
+    title: Male
+    model_export: ./HTNPoRT-male-model-export.csv
+    reference_group:
+      clc_age: 20
+      fmh_15: 2
+      hwmdbmi: 13.83
+      diabx: 2
+  _all_:
+    predictor_ranges:
+      hwmdbmi: seq(13, 49, by = 0.01)

@@ -1,2 +1,66 @@
-# Quarto documentation output
-docs/_site/
+webr/
+
+# R History files
+.Rhistory
+.Rapp.history
+
+# R Session Data files
+.RData
+.RDataTmp
+
+# R User-specific files
+.Ruserdata
+
+# R Environment Variables
+.Renviron
+
+# RStudio files
+.Rproj.user/
+*.Rproj
+
+# knitr and R Markdown
+*_cache/
+/cache/
+*.html
+!README.html
+
+# Compiled R package files
+*.Rd
+
+# Shiny token for shinyapps.io
+rsconnect/
+
+# Packrat / renv
+packrat/
+renv/
+renv.lock
+
+# Byte-compiled / optimized / DLL files
+*.pyc
+__pycache__/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*~
+\#*\#
+.\#*
+
+# Quarto / documentation output
+docs/
+_site/
+
+# Local configuration
+.env
+.env.local
+
+# Logs
+logs/
+*.log
