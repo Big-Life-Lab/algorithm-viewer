@@ -138,6 +138,3 @@ get_function_and_params <- function(s) {
   }
   named_list
 }
-
-
-print(get_function_and_params("seq(1, 5*2, by = 2)"))
