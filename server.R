@@ -6,6 +6,8 @@ library(shiny)
 library(shinyWidgets)
 library(cli)
 
+source("R/model_definitions/model_definitions.R")
+
 # Load all curve calculation source files
 curve_files <- list.files(path = "R/curves", pattern = "^curve-.*\\.R$")
 lapply(file.path("R/curves", curve_files), source)
@@ -128,6 +130,10 @@ empty_predictor <- "<empty>"
 #' @export
 server <- function(input, output, session) {
   .get_refgroup_values_from_ui <- function(model_id) {
+    if (is.null(model_definitions)) {
+      return()
+    }
+
     reference_group <- list()
     model_data <- model_definitions$models[[model_id]]
 
@@ -157,6 +163,10 @@ server <- function(input, output, session) {
   #' @param model_id Character string specifying the model identifier to
   #'  repopulate the reference group controls for.
   .set_refgroup_control_values <- function(model_id) {
+    if (is.null(model_definitions)) {
+      return()
+    }
+
     model_data <- model_definitions$models[[model_id]]
     reference_group <- get_last_refgroup_values(model_data)
 
@@ -176,11 +186,21 @@ server <- function(input, output, session) {
   # Reactive expression to get currently selected models, based on the
   # input$model_id checkboxGroupInput
   selected_models <- reactive({
-    model_definitions$models[as.vector(input$model_id)]
+    if (is.null(model_definitions)) {
+      list()
+    } else {
+      models <- model_definitions$models[as.vector(input$model_id)]
+      models <- models[!is.na(names(models))]
+      models
+    }
   })
 
   # HTML for specifying the reference groups
   output$refgroups <- renderUI({
+    if (is.null(model_definitions)) {
+      return()
+    }
+
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
 
@@ -253,8 +273,8 @@ server <- function(input, output, session) {
           max_range <- max(variable_range)
 
           if (is.integer(min_range) &&
-                is.integer(max_range) &&
-                all(min_range:max_range == sort(variable_range))) {
+              is.integer(max_range) &&
+              all(min_range:max_range == sort(variable_range))) {
             step <- 1
           } else {
             step <- signif(variable_range[2] - variable_range[1], 5)
@@ -316,6 +336,10 @@ server <- function(input, output, session) {
 
   # Populate predictor choices when model_id changes
   observe({
+    if (is.null(model_definitions)) {
+      return()
+    }
+
     models <- selected_models()
 
     # Create list of all possible choices (from all models)
@@ -341,6 +365,10 @@ server <- function(input, output, session) {
 
   # Populate interaction predictor choices when model_id changes
   observe({
+    if (is.null(model_definitions)) {
+      return()
+    }
+
     models <- selected_models()
 
     # Create list of all possible choices (from all models)
@@ -373,6 +401,8 @@ server <- function(input, output, session) {
     # If no models are selected then tell the user to select one
     if (length(all_curve_data) == 0) {
       return(.make_message_plot("Please select at least one model."))
+    } else if (is.null(model_definitions)) {
+      return(.make_message_plot("No model definitions loaded."))
     }
 
     # Combine all data frames
@@ -447,6 +477,9 @@ server <- function(input, output, session) {
 
   output$pr_plot <- renderPlotly({
     req(input$predictor)
+    if (is.null(model_definitions)) {
+      return()
+    }
 
     predictor <- input$predictor
     all_curve_data <- list()
@@ -461,7 +494,7 @@ server <- function(input, output, session) {
 
       reference_group <- .get_refgroup_values_from_ui(model_data$model_id)
 
-      tic = Sys.time()
+      tic <- Sys.time()
 
       # Calculate the OR curve for the model
       curve_data <- calculate_pr_curve(
@@ -481,6 +514,9 @@ server <- function(input, output, session) {
   # Calculate and plot OR curves
   output$or_plot <- renderPlotly({
     req(input$predictor)
+    if (is.null(model_definitions)) {
+      return()
+    }
 
     all_curve_data <- list()
     predictor <- input$predictor
@@ -496,7 +532,7 @@ server <- function(input, output, session) {
 
       reference_group <- .get_refgroup_values_from_ui(model_data$model_id)
 
-      tic = Sys.time()
+      tic <- Sys.time()
 
       # Calculate the OR curve for the model
       if (interaction_predictor == empty_predictor) {
@@ -543,6 +579,64 @@ server <- function(input, output, session) {
       footer = modalButton("Close")
     ))
   })
+
+  observeEvent(input$upload, {
+    if (!is.null(input$upload)) {
+      file <- input$upload$datapath
+      temp_dir_path <- tempdir()
+
+      files_in_zip <- unzip(zipfile = file, exdir = temp_dir_path)
+      config_files <- files_in_zip[grepl("\\.yaml$", files_in_zip)]
+
+      if (length(config_files) == 0) {
+        showModal(errorModal("Error Loading Data", "No .yaml configuration file was found in your ZIP file. No models were loaded."))
+        return()
+      } else if (length(config_files) > 1) {
+        # Report an error?
+        # return()
+      }
+      config_file <- config_files[[1]]
+      model_definitions <<- read_model_definitions(config_file)
+      session$reload()
+    }
+  })
+
+  output$ui_title <- renderUI({
+    if (!is.null(model_definitions)) {
+      glue::glue(
+        "{model_definitions$meta$algorithm} v{model_definitions$meta$version} ",
+        "Algorithm Viewer"
+      )
+    } else {
+      "Algorithm Viewer"
+    }
+  })
+
+  output$ui_model_selection <- renderUI({
+    if (!is.null(model_definitions) && length(model_definitions$models) > 0) {
+      contents <- checkboxGroupInput(
+        inputId = "model_id",
+        label = "Models:",
+        selected = unname(get_model_choices(model_definitions$models)),
+        choiceNames = get_model_titles(model_definitions$models, include_model_colors = TRUE),
+        choiceValues = get_model_ids(model_definitions$models)
+      )
+    } else {
+      contents <- h4("No models found. Click \"Browse\" below to upload your models.")
+    }
+    div(id = "ui_model_selection_contents", contents)
+  })
+
+  errorModal <- function(title, message) {
+    modalDialog(
+      title = title,
+      message,
+      easyClose = TRUE,
+      footer = tagList(
+        modalButton("Dismiss")
+      )
+    )
+  }
 }
 
 server
