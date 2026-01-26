@@ -59,7 +59,6 @@ them to the model when calculating odds ratio curves.
   - Interactions: Multiply two or more predictors to create a derived
     interaction term.
   - Logistic: Apply a logistic equation using an intercept and coefficients.
-  - Fine and Gray Model: Apply a Fine-Gray model to the predictors.
 
 - **Transformation Specification:**
   - Should comply with the transformations specified in the
