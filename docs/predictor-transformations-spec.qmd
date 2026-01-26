@@ -4,18 +4,22 @@ title: Predictor Transformations Specification
 
 ## Introduction
 
+This specification provides details of the predictor transformations that are
+part of the [Requirements document](requirements.qmd#predictor-transformations).
+
 Inputs for models used by the Algorithm Viewer may optionally be put through
-various transformations before inputted into the model. Examples of transformations include centering, multiplying to
-obtain interaction terms, and applying restricted cubic splines. The
-transformations supported by the Algorithm Viewer, as well as how these
-transformations are specified, should conform to the specifications in the
-[Model Parameters](https://github.com/Big-Life-Lab/model-parameters)
-repository.
+various transformations before inputted into the model. Examples of
+transformations include centering, multiplying to obtain interaction terms, and
+applying restricted cubic splines. The transformations supported by the
+Algorithm Viewer, as well as how these transformations are specified, should
+conform to the specifications in the
+[Model Parameters](https://github.com/Big-Life-Lab/model-parameters) repository.
 
 This section specifies how all these transformations should be calculated. In
-code, the implementation should represent all input variables and derived
-variables in a single matrix, allowing transformation of multiple input vectors
-with a single pass.
+code, the implementation should represent all input variables as a single
+matrix, allowing transformation of multiple input vectors
+with a single pass. Any time a derived variable is created it should be added
+to the matrix.
 
 ## Model Steps File
 
@@ -91,42 +95,28 @@ column):
 
 ```R
 calculate_rcs <- function(x, knots) {
-  # Number of knots
-  nk <- length(knots)
+  k <- length(knots)
+  res <- data.frame(rcs.1 = x)
+  for (j in 1:(k - 2)) {
+    kd <- (knots[k] - knots[1])^(2 / 3) # (knot_k-knot_1)^(2/3)
 
-  if (nk < 3) {
-    stop("At least 3 knots required for RCS")
+    vec1 <- x - knots[j] # X-knot_j
+
+    val2 <- knots[k - 1] - knots[j] # knot_{k-1}-knot_j
+    vec2 <- x - knots[k] # X-knot_k
+
+    val3 <- knots[k] - knots[j] # knot_k-knot_j
+    vec3 <- x - knots[k - 1] # X-knot_{k-1}
+    val4 <- knots[k] - knots[k - 1] # knot_k-knot_{k-1}
+
+    vec_j <- pmax(vec1 / kd, 0)^3 +
+      (val2 * pmax(vec2 / kd, 0)^3 - val3 * pmax(vec3 / kd, 0)^3) / val4
+
+    res$new <- vec_j
+    names(res)[ncol(res)] <- paste0("rcs.", j + 1)
   }
-
-  # Initialize matrix to store RCS terms
-  # For nk knots, we get nk-1 terms total (1 linear + (k-2) restricted)
-  n_terms <- nk - 1
-  rcs_matrix <- matrix(NA, nrow = length(x), ncol = n_terms)
-
-  # First term is just x
-  rcs_matrix[, 1] <- x
-
-  # Calculate additional restricted terms
-  if (n_terms > 1) {
-    # Knot positions
-    t1 <- knots[1]
-    tk_minus_1 <- knots[nk - 1]
-    tk <- knots[nk]
-
-    # Calculate terms 2 through (nk-2)
-    for (j in 1:(n_terms - 1)) {
-      tj <- knots[j]
-
-      # Calculate the three cubic terms with truncation at zero
-      term1 <- pmax((x - tj)^3 / (tk - t1)^2, 0)
-      term2 <- pmax((x - tk)^3 / (tk - t1)^2 / (tk - tk_minus_1) * (tk_minus_1 - tj), 0)
-      term3 <- pmax((x - tk_minus_1)^3 / (tk - t1)^2 / (tk - tk_minus_1) * (tk - tj), 0)
-
-      rcs_matrix[, j + 1] <- term1 - term2 + term3
-    }
-  }
-
-  return(rcs_matrix)
+  res <- as.matrix(res)
+  return(res)
 }
 
 knots <- strsplit("24;40;57;74", ";")
@@ -180,7 +170,7 @@ intercept of the model.
 The above logistic table is represented in code as:
 
 ```R
-logistic_output <-
+t <-
     1 +
     1.5 * clc_age_rcs_1_C +
     -1 * clc_age_rcs_2_C +
@@ -189,4 +179,6 @@ logistic_output <-
     0.1 * clc_age_rcs_1_by_diabx_1_C +
     -0.2 * clc_age_rcs_2_by_diabx_1_C +
     3 * clc_age_rcs_3_by_diabx_1_C
+
+logistic_output <- 1 / (1 + exp(-t))
 ```
