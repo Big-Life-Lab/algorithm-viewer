@@ -25,8 +25,8 @@ calculate_pr_curve <- function(predictor,
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
-  predictor_label <- get_variable_label_and_units(model_data, predictor)
-  predictor_label_no_units <- get_variable_label(model_data, predictor)
+  predictor_label <- get_variable_label_and_units(model_data, predictor, escape_html = TRUE)
+  predictor_label_no_units <- get_variable_label(model_data, predictor, escape_html = TRUE)
   predictor_reference_value <- reference_group[[predictor]]
   output_rows <- length(predictor_range)
 
@@ -52,12 +52,14 @@ calculate_pr_curve <- function(predictor,
   pr <- mod$df[[predicted_col]]
 
   labels <- convert_df_variable_to_label(
-    df, model_data, predictor, predictor
+    df, model_data, predictor, predictor,
+    escape_html = TRUE
   )[[predictor]][1:output_rows]
 
   if (is_variable_categorical(model_data, predictor)) {
     ref_label <- get_variable_label_from_value(
-      model_data, predictor, predictor_reference_value
+      model_data, predictor, predictor_reference_value,
+      escape_html = TRUE
     )
   } else {
     ref_label <- predictor_reference_value
@@ -67,7 +69,7 @@ calculate_pr_curve <- function(predictor,
   output_df <- data.frame(
     x = predictor_range[1:output_rows],
     PR = pr[1:output_rows],
-    Model = model_data$title,
+    Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
       "{predictor_label_no_units} {labels}"
     )
@@ -75,7 +77,8 @@ calculate_pr_curve <- function(predictor,
   names(output_df)[1] <- predictor_label
 
   output_df <- convert_df_variable_to_label(
-    output_df, model_data, predictor, predictor_label
+    output_df, model_data, predictor, predictor_label,
+    escape_html = TRUE
   )
 
   list(
@@ -89,6 +92,7 @@ calculate_pr_curve <- function(predictor,
       "Categorical",
       "Continuous"
     ),
+    ylim = c(0, 1),
     aes_args = list(
       x = dplyr::sym(predictor_label),
       y = dplyr::sym("PR")

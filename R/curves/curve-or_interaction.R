@@ -36,9 +36,10 @@ calculate_or_curve_interaction <- function(predictor,
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
-  predictor_label <- get_variable_label_and_units(model_data, predictor)
+  predictor_label <- get_variable_label_and_units(model_data, predictor, escape_html = TRUE)
   interaction_predictor_label <- get_variable_label(
-    model_data, interaction_predictor
+    model_data, interaction_predictor,
+    escape_html = TRUE
   )
 
   output_rows <- length(predictor_range)
@@ -99,17 +100,19 @@ calculate_or_curve_interaction <- function(predictor,
 
 
   labels1 <- convert_df_variable_to_label(
-    df1, model_data, interaction_predictor, interaction_predictor
+    df1, model_data, interaction_predictor, interaction_predictor,
+    escape_html = TRUE
   )[[interaction_predictor]]
   labels2 <- convert_df_variable_to_label(
-    df2, model_data, interaction_predictor, interaction_predictor
+    df2, model_data, interaction_predictor, interaction_predictor,
+    escape_html = TRUE
   )[[interaction_predictor]]
 
   # Create the DataFrame of odds ratios
   output_df <- data.frame(
     x = predictor_range,
     OR = or[1:output_rows],
-    Model = model_data$title,
+    Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
       "{interaction_predictor_label} {labels1} vs {labels2}"
     )
@@ -121,7 +124,8 @@ calculate_or_curve_interaction <- function(predictor,
   )
 
   interaction_predictor_label <- get_variable_label_and_units(
-    model_data, interaction_predictor
+    model_data, interaction_predictor,
+    escape_html = TRUE
   )
   title <- glue::glue(
     "{predictor_label} [interaction = {interaction_predictor_label}]"
