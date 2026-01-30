@@ -7,7 +7,7 @@
 #' the models and allows the user to extract information from them.
 #'
 #' @examples
-#' \dontrun(
+#' \dontrun{
 #' source("R/model_definitions/model_definitions.R")
 #'
 #' # The following model_definitions will have meta information at $meta
@@ -16,7 +16,7 @@
 #' model_definitions <- read_model_definitions(
 #'   file.path("data", "models", "htnport-mpp", "htnport-reduced.yaml")
 #' )
-#' )
+#' }
 #' @name model_definitions
 NULL
 
@@ -94,6 +94,16 @@ read_model_definitions <- function(file) {
   info
 }
 
+#' Initialize Empty Pipeline Lists
+#'
+#' Adds an empty pipelines list to each model for storing cached
+#' model pipeline objects during runtime.
+#'
+#' @param info Model definitions list containing models.
+#'
+#' @return Updated model definitions with empty pipelines lists.
+#'
+#' @keywords internal
 .add_empty_pipelines <- function(info) {
   for (model_id in names(info$models)) {
     info$models[[model_id]]$pipelines <- list()
@@ -309,7 +319,7 @@ read_model_definitions <- function(file) {
     }
 
     if ("model_export" %in% names(info$models[[model_id]]) &&
-        is.character(names(info$models[[model_id]][["model_export"]]))) {
+      is.character(names(info$models[[model_id]][["model_export"]]))) {
       model_export_files <- .get_files_from_model_export(
         root_dir,
         info$models[[model_id]][["model_export"]]
