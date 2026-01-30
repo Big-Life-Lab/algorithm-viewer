@@ -5,15 +5,24 @@ library(plotly)
 library(shiny)
 library(shinyWidgets)
 library(cli)
+library(htmltools)
+library(archive)
 
 source("R/model_definitions/model_definitions.R")
+
+# The initial algorithm file to load automatically by default on startup (eg. zip or yaml file)
+# Set this to NULL to not load a default algorithm (user must upload themself)
+initial_algorithm_file <- file.path("data", "models", "htnport-mpp", "htnport-reduced.yaml")
+# initial_algorithm_file <- NULL
+
+# Remove scientific notation from plots
+options(scipen = 8)
+# Maximum upload size in bytes
+options(shiny.maxRequestSize = 30 * 1024^2)
 
 # Load all curve calculation source files
 curve_files <- list.files(path = "R/curves", pattern = "^curve-.*\\.R$")
 lapply(file.path("R/curves", curve_files), source)
-
-# Remove scientific notation from plots
-options(scipen = 8)
 
 # ID and name for the empty predictor (eg. to specify nothing in the
 # "Interaction Predictor" selector)
@@ -46,32 +55,6 @@ empty_predictor <- "<empty>"
   glue::glue("refreset_{model_id}")
 }
 
-#' Gather Predictor Choices
-#'
-#' Get all the possible predictor choices for the specified models.
-#'
-#' @param models List of model data objects.
-#'
-#' @return Named list where names are predictor labels and values are predictor
-#'   variable names (e.g., list(Diabetes = "diabx")).
-.gather_predictor_choices <- function(models) {
-  predictor_choices <- list()
-
-  for (model_data in models) {
-    # Get predictors from variables table (role == "Predictor")
-    predictors <- model_data$variables |>
-      filter(role == "Predictor") |>
-      select(variable, label)
-
-    # Create named vector for selectInput
-    cur_predictor_choices <- setNames(predictors$variable, predictors$label)
-    predictor_choices <- c(predictor_choices, cur_predictor_choices)
-  }
-
-  predictor_choices <- predictor_choices[unique(names(predictor_choices))]
-  predictor_choices
-}
-
 #' Create a Plot Consisting of a Single String Message
 #'
 #' Generates a minimal plotly plot displaying a centered text message.
@@ -89,7 +72,7 @@ empty_predictor <- "<empty>"
 .make_message_plot <- function(label, color = "black") {
   label <- label |>
     cli::ansi_strip() |>
-    stringr::str_wrap(width = 40)
+    stringr::str_wrap(width = 50)
 
   df <- data.frame(label = label)
   p <- ggplot() +
@@ -129,13 +112,34 @@ empty_predictor <- "<empty>"
 #'
 #' @export
 server <- function(input, output, session) {
-  .get_refgroup_values_from_ui <- function(model_id) {
-    if (is.null(model_definitions)) {
+  # React to reload_trigger when something needs to be updated due to a loading
+  # of an algorithm zip file. In most cases, we can simply call
+  # selected_models() to react to a reload.
+  # selected_model_ids should generally not be used except for special cases. It
+  # is reacted to in selected_models() to make all other functions that access
+  # the selected models react automatically.
+  selected_model_ids <- reactiveVal(c())
+  reload_trigger <- reactiveVal(0)
+  initial_load_trigger <- reactiveVal(0)
+
+  #' Get Reference Group Values from UI
+  #'
+  #' Retrieves current reference group values from UI slider controls for
+  #' a specific model and caches them in the model data.
+  #'
+  #' @param model_id Character string specifying the model identifier.
+  #'
+  #' @return Named list of reference group values, or NULL if no model
+  #'   definitions are loaded.
+  #'
+  #' @keywords internal
+  get_refgroup_values_from_ui <- function(model_id) {
+    if (is.null(session$userData$model_definitions)) {
       return()
     }
 
     reference_group <- list()
-    model_data <- model_definitions$models[[model_id]]
+    model_data <- session$userData$model_definitions$models[[model_id]]
 
     for (variable in names(model_data$reference_group)) {
       ui_id <- .get_refgroup_input_id(model_id, variable)
@@ -152,7 +156,7 @@ server <- function(input, output, session) {
       reference_group[[variable]] <- val
     }
 
-    model_definitions$models[[model_id]]$last_reference_group <<-
+    session$userData$model_definitions$models[[model_id]]$last_reference_group <<-
       reference_group
 
     reference_group
@@ -162,12 +166,12 @@ server <- function(input, output, session) {
   #'
   #' @param model_id Character string specifying the model identifier to
   #'  repopulate the reference group controls for.
-  .set_refgroup_control_values <- function(model_id) {
-    if (is.null(model_definitions)) {
+  set_refgroup_control_values <- function(model_id) {
+    if (is.null(session$userData$model_definitions)) {
       return()
     }
 
-    model_data <- model_definitions$models[[model_id]]
+    model_data <- session$userData$model_definitions$models[[model_id]]
     reference_group <- get_last_refgroup_values(model_data)
 
     for (variable in names(reference_group)) {
@@ -183,23 +187,34 @@ server <- function(input, output, session) {
     }
   }
 
-  # Reactive expression to get currently selected models, based on the
-  # input$model_id checkboxGroupInput
+  # Reactive expression to get currently selected models based on rv$selected_model_ids
   selected_models <- reactive({
-    if (is.null(model_definitions)) {
+    reload_trigger()
+    if (is.null(session$userData$model_definitions)) {
       list()
     } else {
-      models <- model_definitions$models[as.vector(input$model_id)]
+      models <- session$userData$model_definitions$models[as.vector(selected_model_ids())]
       models <- models[!is.na(names(models))]
       models
     }
   })
 
-  # HTML for specifying the reference groups
-  output$refgroups <- renderUI({
-    if (is.null(model_definitions)) {
-      return()
-    }
+  #' Update Reference Group UI Controls
+  #'
+  #' Rebuilds the reference group slider controls in the UI for all loaded
+  #' models. Removes existing controls and creates new sliders for each
+  #' predictor variable, with appropriate input types for categorical vs
+  #' continuous variables.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_refgroups <- function() {
+    # ID of the div containing the reference group sliders. This is for removing
+    # then adding the div.
+    refgroup_input_id <- "refgroup_input_id"
+
+    removeUI(selector = paste0("#", refgroup_input_id))
 
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
@@ -213,7 +228,7 @@ server <- function(input, output, session) {
     reference_group_input <- append_ui(br())
 
     # Go through all models and create the reference group controls
-    for (model_data in model_definitions$models) {
+    for (model_data in session$userData$model_definitions$models) {
       model_id <- model_data$model_id
 
       # Add a line (hr) between each model controls
@@ -224,7 +239,7 @@ server <- function(input, output, session) {
       # Add heading
       model_heading <- h4(shiny::HTML(add_model_color(
         model_data,
-        glue::glue("Model: {model_data$title}"),
+        cleanup_string(glue::glue("Model: {model_data$title}")),
         "20px",
         "20px",
         after = FALSE
@@ -273,8 +288,8 @@ server <- function(input, output, session) {
           max_range <- max(variable_range)
 
           if (is.integer(min_range) &&
-              is.integer(max_range) &&
-              all(min_range:max_range == sort(variable_range))) {
+            is.integer(max_range) &&
+            all(min_range:max_range == sort(variable_range))) {
             step <- 1
           } else {
             step <- signif(variable_range[2] - variable_range[1], 5)
@@ -290,16 +305,13 @@ server <- function(input, output, session) {
           )
         }
 
-        # Call .get_refgroup_values_from_ui any time a slider changes
+        # Call get_refgroup_values_from_ui any time a slider changes
         # This will save the last set reference group values
-        # (ie. last_reference_group at
-        # model_definitions$models[[model_id]]$last_reference_group)
         cur_env <- env(model_id = model_id, input_id = input_id)
-
         observeEvent(
           input[[input_id]],
           {
-            .get_refgroup_values_from_ui(model_id)
+            get_refgroup_values_from_ui(model_id)
           },
           event.env = cur_env,
           handler.env = cur_env
@@ -313,7 +325,7 @@ server <- function(input, output, session) {
 
       reset_button <- actionButton(
         reset_button_id,
-        label = "Reset",
+        label = glue::glue("Reset {model_data$title}"),
         icon = icon("arrow-rotate-left")
       )
 
@@ -323,36 +335,46 @@ server <- function(input, output, session) {
       observeEvent(
         input[[reset_button_id]],
         {
-          model_definitions$models[[model_id]]$last_reference_group <<- NULL
-          .set_refgroup_control_values(model_id)
+          session$userData$model_definitions$models[[model_id]]$last_reference_group <<- NULL
+          set_refgroup_control_values(model_id)
         },
         handler.env = cur_env,
         event.env = cur_env
       )
     }
 
-    div(reference_group_input)
-  })
+    content <- div(id = refgroup_input_id, reference_group_input)
+    insertUI(selector = "#refgroups", where = "afterBegin", ui = content)
+  }
 
-  # Populate predictor choices when model_id changes
-  observe({
-    if (is.null(model_definitions)) {
+  #' Update Predictor Dropdown Choices
+  #'
+  #' Populates the predictor selectInput with available predictor variables
+  #' from the currently selected models.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_predictor_choices <- function() {
+    if (is.null(session$userData$model_definitions)) {
+      updateSelectInput(
+        session,
+        "predictor",
+        choices = character(0),
+        selected = character(0)
+      )
       return()
     }
 
     models <- selected_models()
 
     # Create list of all possible choices (from all models)
-    predictor_choices <- .gather_predictor_choices(models)
+    predictor_choices <- gather_predictor_choices(models)
 
-    # Determine the selected predictor. If the currently selected predictor
-    # exists then keep it selected, otherwise choose the first one
-    if (input$predictor %in% unname(unlist(predictor_choices))) {
-      selected <- input$predictor
-    } else if (length(models) > 0) {
+    if (length(models) > 0) {
       selected <- predictor_choices[[names(predictor_choices)[[1]]]]
     } else {
-      selected <- NULL
+      selected <- character(0)
     }
 
     updateSelectInput(
@@ -361,32 +383,43 @@ server <- function(input, output, session) {
       choices = predictor_choices,
       selected = selected
     )
-  })
+  }
 
-  # Populate interaction predictor choices when model_id changes
-  observe({
-    if (is.null(model_definitions)) {
+  #' Update Interaction Predictor Dropdown Choices
+  #'
+  #' Populates the interaction predictor selectInput with available predictor
+  #' variables from the currently selected models, including an empty option.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_interaction_predictor_choices <- function() {
+    if (is.null(session$userData$model_definitions)) {
+      updateSelectInput(
+        session,
+        "interaction_predictor",
+        choices = character(0),
+        selected = character(0)
+      )
       return()
     }
 
     models <- selected_models()
 
     # Create list of all possible choices (from all models)
-    predictor_choices <- .gather_predictor_choices(models)
+    predictor_choices <- gather_predictor_choices(models)
 
     # If at least one model is selected, then add the empty predictor
     if (length(models) > 0) {
-      predictor_choices[[empty_predictor]] <- empty_predictor
+      new_list <- list()
+      new_list[[empty_predictor]] <- empty_predictor
+      predictor_choices <- c(new_list, predictor_choices)
     }
 
-    # Determine the selected predictor. If the currently selected one exists
-    # then keep it selected.
-    if (input$interaction_predictor %in% unname(unlist(predictor_choices))) {
-      selected <- input$interaction_predictor
-    } else if (length(models) > 0) {
+    if (length(models) > 0) {
       selected <- empty_predictor
     } else {
-      selected <- NULL
+      selected <- character(0)
     }
 
     updateSelectInput(
@@ -395,14 +428,27 @@ server <- function(input, output, session) {
       choices = predictor_choices,
       selected = selected
     )
-  })
+  }
 
+  #' Create Plotly Visualization
+  #'
+  #' Generates a plotly plot from curve data for multiple models. Handles
+  #' both categorical (bar chart) and continuous (line chart) predictor
+  #' types, with optional logarithmic scaling.
+  #'
+  #' @param all_curve_data List of curve data objects from calculate_or_curve
+  #'   or similar functions. Each object should contain df, aes_args,
+  #'   x_axis_label, y_axis_label, and x_axis_type fields.
+  #'
+  #' @return A plotly object for rendering in the UI.
+  #'
+  #' @keywords internal
   make_plot <- function(all_curve_data) {
     # If no models are selected then tell the user to select one
-    if (length(all_curve_data) == 0) {
+    if (is.null(session$userData$model_definitions)) {
+      return(.make_message_plot("No algorithm loaded.<br />Please upload some data."))
+    } else if (is.null(all_curve_data) || length(all_curve_data) == 0) {
       return(.make_message_plot("Please select at least one model."))
-    } else if (is.null(model_definitions)) {
-      return(.make_message_plot("No model definitions loaded."))
     }
 
     # Combine all data frames
@@ -431,7 +477,7 @@ server <- function(input, output, session) {
           ) +
             geom_col(position = "dodge") +
             scale_fill_manual(
-              values = get_model_colors(model_definitions$models),
+              values = get_model_colors(session$userData$model_definitions$models),
               aesthetics = "fill"
             )
         } else {
@@ -441,13 +487,21 @@ server <- function(input, output, session) {
           ) +
             geom_line(linewidth = 1.2) +
             scale_color_manual(
-              values = get_model_colors(model_definitions$models),
+              values = get_model_colors(session$userData$model_definitions$models),
               aesthetics = "color"
             )
         }
 
+        y_limits <- NULL
+        if (!is.null(curve_data$ylim) && !input$logarithmic) {
+          y_limits <- curve_data$ylim
+          # if (input$logarithmic) {
+          #   y_limits <- sapply(y_limits, function(x) ifelse (x <= 0, 1e-8, x))
+          # }
+        }
+
         p <- p +
-          scale_y_continuous(transform = transform) +
+          scale_y_continuous(transform = transform, limits = y_limits) +
           geom_hline(yintercept = 1, linetype = "dashed", color = "gray50") +
           labs(
             title = curve_data$title,
@@ -476,11 +530,13 @@ server <- function(input, output, session) {
   }
 
   output$pr_plot <- renderPlotly({
-    req(input$predictor)
-    if (is.null(model_definitions)) {
-      return()
+    reload_trigger()
+
+    if (is.null(session$userData$model_definitions)) {
+      return(make_plot(NULL))
     }
 
+    req(input$predictor)
     predictor <- input$predictor
     all_curve_data <- list()
 
@@ -492,7 +548,7 @@ server <- function(input, output, session) {
         filter(variable == predictor) |>
         pull(variableType)
 
-      reference_group <- .get_refgroup_values_from_ui(model_data$model_id)
+      reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
       tic <- Sys.time()
 
@@ -513,11 +569,13 @@ server <- function(input, output, session) {
 
   # Calculate and plot OR curves
   output$or_plot <- renderPlotly({
-    req(input$predictor)
-    if (is.null(model_definitions)) {
-      return()
+    reload_trigger()
+
+    if (is.null(session$userData$model_definitions)) {
+      return(make_plot(NULL))
     }
 
+    req(input$predictor)
     all_curve_data <- list()
     predictor <- input$predictor
     interaction_predictor <- input$interaction_predictor
@@ -530,7 +588,7 @@ server <- function(input, output, session) {
         filter(variable == predictor) |>
         pull(variableType)
 
-      reference_group <- .get_refgroup_values_from_ui(model_data$model_id)
+      reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
       tic <- Sys.time()
 
@@ -549,7 +607,7 @@ server <- function(input, output, session) {
           reference_group = reference_group
         )
       }
-      model_definitions$models[[model_data$model_id]] <<- curve_data$model_data
+      session$userData$model_definitions$models[[model_data$model_id]] <<- curve_data$model_data
 
       print(paste0("Elapsed time for OR curve ", model_data$model_id, ": ", Sys.time() - tic))
 
@@ -559,52 +617,119 @@ server <- function(input, output, session) {
     make_plot(all_curve_data)
   })
 
-  # Help modal
-  observeEvent(input$help, {
-    showModal(modalDialog(
-      title = "Algorithm Viewer Help",
-      shiny::HTML("
-        <h4>What is the Algorithm Viewer?</h4>
-        <p>This application helps you visualize various features of a model.</p>
+  #' Load Model Definitions from File
+  #'
+  #' Reads model definitions from a YAML file and stores them in the session
+  #' user data. Optionally triggers UI updates after loading.
+  #'
+  #' @param file Character string specifying the path to the YAML file.
+  #' @param call_update_all Logical indicating whether to call update_all()
+  #'   after loading. Default is TRUE.
+  #'
+  #' @return NULL (called for side effects).
+  #'
+  #' @keywords internal
+  load_model_definitions <- function(file, call_update_all = TRUE) {
+    tryCatch(
+      {
+        session$userData$model_definitions <- read_model_definitions(file)
+      },
+      error = function(e) {
+        print(paste("Error loading model definition:", e$message))
+      }
+    )
+    if (call_update_all) {
+      update_all()
+    }
+  }
 
-        <h4>How to use:</h4>
-        <ol>
-          <li>Select a model</li>
-          <li>Choose a predictor to visualize</li>
-          <li>View the odds ratio curve showing how the effect changes with
-              the predictor</li>
-        </ol>
-      "),
-      easyClose = TRUE,
-      footer = modalButton("Close")
-    ))
-  })
+  #' Update All UI Components
+  #'
+  #' Refreshes all model-dependent UI components including model selections,
+  #' reference group controls, and predictor dropdowns.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_all <- function() {
+    update_model_selections()
+    update_refgroups()
+    update_predictor_choices()
+    update_interaction_predictor_choices()
+  }
 
+  #' Process Uploaded Data File
+  #'
+  #' Handles uploaded algorithm data files. Supports direct YAML files or
+  #' archive formats (ZIP, TAR) containing a YAML configuration file.
+  #' Displays error modals for invalid or corrupt files.
+  #'
+  #' @param file Character string specifying the path to the uploaded file.
+  #'
+  #' @return NULL (called for side effects).
+  #'
+  #' @keywords internal
+  process_data_file <- function(file) {
+    if (grepl(file_ext(file), "^(yaml|yml)$", ignore.case = TRUE)) {
+      load_model_definitions(file)
+    } else {
+      temp_dir_path <- tempdir()
+
+      session$userData$model_definitions <- NULL
+      archive_success <- FALSE
+      config_files <- c()
+
+      tryCatch(
+        {
+          files_in_archive <- archive_extract(file, dir = temp_dir_path)
+          config_files <- files_in_archive[grepl("(\\.yaml|\\.yml)$", files_in_archive, ignore.case = TRUE)]
+          # Ignore config files in the __MACOSX directory (added automatically on a Mac)
+          config_files <- config_files[!grepl("__MACOSX", config_files)]
+          archive_success <- TRUE
+        },
+        error = function(e) {}
+      )
+
+      if (!archive_success) {
+        showModal(errorModal("Error Loading Data", "Could not extract the contents of the uploaded file, it may be corrupt or in an unsupported format. No models were loaded."))
+      } else if (length(config_files) == 0) {
+        showModal(errorModal("Error Loading Data", "A YAML configuration file was not found in your archive. No models were loaded."))
+      } else if (length(config_files) > 1) {
+        message <- paste0("<li>", htmltools::htmlEscape(basename(config_files)), "</li>") |>
+          stringr::str_c(collapse = "\n")
+        message <- paste0("<ul>\n", message, "\n</ul>")
+        message <- glue::glue("<p>Multiple YAML configuration files were found in your archive, only one is allowed:</p>{message}<p>No models were loaded.</p>")
+        showModal(errorModal("Error Loading Data", shiny::HTML(message)))
+      } else {
+        config_file <- file.path(temp_dir_path, config_files[[1]])
+        load_model_definitions(config_file, call_update_all = FALSE)
+      }
+      update_all()
+    }
+  }
+
+  # Handle file that has been uploaded
   observeEvent(input$upload, {
     if (!is.null(input$upload)) {
       file <- input$upload$datapath
-      temp_dir_path <- tempdir()
-
-      files_in_zip <- unzip(zipfile = file, exdir = temp_dir_path)
-      config_files <- files_in_zip[grepl("\\.yaml$", files_in_zip)]
-
-      if (length(config_files) == 0) {
-        showModal(errorModal("Error Loading Data", "No .yaml configuration file was found in your ZIP file. No models were loaded."))
-        return()
-      } else if (length(config_files) > 1) {
-        # Report an error?
-        # return()
-      }
-      config_file <- config_files[[1]]
-      model_definitions <<- read_model_definitions(config_file)
-      session$reload()
+      process_data_file(file)
     }
   })
 
+  # Show a message to the user at the top of the "Models" tab
+  output$model_message <- renderUI({
+    reload_trigger()
+    if (is.null(session$userData$model_definitions)) {
+      div("No algorithm has been loaded. Click the \"Browse\" button below to upload your data as a ZIP file or other archive.", style = "color: #ff0000;", br(), br())
+    }
+  })
+
+  # Populate the main title of the page
   output$ui_title <- renderUI({
-    if (!is.null(model_definitions)) {
+    reload_trigger()
+    if (!is.null(session$userData$model_definitions)) {
       glue::glue(
-        "{model_definitions$meta$algorithm} v{model_definitions$meta$version} ",
+        "{session$userData$model_definitions$meta$algorithm} v{session$userData$model_definitions$meta$version} ",
         "Algorithm Viewer"
       )
     } else {
@@ -612,21 +737,71 @@ server <- function(input, output, session) {
     }
   })
 
-  output$ui_model_selection <- renderUI({
-    if (!is.null(model_definitions) && length(model_definitions$models) > 0) {
-      contents <- checkboxGroupInput(
-        inputId = "model_id",
-        label = "Models:",
-        selected = unname(get_model_choices(model_definitions$models)),
-        choiceNames = get_model_titles(model_definitions$models, include_model_colors = TRUE),
-        choiceValues = get_model_ids(model_definitions$models)
-      )
-    } else {
-      contents <- h4("No models found. Click \"Browse\" below to upload your models.")
+  # Handle initial loading of the page (load the initial algorithm file if there is one)
+  observe({
+    if (initial_load_trigger() > 0) {
+      return()
     }
-    div(id = "ui_model_selection_contents", contents)
+    if (!is.null(initial_algorithm_file)) {
+      process_data_file(initial_algorithm_file)
+    }
+    initial_load_trigger(initial_load_trigger() + 1)
   })
 
+  # When the Models checkboxes change selection then update the reactive values
+  # select_model_ids with a string vector of the selected model IDs. This
+  # will trigger all listeners on selected_model_ids.
+  observe({
+    selected_model_ids(input$model_id)
+  })
+
+  #' Update Model Selection Checkboxes
+  #'
+  #' Populates the model selection checkbox group with available models
+  #' from the loaded model definitions. Selects all models by default
+  #' and triggers a reload of dependent UI components.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_model_selections <- function() {
+    if (!is.null(session$userData$model_definitions) && length(session$userData$model_definitions$models) > 0) {
+      selected <- unname(get_model_choices(session$userData$model_definitions$models))
+      updateCheckboxGroupInput(
+        session,
+        "model_id",
+        label = "Models:",
+        selected = selected,
+        choiceNames = get_model_titles(session$userData$model_definitions$models, include_model_colors = TRUE, escape_html = TRUE),
+        choiceValues = get_model_ids(session$userData$model_definitions$models)
+      )
+      selected_model_ids(selected)
+    } else {
+      # No model definitions loaded, so show an empty checkbox group
+      updateCheckboxGroupInput(
+        session,
+        "model_id",
+        label = "Models:",
+        selected = character(0),
+        choiceNames = character(0),
+        choiceValues = character(0)
+      )
+      selected_model_ids(c())
+    }
+
+    reload_trigger(reload_trigger() + 1)
+  }
+
+  #' Create Error Modal Dialog
+  #'
+  #' Creates a modal dialog for displaying error messages to the user.
+  #'
+  #' @param title Character string specifying the modal title.
+  #' @param message Character string or HTML content for the modal body.
+  #'
+  #' @return A modalDialog object for use with showModal().
+  #'
+  #' @keywords internal
   errorModal <- function(title, message) {
     modalDialog(
       title = title,
@@ -637,6 +812,11 @@ server <- function(input, output, session) {
       )
     )
   }
+
+  # Help tab
+  output$help <- renderUI({
+    htmltools::includeMarkdown("data/help/main.md")
+  })
 }
 
 server
