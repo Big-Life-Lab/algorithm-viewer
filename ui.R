@@ -37,16 +37,20 @@ ui <- fluidPage(
         tabPanel(
           "Models",
           icon = icon("atom"),
+          br(),
+
           div(
-            br(),
-            htmlOutput("model_message"),
-            fileInput("upload", "Upload Algorithm:", accept = c(".zip", ".tar", ".gz")),
-            hr(),
-            checkboxGroupInput(
-              inputId = "model_id",
-              label = "Models:"
+            div(
+              style = ifelse(allow_file_uploads, "", "display: none"),
+              htmlOutput("model_message"),
+              fileInput("upload", "Upload Algorithm:", accept = c(".zip", ".tar", ".gz")),
+              hr(),
+              checkboxGroupInput(
+                inputId = "model_id",
+                label = "Models:"
+              ),
+              hr()
             ),
-            hr(),
 
             # Predictor selection (will be populated dynamically)
             selectInput(

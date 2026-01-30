@@ -710,6 +710,10 @@ server <- function(input, output, session) {
 
   # Handle file that has been uploaded
   observeEvent(input$upload, {
+    if (!allow_file_uploads) {
+      return()
+    }
+    
     if (!is.null(input$upload)) {
       file <- input$upload$datapath
       process_data_file(file)
