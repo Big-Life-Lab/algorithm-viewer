@@ -2,6 +2,7 @@ library(shiny)
 library(tools)
 library(dplyr)
 library(rlang)
+library(htmltools)
 
 #' Check if Data Value is Missing
 #'
@@ -26,19 +27,40 @@ is_data_missing <- function(val) {
 #' @param model_data List containing model data with variables table.
 #' @param variable Character string specifying the variable name.
 #' @param heading Character string specifying the column name to retrieve.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return The requested metadata value, or NULL if missing.
 #'
 #' @export
-get_variable_info <- function(model_data, variable, heading) {
+get_variable_info <- function(model_data, variable, heading, escape_html = FALSE) {
   val <- model_data$variables |>
     filter(variable == !!variable) |>
     pull(!!heading)
   if (is_data_missing(val)) {
     NULL
+  } else if (escape_html) {
+    cleanup_string(val)
   } else {
     val
   }
+}
+
+#' Escape HTML Characters in String
+#'
+#' Escapes HTML special characters in a string to prevent XSS and
+#' ensure proper display in HTML contexts.
+#'
+#' @param s Character string to escape, or any other value.
+#'
+#' @return The escaped string if input was character, otherwise the
+#'   original value unchanged.
+#'
+#' @keywords internal
+cleanup_string <- function(s) {
+  if (is.character(s)) {
+    s <- htmltools::htmlEscape(s)
+  }
+  s
 }
 
 #' Get Predictor Range
@@ -62,12 +84,14 @@ get_predictor_range <- function(model_data, variable) {
 #'
 #' @param model_data List containing model data with variable_details.
 #' @param variable Character string specifying the variable name.
+#' @param escape_html Logical indicating whether to escape HTML codes
+#'    from the labels.
 #'
 #' @return A named list mapping values to their display labels.
 #'
 #' @export
-get_variable_values_to_labels <- function(model_data, variable) {
-  info <- get_variable_labels_to_values(model_data, variable)
+get_variable_values_to_labels <- function(model_data, variable, escape_html = FALSE) {
+  info <- get_variable_labels_to_values(model_data, variable, escape_html = escape_html)
   as.list(setNames(names(info), info))
 }
 
@@ -78,16 +102,21 @@ get_variable_values_to_labels <- function(model_data, variable) {
 #'
 #' @param model_data List containing model data with variable_details.
 #' @param variable Character string specifying the variable name.
+#' @param escape_html Logical indicating whether to escape HTML codes from
+#'    the labels.
 #'
 #' @return A named list mapping labels to their internal values.
 #'
 #' @keywords internal
-get_variable_labels_to_values <- function(model_data, variable) {
+get_variable_labels_to_values <- function(model_data, variable, escape_html = FALSE) {
   info <- model_data$variable_details |>
     filter(variable == !!variable) |>
     filter(recEnd != "NA::b") |>
     pull(recEnd, catLabel) |>
     as.list()
+  if (escape_html) {
+    info <- cleanup_string(info)
+  }
   info
 }
 
@@ -166,13 +195,14 @@ get_variable_value_from_label <- function(model_data, variable, label) {
 #' @param variable Character string specifying the variable name.
 #' @param value The internal value to convert, or a vector of values to
 #'  convert.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return The display label corresponding to the value, or a vector of
 #'  display labels corresponding to the multiple values.
 #'
 #' @export
-get_variable_label_from_value <- function(model_data, variable, value) {
-  values_to_labels <- get_variable_values_to_labels(model_data, variable)
+get_variable_label_from_value <- function(model_data, variable, value, escape_html = FALSE) {
+  values_to_labels <- get_variable_values_to_labels(model_data, variable, escape_html = escape_html)
   unname(unlist(values_to_labels)[value])
 }
 
@@ -182,13 +212,14 @@ get_variable_label_from_value <- function(model_data, variable, value) {
 #'
 #' @param model_data List containing model data with variables table.
 #' @param variable Character string specifying the variable name.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return Character string with the label and optional units in parentheses.
 #'
 #' @keywords internal
-get_variable_label_and_units <- function(model_data, variable) {
-  label <- get_variable_info(model_data, variable, "label")
-  units <- get_variable_info(model_data, variable, "units")
+get_variable_label_and_units <- function(model_data, variable, escape_html = FALSE) {
+  label <- get_variable_info(model_data, variable, "label", escape_html = escape_html)
+  units <- get_variable_info(model_data, variable, "units", escape_html = escape_html)
 
   res <- label
   if (!is.null(units)) {
@@ -203,12 +234,13 @@ get_variable_label_and_units <- function(model_data, variable) {
 #'
 #' @param model_data List containing model data with variables table.
 #' @param variable Character string specifying the variable name.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return Character string with the variable's display label.
 #'
 #' @keywords internal
-get_variable_label <- function(model_data, variable) {
-  get_variable_info(model_data, variable, "label")
+get_variable_label <- function(model_data, variable, escape_html = FALSE) {
+  get_variable_info(model_data, variable, "label", escape_html = escape_html)
 }
 
 #' Convert Data Frame Variable Values to Labels
@@ -220,15 +252,19 @@ get_variable_label <- function(model_data, variable) {
 #' @param model_data List containing model data with variable_details.
 #' @param variable Character string specifying the variable name.
 #' @param df_column Character string specifying the column name to convert.
+#' @param escape_html Logical indicating whether to escape HTML codes from
+#'   the labels.
 #'
 #' @return The data frame with converted labels in the specified column.
 #'
 #' @keywords internal
-convert_df_variable_to_label <- function(df, model_data, variable, df_column) {
+convert_df_variable_to_label <- function(df, model_data, variable, df_column, escape_html = FALSE) {
   if (is_variable_categorical(model_data, variable)) {
     allowable_values <- get_predictor_range(model_data, variable)
     labels <- get_variable_label_from_value(model_data, variable,
-                                            allowable_values)
+      allowable_values,
+      escape_html = escape_html
+    )
     # Get the index into allowable_values for all values in df_column
     indices <- unlist(df[[df_column]]) |>
       lapply(function(x) which(x == allowable_values)) |>
@@ -244,15 +280,20 @@ convert_df_variable_to_label <- function(df, model_data, variable, df_column) {
 #'
 #' @param models List of model data objects.
 #' @param field Character string specifying the field name to extract.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return Vector of field values, with NULL for models missing the field.
 #'
 #' @keywords internal
-get_all_models_field <- function(models, field) {
+get_all_models_field <- function(models, field, escape_html = FALSE) {
   fields <- c()
   for (model_data in models) {
     if (field %in% names(model_data)) {
-      fields <- append(fields, model_data[[field]])
+      val <- model_data[[field]]
+      if (escape_html) {
+        val <- cleanup_string(val)
+      }
+      fields <- append(fields, val)
     } else {
       fields <- append(fields, NULL)
     }
@@ -274,7 +315,7 @@ get_all_models_field <- function(models, field) {
 get_model_colors <- function(models, names_field = "title") {
   model_colors <- get_all_models_field(models, "model_color")
   if (!is.null(names_field)) {
-    names(model_colors) <- get_all_models_field(models, names_field)
+    names(model_colors) <- get_all_models_field(models, names_field, escape_html = TRUE)
   }
 
   model_colors
@@ -289,14 +330,15 @@ get_model_colors <- function(models, names_field = "title") {
 #' @param models List of model data objects.
 #' @param names_field Character string specifying which field to use for display
 #'   names. Default is "title". Set to NULL to return unnamed list.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return Named list where names are model titles and values are model IDs.
 #'
 #' @export
-get_model_choices <- function(models, names_field = "title") {
+get_model_choices <- function(models, names_field = "title", escape_html = FALSE) {
   choices <- get_model_ids(models)
   if (!is.null(names_field)) {
-    names(choices) <- get_all_models_field(models, names_field)
+    names(choices) <- get_all_models_field(models, names_field, escape_html = escape_html)
   }
 
   choices
@@ -322,15 +364,19 @@ get_model_ids <- function(models) {
 #' @param models List of model data objects.
 #' @param include_model_colors Logical indicating whether to include colored
 #'   HTML spans alongside titles. Default is FALSE.
+#' @param escape_html Logical indicating whether to escape HTML codes.
 #'
 #' @return List of model titles, as HTML if include_model_colors is TRUE.
 #'
 #' @keywords internal
-get_model_titles <- function(models, include_model_colors = FALSE) {
+get_model_titles <- function(models, include_model_colors = FALSE, escape_html = FALSE) {
   model_values <- list()
 
   for (model_data in models) {
     title <- model_data$title
+    if (escape_html) {
+      title <- htmltools::htmlEscape(title)
+    }
     if (include_model_colors) {
       title <- shiny::HTML(add_model_color(model_data, title, "12px", "12px"))
     }
@@ -394,3 +440,30 @@ get_last_refgroup_values <- function(model_data) {
 
   reference_group
 }
+
+#' Gather Predictor Choices
+#'
+#' Get all the possible predictor choices for the specified models.
+#'
+#' @param models List of model data objects.
+#'
+#' @return Named list where names are predictor labels and values are predictor
+#'   variable names (e.g., list(Diabetes = "diabx")).
+gather_predictor_choices <- function(models) {
+  predictor_choices <- list()
+
+  for (model_data in models) {
+    # Get predictors from variables table (role == "Predictor")
+    predictors <- model_data$variables |>
+      filter(role == "Predictor") |>
+      select(variable, label)
+
+    # Create named vector for selectInput
+    cur_predictor_choices <- setNames(predictors$variable, predictors$label)
+    predictor_choices <- c(predictor_choices, cur_predictor_choices)
+  }
+
+  predictor_choices <- predictor_choices[unique(names(predictor_choices))]
+  predictor_choices
+}
+
