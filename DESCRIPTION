@@ -1,0 +1,30 @@
+Package: algorithmviewer
+Title: Algorithm Viewer - Shiny Application for Visualizing Prediction Algorithms
+Version: 0.1.0
+Authors@R:
+    person("Martin", "Wellman", role = c("aut", "cre"))
+Description: A Shiny web application for visualizing prediction algorithms,
+    including odds ratio and predicted risk curves. Allows users to upload
+    algorithm configurations, select models, adjust reference groups, and
+    interactively explore predictor relationships.
+License: file LICENSE
+Encoding: UTF-8
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.0
+Imports:
+    archive,
+    bslib,
+    cli,
+    dplyr,
+    ggplot2,
+    glue,
+    htmltools,
+    plotly,
+    rlang,
+    shiny,
+    shinyWidgets,
+    stringr,
+    viridis,
+    yaml
+Remotes:
+  github::Big-Life-Lab/model-parameters-pipeline
