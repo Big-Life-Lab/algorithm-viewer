@@ -90,7 +90,7 @@ get_function_and_params <- function(s) {
 .parse_param_value <- function(value) {
   if (stringr::str_length(value) >= 2) {
     if ((stringr::str_starts(value, "'") && stringr::str_ends(value, "'")) ||
-          (stringr::str_starts(value, '"') && stringr::str_ends(value, '"'))) {
+      (stringr::str_starts(value, '"') && stringr::str_ends(value, '"'))) {
       value <- substr(value, 2, stringr::str_length(value) - 1)
       return(value)
     }
