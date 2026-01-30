@@ -16,7 +16,7 @@ webr/
 
 # RStudio files
 .Rproj.user/
-*.Rproj
+# *.Rproj
 
 # knitr and R Markdown
 *_cache/
