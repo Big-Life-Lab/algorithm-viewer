@@ -7,6 +7,12 @@ library(shinyWidgets)
 library(cli)
 library(htmltools)
 library(archive)
+if (FALSE) {
+  # Required by ggplot2 when exporting for Shinylive
+  library(munsell)
+  # Required by htmltools::includeMarkdown when exporting for Shinylive
+  library(markdown)
+}
 
 source("R/model_definitions/model_definitions.R")
 
