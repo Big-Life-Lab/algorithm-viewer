@@ -38,7 +38,6 @@ ui <- fluidPage(
           "Models",
           icon = icon("atom"),
           br(),
-
           div(
             div(
               style = ifelse(allow_file_uploads, "", "display: none"),
