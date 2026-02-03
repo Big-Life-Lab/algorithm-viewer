@@ -36,7 +36,10 @@ calculate_or_curve_interaction <- function(predictor,
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
-  predictor_label <- get_variable_label_and_units(model_data, predictor, escape_html = TRUE)
+  predictor_label <- get_variable_label_and_units(
+    model_data, predictor,
+    escape_html = TRUE
+  )
   interaction_predictor_label <- get_variable_label(
     model_data, interaction_predictor,
     escape_html = TRUE
@@ -77,28 +80,23 @@ calculate_or_curve_interaction <- function(predictor,
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
-  mod1 <- model_data$pipelines$or_interaction_curve1
+  mod1 <- model_data$model_pipeline
   mod1 <- run_model_pipeline(
-    root_dir = model_data$root_dir,
-    data = df1,
-    model_export = model_data$model_export,
-    existing_mod = mod1
+    mod1,
+    data = df1
   )
-  model_data$pipelines$or_interaction_curve1 <- mod1
-  mod2 <- model_data$pipelines$or_interaction_curve2
+  mod2 <- model_data$model_pipeline
   mod2 <- run_model_pipeline(
-    root_dir = model_data$root_dir,
-    data = df2,
-    model_export = model_data$model_export,
-    existing_mod = mod2
+    mod2,
+    data = df2
   )
-  model_data$pipelines$or_interaction_curve2 <- mod2
 
   predicted_col <- "logistic_1"
   or <- (mod1$df[[predicted_col]] / (1 - mod1$df[[predicted_col]])) /
     (mod2$df[[predicted_col]] / (1 - mod2$df[[predicted_col]]))
 
-
+  # Convert the variable IDs (eg. clc_age) to the variable labels
+  # (eg. Age)
   labels1 <- convert_df_variable_to_label(
     df1, model_data, interaction_predictor, interaction_predictor,
     escape_html = TRUE

@@ -22,6 +22,7 @@ NULL
 
 library(yaml)
 library(viridis)
+library(model.parameters.pipeline)
 
 source("R/model_definitions/model_definitions_utils.R")
 source("R/utils/function_parser.R")
@@ -85,6 +86,7 @@ read_model_definitions <- function(file) {
 
   info <- .copy_from_all_model(info)
   info <- .assign_root_dir(info, root_dir)
+  info <- .load_model_pipelines(info, root_dir)
   info <- .load_files(info, root_dir)
   info <- .parse_predictor_ranges(info)
   info <- .add_model_indices_and_ids(info)
@@ -331,6 +333,27 @@ read_model_definitions <- function(file) {
       }
     }
   }
+  info
+}
+
+#' Load Model Pipelines
+#'
+#' Loads the model pipeline for each model in the definitions by reading
+#' the model export file and preparing it with \code{prepare_model_pipeline}.
+#'
+#' @param info Model definitions list.
+#' @param root_dir Character string specifying the root directory containing
+#'   model export files.
+#'
+#' @return Updated model definitions with model_pipeline loaded for each model.
+#'
+#' @keywords internal
+.load_model_pipelines <- function(info, root_dir) {
+  for (model_id in names(info$models)) {
+    model_export_file <- file.path(root_dir, info$models[[model_id]]$model_export)
+    info$models[[model_id]]$model_pipeline <- prepare_model_pipeline(model_export_file)
+  }
+
   info
 }
 

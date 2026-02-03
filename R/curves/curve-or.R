@@ -27,8 +27,14 @@ calculate_or_curve <- function(predictor,
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
-  predictor_label <- get_variable_label_and_units(model_data, predictor, escape_html = TRUE)
-  predictor_label_no_units <- get_variable_label(model_data, predictor, escape_html = TRUE)
+  predictor_label <- get_variable_label_and_units(
+    model_data, predictor,
+    escape_html = TRUE
+  )
+  predictor_label_no_units <- get_variable_label(
+    model_data, predictor,
+    escape_html = TRUE
+  )
   predictor_reference_value <- reference_group[[predictor]]
   output_rows <- length(predictor_range)
 
@@ -42,14 +48,11 @@ calculate_or_curve <- function(predictor,
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
-  mod <- model_data$pipelines$or_curve
+  mod <- model_data$model_pipeline
   mod <- run_model_pipeline(
-    root_dir = model_data$root_dir,
-    data = df,
-    model_export = model_data$model_export,
-    existing_mod = mod
+    mod,
+    data = df
   )
-  model_data$pipelines$or_curve <- mod
 
   predicted_col <- "logistic_1"
   or <- (mod$df[[predicted_col]] / (1 - mod$df[[predicted_col]])) /
