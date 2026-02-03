@@ -466,4 +466,3 @@ gather_predictor_choices <- function(models) {
   predictor_choices <- predictor_choices[unique(names(predictor_choices))]
   predictor_choices
 }
-
