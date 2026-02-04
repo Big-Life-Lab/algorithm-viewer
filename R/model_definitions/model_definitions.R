@@ -350,8 +350,10 @@ read_model_definitions <- function(file) {
 #' @keywords internal
 .load_model_pipelines <- function(info, root_dir) {
   for (model_id in names(info$models)) {
-    model_export_file <- file.path(root_dir, info$models[[model_id]]$model_export)
-    info$models[[model_id]]$model_pipeline <- prepare_model_pipeline(model_export_file)
+    model_export <- info$models[[model_id]]$model_export
+    model_export_file <- file.path(root_dir, model_export)
+    info$models[[model_id]]$model_pipeline <-
+      prepare_model_pipeline(model_export_file)
   }
 
   info

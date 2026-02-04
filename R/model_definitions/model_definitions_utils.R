@@ -32,7 +32,10 @@ is_data_missing <- function(val) {
 #' @return The requested metadata value, or NULL if missing.
 #'
 #' @export
-get_variable_info <- function(model_data, variable, heading, escape_html = FALSE) {
+get_variable_info <- function(model_data,
+                              variable,
+                              heading,
+                              escape_html = FALSE) {
   val <- model_data$variables |>
     filter(variable == !!variable) |>
     pull(!!heading)
@@ -90,8 +93,12 @@ get_predictor_range <- function(model_data, variable) {
 #' @return A named list mapping values to their display labels.
 #'
 #' @export
-get_variable_values_to_labels <- function(model_data, variable, escape_html = FALSE) {
-  info <- get_variable_labels_to_values(model_data, variable, escape_html = escape_html)
+get_variable_values_to_labels <- function(model_data,
+                                          variable,
+                                          escape_html = FALSE) {
+  info <- get_variable_labels_to_values(
+    model_data, variable, escape_html = escape_html
+  )
   as.list(setNames(names(info), info))
 }
 
@@ -108,7 +115,9 @@ get_variable_values_to_labels <- function(model_data, variable, escape_html = FA
 #' @return A named list mapping labels to their internal values.
 #'
 #' @keywords internal
-get_variable_labels_to_values <- function(model_data, variable, escape_html = FALSE) {
+get_variable_labels_to_values <- function(model_data,
+                                          variable,
+                                          escape_html = FALSE) {
   info <- model_data$variable_details |>
     filter(variable == !!variable) |>
     filter(recEnd != "NA::b") |>
@@ -201,8 +210,13 @@ get_variable_value_from_label <- function(model_data, variable, label) {
 #'  display labels corresponding to the multiple values.
 #'
 #' @export
-get_variable_label_from_value <- function(model_data, variable, value, escape_html = FALSE) {
-  values_to_labels <- get_variable_values_to_labels(model_data, variable, escape_html = escape_html)
+get_variable_label_from_value <- function(model_data,
+                                          variable,
+                                          value,
+                                          escape_html = FALSE) {
+  values_to_labels <- get_variable_values_to_labels(
+    model_data, variable, escape_html = escape_html
+  )
   unname(unlist(values_to_labels)[value])
 }
 
@@ -217,9 +231,15 @@ get_variable_label_from_value <- function(model_data, variable, value, escape_ht
 #' @return Character string with the label and optional units in parentheses.
 #'
 #' @keywords internal
-get_variable_label_and_units <- function(model_data, variable, escape_html = FALSE) {
-  label <- get_variable_info(model_data, variable, "label", escape_html = escape_html)
-  units <- get_variable_info(model_data, variable, "units", escape_html = escape_html)
+get_variable_label_and_units <- function(model_data,
+                                         variable,
+                                         escape_html = FALSE) {
+  label <- get_variable_info(
+    model_data, variable, "label", escape_html = escape_html
+  )
+  units <- get_variable_info(
+    model_data, variable, "units", escape_html = escape_html
+  )
 
   res <- label
   if (!is.null(units)) {
@@ -258,7 +278,11 @@ get_variable_label <- function(model_data, variable, escape_html = FALSE) {
 #' @return The data frame with converted labels in the specified column.
 #'
 #' @keywords internal
-convert_df_variable_to_label <- function(df, model_data, variable, df_column, escape_html = FALSE) {
+convert_df_variable_to_label <- function(df,
+                                         model_data,
+                                         variable,
+                                         df_column,
+                                         escape_html = FALSE) {
   if (is_variable_categorical(model_data, variable)) {
     allowable_values <- get_predictor_range(model_data, variable)
     labels <- get_variable_label_from_value(model_data, variable,
@@ -315,7 +339,9 @@ get_all_models_field <- function(models, field, escape_html = FALSE) {
 get_model_colors <- function(models, names_field = "title") {
   model_colors <- get_all_models_field(models, "model_color")
   if (!is.null(names_field)) {
-    names(model_colors) <- get_all_models_field(models, names_field, escape_html = TRUE)
+    names(model_colors) <- get_all_models_field(
+      models, names_field, escape_html = TRUE
+    )
   }
 
   model_colors
@@ -335,10 +361,14 @@ get_model_colors <- function(models, names_field = "title") {
 #' @return Named list where names are model titles and values are model IDs.
 #'
 #' @export
-get_model_choices <- function(models, names_field = "title", escape_html = FALSE) {
+get_model_choices <- function(models,
+                              names_field = "title",
+                              escape_html = FALSE) {
   choices <- get_model_ids(models)
   if (!is.null(names_field)) {
-    names(choices) <- get_all_models_field(models, names_field, escape_html = escape_html)
+    names(choices) <- get_all_models_field(
+      models, names_field, escape_html = escape_html
+    )
   }
 
   choices
@@ -369,7 +399,9 @@ get_model_ids <- function(models) {
 #' @return List of model titles, as HTML if include_model_colors is TRUE.
 #'
 #' @keywords internal
-get_model_titles <- function(models, include_model_colors = FALSE, escape_html = FALSE) {
+get_model_titles <- function(models,
+                             include_model_colors = FALSE,
+                             escape_html = FALSE) {
   model_values <- list()
 
   for (model_data in models) {
