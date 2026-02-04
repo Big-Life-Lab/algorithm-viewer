@@ -1,0 +1,4 @@
+fileType,filePath
+variables,./HTNPoRT-reduced-female-variables.csv
+variable-details,./HTNPoRT-reduced-female-variable-details.csv
+model-steps,./HTNPoRT-reduced-female-model-steps.csv
