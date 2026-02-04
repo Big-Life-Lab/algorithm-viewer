@@ -88,10 +88,16 @@ empty_predictor <- "<empty>"
     geom_text(
       data = df, aes(label = label), x = 0.5, y = 0.5, color = color
     ) +
-    theme_void()
+    theme_void() +
+    theme(axis.line = element_blank())
 
   ggplotly(p, tooltip = NULL) |>
-    style(hoverinfo = "none")
+    style(hoverinfo = "none") |>
+    config(displayModeBar = FALSE) |>
+    layout(
+      xaxis = list(fixedrange = TRUE),
+      yaxis = list(fixedrange = TRUE)
+    )
 }
 
 #' Build Aesthetic Mapping
