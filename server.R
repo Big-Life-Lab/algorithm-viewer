@@ -16,9 +16,12 @@ if (FALSE) {
 
 source("R/model_definitions/model_definitions.R")
 
-# The initial algorithm file to load automatically by default on startup (eg. zip or yaml file)
+# The initial algorithm file to load automatically by default on startup
+# (eg. zip or yaml file).
 # Set this to NULL to not load a default algorithm (user must upload themself)
-initial_algorithm_file <- file.path("data", "models", "htnport-mpp", "htnport-reduced.yaml")
+initial_algorithm_file <- file.path(
+  "data", "models", "htnport-mpp", "htnport-reduced.yaml"
+)
 # initial_algorithm_file <- NULL
 
 # Remove scientific notation from plots
@@ -82,7 +85,9 @@ empty_predictor <- "<empty>"
 
   df <- data.frame(label = label)
   p <- ggplot() +
-    geom_text(data = df, aes(label = label), x = 0.5, y = 0.5, color = color) +
+    geom_text(
+      data = df, aes(label = label), x = 0.5, y = 0.5, color = color
+    ) +
     theme_void()
 
   ggplotly(p, tooltip = NULL) |>
@@ -162,7 +167,8 @@ server <- function(input, output, session) {
       reference_group[[variable]] <- val
     }
 
-    session$userData$model_definitions$models[[model_id]]$last_reference_group <<-
+    session$userData$model_definitions$models[[model_id]]$
+      last_reference_group <<-
       reference_group
 
     reference_group
@@ -193,13 +199,16 @@ server <- function(input, output, session) {
     }
   }
 
-  # Reactive expression to get currently selected models based on rv$selected_model_ids
+
+  # Reactive expression to get currently selected models based on
+  # rv$selected_model_ids
   selected_models <- reactive({
     reload_trigger()
     if (is.null(session$userData$model_definitions)) {
       list()
     } else {
-      models <- session$userData$model_definitions$models[as.vector(selected_model_ids())]
+      model_defs <- session$userData$model_definitions
+      models <- model_defs$models[as.vector(selected_model_ids())]
       models <- models[!is.na(names(models))]
       models
     }
@@ -336,12 +345,15 @@ server <- function(input, output, session) {
       )
 
       reference_group_input <- append_ui(reset_button)
-      cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
+      cur_env <- env(
+        model_id = model_id, reset_button_id = reset_button_id
+      )
 
       observeEvent(
         input[[reset_button_id]],
         {
-          session$userData$model_definitions$models[[model_id]]$last_reference_group <<- NULL
+          session$userData$model_definitions$models[[model_id]]$
+            last_reference_group <<- NULL
           set_refgroup_control_values(model_id)
         },
         handler.env = cur_env,
@@ -452,7 +464,8 @@ server <- function(input, output, session) {
   make_plot <- function(all_curve_data) {
     # If no models are selected then tell the user to select one
     if (is.null(session$userData$model_definitions)) {
-      return(.make_message_plot("No algorithm loaded.<br />Please upload some data."))
+      msg <- "No algorithm loaded.<br />Please upload some data."
+      return(.make_message_plot(msg))
     } else if (is.null(all_curve_data) || length(all_curve_data) == 0) {
       return(.make_message_plot("Please select at least one model."))
     }
@@ -477,25 +490,25 @@ server <- function(input, output, session) {
 
         # Create plot
         if (curve_data$x_axis_type == "Categorical") {
+          model_colors <- get_model_colors(
+            session$userData$model_definitions$models
+          )
           p <- ggplot(
             data = df,
             .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
           ) +
             geom_col(position = "dodge") +
-            scale_fill_manual(
-              values = get_model_colors(session$userData$model_definitions$models),
-              aesthetics = "fill"
-            )
+            scale_fill_manual(values = model_colors, aesthetics = "fill")
         } else {
+          model_colors <- get_model_colors(
+            session$userData$model_definitions$models
+          )
           p <- ggplot(
             data = df,
             .make_aes(curve_data$aes_args, color = dplyr::sym("Model"))
           ) +
             geom_line(linewidth = 1.2) +
-            scale_color_manual(
-              values = get_model_colors(session$userData$model_definitions$models),
-              aesthetics = "color"
-            )
+            scale_color_manual(values = model_colors, aesthetics = "color")
         }
 
         y_limits <- NULL
@@ -565,7 +578,10 @@ server <- function(input, output, session) {
         reference_group = reference_group
       )
 
-      print(paste0("Elapsed time for PR curve ", model_data$model_id, ": ", Sys.time() - tic))
+      elapsed <- Sys.time() - tic
+      print(paste0(
+        "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+      ))
 
       all_curve_data[[length(all_curve_data) + 1]] <- curve_data
     }
@@ -613,9 +629,11 @@ server <- function(input, output, session) {
           reference_group = reference_group
         )
       }
-      session$userData$model_definitions$models[[model_data$model_id]] <<- curve_data$model_data
 
-      print(paste0("Elapsed time for OR curve ", model_data$model_id, ": ", Sys.time() - tic))
+      elapsed <- Sys.time() - tic
+      print(paste0(
+        "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+      ))
 
       all_curve_data[[length(all_curve_data) + 1]] <- curve_data
     }
@@ -688,8 +706,12 @@ server <- function(input, output, session) {
       tryCatch(
         {
           files_in_archive <- archive_extract(file, dir = temp_dir_path)
-          config_files <- files_in_archive[grepl("(\\.yaml|\\.yml)$", files_in_archive, ignore.case = TRUE)]
-          # Ignore config files in the __MACOSX directory (added automatically on a Mac)
+          yaml_pattern <- "(\\.yaml|\\.yml)$"
+          config_files <- files_in_archive[
+            grepl(yaml_pattern, files_in_archive, ignore.case = TRUE)
+          ]
+          # Ignore config files in the __MACOSX directory
+          # (added automatically on a Mac)
           config_files <- config_files[!grepl("__MACOSX", config_files)]
           archive_success <- TRUE
         },
@@ -697,14 +719,27 @@ server <- function(input, output, session) {
       )
 
       if (!archive_success) {
-        showModal(errorModal("Error Loading Data", "Could not extract the contents of the uploaded file, it may be corrupt or in an unsupported format. No models were loaded."))
+        err_msg <- paste0(
+          "Could not extract the contents of the uploaded file, ",
+          "it may be corrupt or in an unsupported format. ",
+          "No models were loaded."
+        )
+        showModal(errorModal("Error Loading Data", err_msg))
       } else if (length(config_files) == 0) {
-        showModal(errorModal("Error Loading Data", "A YAML configuration file was not found in your archive. No models were loaded."))
+        err_msg <- paste0(
+          "A YAML configuration file was not found in your archive. ",
+          "No models were loaded."
+        )
+        showModal(errorModal("Error Loading Data", err_msg))
       } else if (length(config_files) > 1) {
-        message <- paste0("<li>", htmltools::htmlEscape(basename(config_files)), "</li>") |>
+        escaped_files <- htmltools::htmlEscape(basename(config_files))
+        message <- paste0("<li>", escaped_files, "</li>") |>
           stringr::str_c(collapse = "\n")
         message <- paste0("<ul>\n", message, "\n</ul>")
-        message <- glue::glue("<p>Multiple YAML configuration files were found in your archive, only one is allowed:</p>{message}<p>No models were loaded.</p>")
+        message <- glue::glue(
+          "<p>Multiple YAML configuration files were found in your archive, ",
+          "only one is allowed:</p>{message}<p>No models were loaded.</p>"
+        )
         showModal(errorModal("Error Loading Data", shiny::HTML(message)))
       } else {
         config_file <- file.path(temp_dir_path, config_files[[1]])
@@ -730,7 +765,11 @@ server <- function(input, output, session) {
   output$model_message <- renderUI({
     reload_trigger()
     if (is.null(session$userData$model_definitions)) {
-      div("No algorithm has been loaded. Click the \"Browse\" button below to upload your data as a ZIP file or other archive.", style = "color: #ff0000;", br(), br())
+      msg <- paste0(
+        "No algorithm has been loaded. Click the \"Browse\" button below ",
+        "to upload your data as a ZIP file or other archive."
+      )
+      div(msg, style = "color: #ff0000;", br(), br())
     }
   })
 
@@ -738,16 +777,15 @@ server <- function(input, output, session) {
   output$ui_title <- renderUI({
     reload_trigger()
     if (!is.null(session$userData$model_definitions)) {
-      glue::glue(
-        "{session$userData$model_definitions$meta$algorithm} v{session$userData$model_definitions$meta$version} ",
-        "Algorithm Viewer"
-      )
+      meta <- session$userData$model_definitions$meta
+      glue::glue("{meta$algorithm} v{meta$version} Algorithm Viewer")
     } else {
       "Algorithm Viewer"
     }
   })
 
-  # Handle initial loading of the page (load the initial algorithm file if there is one)
+  # Handle initial loading of the page
+  # (load the initial algorithm file if there is one)
   observe({
     if (initial_load_trigger() > 0) {
       return()
@@ -775,15 +813,21 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_model_selections <- function() {
-    if (!is.null(session$userData$model_definitions) && length(session$userData$model_definitions$models) > 0) {
-      selected <- unname(get_model_choices(session$userData$model_definitions$models))
+    model_defs <- session$userData$model_definitions
+    if (!is.null(model_defs) && length(model_defs$models) > 0) {
+      selected <- unname(get_model_choices(model_defs$models))
+      choice_names <- get_model_titles(
+        model_defs$models,
+        include_model_colors = TRUE,
+        escape_html = TRUE
+      )
       updateCheckboxGroupInput(
         session,
         "model_id",
         label = "Models:",
         selected = selected,
-        choiceNames = get_model_titles(session$userData$model_definitions$models, include_model_colors = TRUE, escape_html = TRUE),
-        choiceValues = get_model_ids(session$userData$model_definitions$models)
+        choiceNames = choice_names,
+        choiceValues = get_model_ids(model_defs$models)
       )
       selected_model_ids(selected)
     } else {
