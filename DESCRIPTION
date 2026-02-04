@@ -25,6 +25,7 @@ Imports:
     shinyWidgets,
     stringr,
     viridis,
-    yaml
+    yaml,
+    model.parameters.pipeline
 Remotes:
-  github::Big-Life-Lab/model-parameters-pipeline
+  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.1.0-alpha
