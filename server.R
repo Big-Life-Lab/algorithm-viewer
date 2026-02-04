@@ -7,7 +7,6 @@ library(shinyWidgets)
 library(cli)
 library(htmltools)
 library(archive)
-
 if (FALSE) {
   # Required by ggplot2 when exporting for Shinylive
   library(munsell)
