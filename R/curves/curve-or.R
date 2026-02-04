@@ -89,7 +89,6 @@ calculate_or_curve <- function(predictor,
   )
 
   list(
-    model_data = model_data,
     df = output_df,
     x_axis_label = predictor_label,
     y_axis_label = "Odds Ratio",
