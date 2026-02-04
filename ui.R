@@ -10,10 +10,22 @@ plot_height <- "calc(100vh - 170px)"
 ui <- fluidPage(
   title = "Algorithm Viewer",
   tags$head(
-    tags$link(rel = "icon", type = "image/png", sizes = "128x128", href = "/favicon-128x128.png"),
-    tags$link(rel = "icon", type = "image/png", sizes = "64x64", href = "/favicon-64x64.png"),
-    tags$link(rel = "icon", type = "image/png", sizes = "32x32", href = "/favicon-32x32.png"),
-    tags$link(rel = "icon", type = "image/png", sizes = "180x180", href = "/favicon-180x180.png")
+    tags$link(
+      rel = "icon", type = "image/png",
+      sizes = "128x128", href = "/favicon-128x128.png"
+    ),
+    tags$link(
+      rel = "icon", type = "image/png",
+      sizes = "64x64", href = "/favicon-64x64.png"
+    ),
+    tags$link(
+      rel = "icon", type = "image/png",
+      sizes = "32x32", href = "/favicon-32x32.png"
+    ),
+    tags$link(
+      rel = "icon", type = "image/png",
+      sizes = "180x180", href = "/favicon-180x180.png"
+    )
   ),
   tags$style(HTML("
     .shiny-input-container:not(.shiny-input-container-inline) {
@@ -26,7 +38,8 @@ ui <- fluidPage(
     htmlOutput("ui_title")
   ),
 
-  # This style gets rid of the 300px width of the controls within the panels, to make them wider.
+  # This style gets rid of the 300px width of the controls within
+  # the panels, to make them wider.
   # Sidebar layout
   sidebarLayout(
     # Sidebar panel for inputs
@@ -42,7 +55,10 @@ ui <- fluidPage(
             div(
               style = ifelse(allow_file_uploads, "", "display: none"),
               htmlOutput("model_message"),
-              fileInput("upload", "Upload Algorithm:", accept = c(".zip", ".tar", ".gz")),
+              fileInput(
+                "upload", "Upload Algorithm:",
+                accept = c(".zip", ".tar", ".gz")
+              ),
               hr(),
               checkboxGroupInput(
                 inputId = "model_id",
