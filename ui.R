@@ -29,7 +29,7 @@ ui <- fluidPage(
   ),
 
   # Removes width of the controls in the sidebar so that they take up the full
-  # width (ie. in the "Reference" tab).
+  # width (instead of the default 300px).
   tags$style(HTML("
     .shiny-input-container:not(.shiny-input-container-inline) {
       width: unset;
@@ -41,8 +41,6 @@ ui <- fluidPage(
     htmlOutput("ui_title")
   ),
 
-  # This style gets rid of the 300px width of the controls within
-  # the panels, to make them wider.
   # Sidebar layout
   sidebarLayout(
     # Sidebar panel for inputs
@@ -55,6 +53,7 @@ ui <- fluidPage(
           icon = icon("atom"),
           br(),
           div(
+            # Model selection and message
             div(
               style = ifelse(allow_file_uploads, "", "display: none"),
               htmlOutput("model_message"),
@@ -89,6 +88,7 @@ ui <- fluidPage(
             checkboxInput("logarithmic", "Logarithmic", value = TRUE),
           )
         ),
+
         # Controls for the reference groups get added as children to #refgroups
         tabPanel(
           "Reference",
