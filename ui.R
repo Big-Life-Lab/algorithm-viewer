@@ -27,6 +27,9 @@ ui <- fluidPage(
       sizes = "180x180", href = "/favicon-180x180.png"
     )
   ),
+
+  # Removes width of the controls in the sidebar so that they take up the full
+  # width (ie. in the "Reference" tab).
   tags$style(HTML("
     .shiny-input-container:not(.shiny-input-container-inline) {
       width: unset;
