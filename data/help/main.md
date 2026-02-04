@@ -82,3 +82,7 @@ Toggle the **Logarithmic** checkbox to switch between:
 - Use the logarithmic scale when odds ratios span a wide range (e.g., 0.1 to 10)
 - Adjust reference group values to see how the curves change with different baseline characteristics
 - Hover over plot lines to see precise values at specific points
+
+---
+
+Tag: 0.1.0
