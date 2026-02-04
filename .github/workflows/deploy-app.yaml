@@ -23,9 +23,9 @@ name: Deploy app
 on:
   # Manually trigger the workflow
   workflow_dispatch:
-  # Trigger on push to `site` branch
+  # Trigger on push to `proto` branch
   push:
-    branches: ["site"]
+    branches: ["proto"]
   # Trigger on pull request to all branches (but do not deploy to gh-pages)
   pull_request:
 
@@ -52,9 +52,10 @@ jobs:
         id: packages
         run: |
           # Find package dependencies using {renv} and install with {pak}
-          pak::pak(
-            unique(renv::dependencies(".")$Package)
-          )
+          # pak::pak(
+          #   unique(renv::dependencies(".")$Package)
+          # )
+          pak::pkg_install(".")
 
       - name: Build site
         shell: Rscript {0}
@@ -62,13 +63,13 @@ jobs:
           shinylive::export(".", "site")
 
       - name: Upload site artifact
-        if: github.ref == 'refs/heads/site'
+        if: github.ref == 'refs/heads/proto'
         uses: actions/upload-pages-artifact@v3
         with:
           path: "site"
 
   deploy:
-    if: github.ref == 'refs/heads/site'
+    if: github.ref == 'refs/heads/proto'
     needs: build
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
