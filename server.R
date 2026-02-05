@@ -71,7 +71,7 @@ empty_predictor <- "<empty>"
 #'
 #' @param label Character string. The message text to display in the plot.
 #' @param color Character string. The color of the message text. Default is
-#'  "black".
+#'   "black".
 #'
 #' @return A plotly object containing an empty plot with centered text.
 #'
@@ -86,7 +86,11 @@ empty_predictor <- "<empty>"
   df <- data.frame(label = label)
   p <- ggplot() +
     geom_text(
-      data = df, aes(label = label), x = 0.5, y = 0.5, color = color
+      data = df,
+      aes(label = label),
+      x = 0.5,
+      y = 0.5,
+      color = color
     ) +
     theme_void() +
     theme(axis.line = element_blank())
@@ -132,11 +136,12 @@ server <- function(input, output, session) {
   # React to reload_trigger when something needs to be updated due to a loading
   # of an algorithm zip file. In most cases, we can simply call
   # selected_models() to react to a reload.
-  # selected_model_ids should generally not be used except for special cases. It
-  # is reacted to in selected_models() to make all other functions that access
-  # the selected models react automatically.
+  # selected_model_ids should generally not be used except for special cases.
+  # It is reacted to in selected_models() to make all other functions that
+  # access the selected models react automatically.
   selected_model_ids <- reactiveVal(c())
   reload_trigger <- reactiveVal(0)
+
   initial_load_trigger <- reactiveVal(0)
 
   #' Get Reference Group Values from UI
@@ -173,17 +178,23 @@ server <- function(input, output, session) {
       reference_group[[variable]] <- val
     }
 
-    session$userData$model_definitions$models[[model_id]]$
-      last_reference_group <-
+    session$userData$model_definitions$models[[model_id]]$last_reference_group <-
       reference_group
 
     reference_group
   }
 
-  #' Repopulate the existing reference group controls with the last values.
+  #' Repopulate Reference Group Controls
+  #'
+  #' Repopulates the existing reference group slider controls with the last
+  #' saved values for a specific model.
   #'
   #' @param model_id Character string specifying the model identifier to
-  #'  repopulate the reference group controls for.
+  #'   repopulate the reference group controls for.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
   set_refgroup_control_values <- function(model_id) {
     if (is.null(session$userData$model_definitions)) {
       return()
@@ -206,8 +217,15 @@ server <- function(input, output, session) {
   }
 
 
-  # Reactive expression to get currently selected models based on
-  # rv$selected_model_ids
+  #' Get Currently Selected Models
+  #'
+  #' Reactive expression that returns the model data for all currently
+  #' selected models based on the selected_model_ids reactive value.
+  #'
+  #' @return Named list of model data objects for the selected models,
+  #'   or an empty list if no model definitions are loaded.
+  #'
+  #' @keywords internal
   selected_models <- reactive({
     reload_trigger()
     if (is.null(session$userData$model_definitions)) {
@@ -231,8 +249,8 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_refgroups <- function() {
-    # ID of the div containing the reference group sliders. This is for removing
-    # then adding the div.
+    # ID of the div containing the reference group sliders. This is for
+    # removing then adding the div.
     refgroup_input_id <- "refgroup_input_id"
 
     removeUI(selector = paste0("#", refgroup_input_id))
@@ -308,9 +326,11 @@ server <- function(input, output, session) {
           min_range <- min(variable_range)
           max_range <- max(variable_range)
 
-          if (is.integer(min_range) &&
+          is_integer_range <- is.integer(min_range) &&
             is.integer(max_range) &&
-            all(min_range:max_range == sort(variable_range))) {
+            all(min_range:max_range == sort(variable_range))
+
+          if (is_integer_range) {
             step <- 1
           } else {
             step <- signif(variable_range[2] - variable_range[1], 5)
@@ -351,9 +371,7 @@ server <- function(input, output, session) {
       )
 
       reference_group_input <- append_ui(reset_button)
-      cur_env <- env(
-        model_id = model_id, reset_button_id = reset_button_id
-      )
+      cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
 
       observeEvent(
         input[[reset_button_id]],
@@ -520,9 +538,6 @@ server <- function(input, output, session) {
         y_limits <- NULL
         if (!is.null(curve_data$ylim) && !input$logarithmic) {
           y_limits <- curve_data$ylim
-          # if (input$logarithmic) {
-          #   y_limits <- sapply(y_limits, function(x) ifelse (x <= 0, 1e-8, x))
-          # }
         }
 
         p <- p +
@@ -563,41 +578,47 @@ server <- function(input, output, session) {
 
     req(input$predictor)
 
-    tryCatch({
-      predictor <- input$predictor
-      all_curve_data <- list()
+    tryCatch(
+      {
+        predictor <- input$predictor
+        all_curve_data <- list()
 
-      # Go through all models and calculate the OR curves
-      # We concatenate them (with bind_rows) to show one curve per model
-      for (model_data in selected_models()) {
-        # Get predictor type (Categorical or Continuous)
-        predictor_type <- model_data$variables |>
-          filter(variable == predictor) |>
-          pull(variableType)
+        # Go through all models and calculate the OR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          # Get predictor type (Categorical or Continuous)
+          predictor_type <- model_data$variables |>
+            filter(variable == predictor) |>
+            pull(variableType)
 
-        reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+          reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
-        tic <- Sys.time()
+          tic <- Sys.time()
 
-        # Calculate the OR curve for the model
-        curve_data <- calculate_pr_curve(
-          predictor,
-          model_data,
-          reference_group = reference_group
+          # Calculate the OR curve for the model
+          curve_data <- calculate_pr_curve(
+            predictor,
+            model_data,
+            reference_group = reference_group
+          )
+
+          elapsed <- Sys.time() - tic
+          message(paste0(
+            "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+          ))
+
+          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+        }
+
+        make_plot(all_curve_data)
+      },
+      error = function(e) {
+        .make_message_plot(
+          glue::glue("<b>Error</b>: {e$message}"),
+          color = "red"
         )
-
-        elapsed <- Sys.time() - tic
-        message(paste0(
-          "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-        ))
-
-        all_curve_data[[length(all_curve_data) + 1]] <- curve_data
       }
-
-      make_plot(all_curve_data)
-    }, error = function(e) {
-      .make_message_plot(glue::glue("<b>Error</b>: {e$message}"), color = "red")
-    })
+    )
   })
 
   # Calculate and plot OR curves
@@ -610,51 +631,57 @@ server <- function(input, output, session) {
 
     req(input$predictor)
 
-    tryCatch({
-      all_curve_data <- list()
-      predictor <- input$predictor
-      interaction_predictor <- input$interaction_predictor
+    tryCatch(
+      {
+        all_curve_data <- list()
+        predictor <- input$predictor
+        interaction_predictor <- input$interaction_predictor
 
-      # Go through all models and calculate the OR curves
-      # We concatenate them (with bind_rows) to show one curve per model
-      for (model_data in selected_models()) {
-        # Get predictor type (Categorical or Continuous)
-        predictor_type <- model_data$variables |>
-          filter(variable == predictor) |>
-          pull(variableType)
+        # Go through all models and calculate the OR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          # Get predictor type (Categorical or Continuous)
+          predictor_type <- model_data$variables |>
+            filter(variable == predictor) |>
+            pull(variableType)
 
-        reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+          reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
-        tic <- Sys.time()
+          tic <- Sys.time()
 
-        # Calculate the OR curve for the model
-        if (interaction_predictor == empty_predictor) {
-          curve_data <- calculate_or_curve(
-            predictor,
-            model_data,
-            reference_group = reference_group
-          )
-        } else {
-          curve_data <- calculate_or_curve_interaction(
-            predictor,
-            interaction_predictor,
-            model_data,
-            reference_group = reference_group
-          )
+          # Calculate the OR curve for the model
+          if (interaction_predictor == empty_predictor) {
+            curve_data <- calculate_or_curve(
+              predictor,
+              model_data,
+              reference_group = reference_group
+            )
+          } else {
+            curve_data <- calculate_or_curve_interaction(
+              predictor,
+              interaction_predictor,
+              model_data,
+              reference_group = reference_group
+            )
+          }
+
+          elapsed <- Sys.time() - tic
+          message(paste0(
+            "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+          ))
+
+          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
         }
 
-        elapsed <- Sys.time() - tic
-        message(paste0(
-          "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-        ))
-
-        all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+        make_plot(all_curve_data)
+      },
+      error = function(e) {
+        .make_message_plot(
+          glue::glue("<b>Error</b>: {e$message}"),
+          color = "red"
+        )
       }
-
-      make_plot(all_curve_data)
-    }, error = function(e) {
-      .make_message_plot(glue::glue("<b>Error</b>: {e$message}"), color = "red")
-    })
+    )
   })
 
   #' Load Model Definitions from File
@@ -732,7 +759,9 @@ server <- function(input, output, session) {
           config_files <- config_files[!grepl("__MACOSX", config_files)]
           archive_success <- TRUE
         },
-        error = function(e) {}
+        error = function(e) {
+          warning(glue::glue("Error loading file: {e$message}"))
+        }
       )
 
       if (!archive_success) {
@@ -750,14 +779,31 @@ server <- function(input, output, session) {
         showModal(errorModal("Error Loading Data", err_msg))
       } else if (length(config_files) > 1) {
         escaped_files <- htmltools::htmlEscape(basename(config_files))
-        message <- paste0("<li>", escaped_files, "</li>") |>
-          stringr::str_c(collapse = "\n")
-        message <- paste0("<ul>\n", message, "\n</ul>")
-        message <- glue::glue(
-          "<p>Multiple YAML configuration files were found in your archive, ",
-          "only one is allowed:</p>{message}<p>No models were loaded.</p>"
+        selections <- setNames(
+          file.path(temp_dir_path, config_files),
+          escaped_files
         )
-        showModal(errorModal("Error Loading Data", shiny::HTML(message)))
+        message <- tagList(
+          paste0(
+            "Multiple YAML model definitions were found in your archive, ",
+            "please select the one to load:"
+          ),
+          br(),
+          br(),
+          radioButtons(
+            inputId = "select_yaml_radio",
+            label = NULL,
+            choices = selections,
+            selected = unname(selections)[[1]]
+          )
+        )
+
+        showModal(yesNoModal(
+          "Select Model Definitions File",
+          message,
+          "select_yaml_ok",
+          show_no = FALSE
+        ))
       } else {
         config_file <- file.path(temp_dir_path, config_files[[1]])
         load_model_definitions(config_file, call_update_all = FALSE)
@@ -883,6 +929,49 @@ server <- function(input, output, session) {
       )
     )
   }
+
+  #' Create Yes/No Modal Dialog
+  #'
+  #' Creates a modal dialog with OK and optional Cancel buttons for
+  #' user confirmation prompts.
+  #'
+  #' @param title Character string specifying the modal title.
+  #' @param message Character string or HTML content for the modal body.
+  #' @param ok_button_id Character string specifying the input ID for the
+  #'   OK button, used to observe click events.
+  #' @param show_no Logical indicating whether to show the Cancel button.
+  #'   Default is TRUE.
+  #' @param size Character string specifying the modal size. One of "s",
+  #'   "m", "l", or "xl". Default is "m".
+  #'
+  #' @return A modalDialog object for use with showModal().
+  #'
+  #' @keywords internal
+  yesNoModal <- function(title,
+                         message,
+                         ok_button_id,
+                         show_no = TRUE,
+                         size = "m") {
+    modalDialog(
+      title = title,
+      message,
+      footer = tagList(
+        if (show_no) modalButton("Cancel"),
+        actionButton(ok_button_id, "OK")
+      ),
+      size = size
+    )
+  }
+
+  # OK pressed for dialog box asking to choose which YAML model definitions
+  # file to load when multiple YAML files found in an uploaded archive
+  observeEvent(input$select_yaml_ok, {
+    selected <- input$select_yaml_radio
+    if (!is.null(selected) && selected != "") {
+      load_model_definitions(selected, call_update_all = TRUE)
+    }
+    removeModal()
+  })
 
   # Help tab
   output$help <- renderUI({
