@@ -174,7 +174,7 @@ server <- function(input, output, session) {
     }
 
     session$userData$model_definitions$models[[model_id]]$
-      last_reference_group <<-
+      last_reference_group <-
       reference_group
 
     reference_group
@@ -359,7 +359,7 @@ server <- function(input, output, session) {
         input[[reset_button_id]],
         {
           session$userData$model_definitions$models[[model_id]]$
-            last_reference_group <<- NULL
+            last_reference_group <- NULL
           set_refgroup_control_values(model_id)
         },
         handler.env = cur_env,
@@ -585,7 +585,7 @@ server <- function(input, output, session) {
       )
 
       elapsed <- Sys.time() - tic
-      print(paste0(
+      message(paste0(
         "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
       ))
 
@@ -637,7 +637,7 @@ server <- function(input, output, session) {
       }
 
       elapsed <- Sys.time() - tic
-      print(paste0(
+      message(paste0(
         "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
       ))
 
@@ -665,7 +665,8 @@ server <- function(input, output, session) {
         session$userData$model_definitions <- read_model_definitions(file)
       },
       error = function(e) {
-        print(paste("Error loading model definition:", e$message))
+        session$userData$model_definitions <- NULL
+        message(paste("Error loading model definition:", e$message))
       }
     )
     if (call_update_all) {
