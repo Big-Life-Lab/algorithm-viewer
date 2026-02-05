@@ -562,37 +562,42 @@ server <- function(input, output, session) {
     }
 
     req(input$predictor)
-    predictor <- input$predictor
-    all_curve_data <- list()
 
-    # Go through all models and calculate the OR curves
-    # We concatenate them (with bind_rows) to show one curve per model
-    for (model_data in selected_models()) {
-      # Get predictor type (Categorical or Continuous)
-      predictor_type <- model_data$variables |>
-        filter(variable == predictor) |>
-        pull(variableType)
+    tryCatch({
+      predictor <- input$predictor
+      all_curve_data <- list()
 
-      reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+      # Go through all models and calculate the OR curves
+      # We concatenate them (with bind_rows) to show one curve per model
+      for (model_data in selected_models()) {
+        # Get predictor type (Categorical or Continuous)
+        predictor_type <- model_data$variables |>
+          filter(variable == predictor) |>
+          pull(variableType)
 
-      tic <- Sys.time()
+        reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
-      # Calculate the OR curve for the model
-      curve_data <- calculate_pr_curve(
-        predictor,
-        model_data,
-        reference_group = reference_group
-      )
+        tic <- Sys.time()
 
-      elapsed <- Sys.time() - tic
-      message(paste0(
-        "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-      ))
+        # Calculate the OR curve for the model
+        curve_data <- calculate_pr_curve(
+          predictor,
+          model_data,
+          reference_group = reference_group
+        )
 
-      all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-    }
+        elapsed <- Sys.time() - tic
+        message(paste0(
+          "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+        ))
 
-    make_plot(all_curve_data)
+        all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+      }
+
+      make_plot(all_curve_data)
+    }, error = function(e) {
+      .make_message_plot(glue::glue("<b>Error</b>: {e$message}"), color = "red")
+    })
   })
 
   # Calculate and plot OR curves
@@ -604,47 +609,52 @@ server <- function(input, output, session) {
     }
 
     req(input$predictor)
-    all_curve_data <- list()
-    predictor <- input$predictor
-    interaction_predictor <- input$interaction_predictor
 
-    # Go through all models and calculate the OR curves
-    # We concatenate them (with bind_rows) to show one curve per model
-    for (model_data in selected_models()) {
-      # Get predictor type (Categorical or Continuous)
-      predictor_type <- model_data$variables |>
-        filter(variable == predictor) |>
-        pull(variableType)
+    tryCatch({
+      all_curve_data <- list()
+      predictor <- input$predictor
+      interaction_predictor <- input$interaction_predictor
 
-      reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+      # Go through all models and calculate the OR curves
+      # We concatenate them (with bind_rows) to show one curve per model
+      for (model_data in selected_models()) {
+        # Get predictor type (Categorical or Continuous)
+        predictor_type <- model_data$variables |>
+          filter(variable == predictor) |>
+          pull(variableType)
 
-      tic <- Sys.time()
+        reference_group <- get_refgroup_values_from_ui(model_data$model_id)
 
-      # Calculate the OR curve for the model
-      if (interaction_predictor == empty_predictor) {
-        curve_data <- calculate_or_curve(
-          predictor,
-          model_data,
-          reference_group = reference_group
-        )
-      } else {
-        curve_data <- calculate_or_curve_interaction(
-          predictor,
-          interaction_predictor,
-          model_data,
-          reference_group = reference_group
-        )
+        tic <- Sys.time()
+
+        # Calculate the OR curve for the model
+        if (interaction_predictor == empty_predictor) {
+          curve_data <- calculate_or_curve(
+            predictor,
+            model_data,
+            reference_group = reference_group
+          )
+        } else {
+          curve_data <- calculate_or_curve_interaction(
+            predictor,
+            interaction_predictor,
+            model_data,
+            reference_group = reference_group
+          )
+        }
+
+        elapsed <- Sys.time() - tic
+        message(paste0(
+          "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+        ))
+
+        all_curve_data[[length(all_curve_data) + 1]] <- curve_data
       }
 
-      elapsed <- Sys.time() - tic
-      message(paste0(
-        "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-      ))
-
-      all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-    }
-
-    make_plot(all_curve_data)
+      make_plot(all_curve_data)
+    }, error = function(e) {
+      .make_message_plot(glue::glue("<b>Error</b>: {e$message}"), color = "red")
+    })
   })
 
   #' Load Model Definitions from File
