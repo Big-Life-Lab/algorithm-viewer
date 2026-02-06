@@ -87,7 +87,7 @@ read_model_definitions <- function(file) {
   info <- .copy_from_all_model(info)
   info <- .assign_root_dir(info, root_dir)
   info <- .load_model_pipelines(info, root_dir)
-  info <- .load_files(info, root_dir)
+  info <- .load_model_export_files(info, root_dir)
   info <- .parse_predictor_ranges(info)
   info <- .add_model_indices_and_ids(info)
   info <- .add_model_colors(info)
@@ -114,40 +114,6 @@ read_model_definitions <- function(file) {
   info
 }
 
-#' Load Files from Model Export
-#'
-#' Reads files referenced in a model export CSV and returns them as a list.
-#'
-#' @param root_dir Character string specifying the root directory for file
-#'   paths. If NULL, uses the directory of the model_export file.
-#' @param model_export Data frame or path to CSV containing file references.
-#'
-#' @return A named list of loaded files, keyed by file type.
-#'
-#' @keywords internal
-.load_files_from_model_export <- function(root_dir, model_export) {
-  if (is.null(root_dir)) {
-    root_dir <- dirname(model_export)
-  }
-  res <- list()
-
-  if (is.character(model_export)) {
-    model_export <- read.csv(model_export)
-  }
-  for (i in seq_len(nrow(model_export))) {
-    info <- model_export[i, ]
-    file_type <- gsub("[^A-Za-z0-9]", "_", info[["fileType"]])
-    file_path <- normalizePath(file.path(root_dir, info[["filePath"]]))
-    if (stringr::str_to_lower(tools::file_ext(file_path)) == "csv") {
-      res[[file_type]] <- read.csv(file_path)
-    } else {
-      res[[file_type]] <- file_path
-    }
-  }
-
-  res
-}
-
 #' Create Predictor Range from Various Formats
 #'
 #' Converts range specifications (string expressions, vectors, or list
@@ -164,18 +130,16 @@ read_model_definitions <- function(file) {
     func_info <- get_function_and_params(range_info)
     if (!is.null(func_info)) {
       if (func_info$func == "seq" && length(func_info$params) >= 2) {
-        res <- do.call(seq, func_info$params)
-        return(res)
+        return(do.call(seq, func_info$params))
       }
     } else if (stringr::str_count(range_info, ":") == 1) {
       lower_upper <- as.integer(unlist(strsplit(range_info, ":")))
-      lower <- as.integer(lower_upper[[1]])
-      upper <- as.integer(lower_upper[[2]])
-      return(lower:upper)
+      return(lower_upper[[1]]:lower_upper[[2]])
     }
   } else if (is.vector(range_info) && is.null(names(range_info))) {
     return(range_info)
   }
+
   NULL
 }
 
@@ -261,10 +225,9 @@ read_model_definitions <- function(file) {
 #'
 #' @keywords internal
 .get_model_predictors <- function(model_data) {
-  predictors <- model_data$variables |>
+  model_data$variables |>
     filter(role == "Predictor") |>
     pull(variable)
-  predictors
 }
 
 #' Parse Predictor Ranges
@@ -316,26 +279,36 @@ read_model_definitions <- function(file) {
 #' @return Updated model definitions with loaded data frames.
 #'
 #' @keywords internal
-.load_files <- function(info, root_dir) {
+.load_model_export_files <- function(info, root_dir) {
   for (model_id in names(info$models)) {
     model_export_file <- info$models[[model_id]]$model_export
     if (!is.null(model_export_file)) {
       model_export_file <- file.path(root_dir, model_export_file)
-      info$models[[model_id]]$model_export <- read.csv(model_export_file)
+      model_export <- read.csv(model_export_file)
+      info$models[[model_id]]$model_export <- model_export
 
-      # Load the files referenced in the model export file
-      model_export_files <- .load_files_from_model_export(
-        dirname(model_export_file),
-        info$models[[model_id]]$model_export
-      )
+      model_export_root <- dirname(model_export_file)
 
-      # Assign the files in the model export file to the model data, if they
-      # exist
-      for (file_key in list("variables", "variable_details", "model_steps")) {
-        if (file_key %in% names(model_export_files)) {
-          info$models[[model_id]][[file_key]] <- model_export_files[[file_key]]
-        }
-      }
+      # Load variables file
+      variables_path <- model_export |>
+        filter(fileType == "variables") |>
+        pull(filePath)
+      variables_path <- file.path(model_export_root, variables_path)
+      info$models[[model_id]]$variables <- read.csv(variables_path)
+
+      # Load variable details file
+      var_details_path <- model_export |>
+        filter(fileType == "variable-details") |>
+        pull(filePath)
+      var_details_path <- file.path(model_export_root, var_details_path)
+      info$models[[model_id]]$variable_details <- read.csv(var_details_path)
+
+      # Load model steps file
+      model_steps_path <- model_export |>
+        filter(fileType == "model-steps") |>
+        pull(filePath)
+      model_steps_path <- file.path(model_export_root, model_steps_path)
+      info$models[[model_id]]$model_steps <- read.csv(model_steps_path)
     }
   }
   info
