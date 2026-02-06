@@ -218,11 +218,17 @@ read_model_definitions <- function(file) {
 .get_range_from_variable_details <- function(model_data, variable) {
   info <- model_data$variable_details |>
     filter(variable == !!variable) |>
-    pull(recStart)
+    select(recStart, recEnd)
 
   full_range <- c()
 
-  for (rng in info) {
+  for (idx in seq_len(nrow(info))) {
+    rec_start <- info$recStart[[idx]]
+    rec_end <- info$recEnd[[idx]]
+    rng <- rec_end
+    if (rng == "copy") {
+      rng <- rec_start
+    }
     if (rng == "else" || is_data_missing(rng)) {
       next
     }
