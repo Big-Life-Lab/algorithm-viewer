@@ -16,14 +16,6 @@ if (FALSE) {
 
 source("R/model_definitions/model_definitions.R")
 
-# The initial algorithm file to load automatically by default on startup
-# (eg. zip or yaml file).
-# Set this to NULL to not load a default algorithm (user must upload themself)
-initial_algorithm_file <- file.path(
-  "data", "models", "htnport-mpp", "htnport-reduced.yaml"
-)
-# initial_algorithm_file <- NULL
-
 # Remove scientific notation from plots
 options(scipen = 8)
 # Maximum upload size in bytes
@@ -814,7 +806,7 @@ server <- function(input, output, session) {
 
   # Handle file that has been uploaded
   observeEvent(input$upload, {
-    if (!allow_file_uploads) {
+    if (!config$allow_file_uploads) {
       return()
     }
 
@@ -853,8 +845,8 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
-    if (!is.null(initial_algorithm_file)) {
-      process_data_file(initial_algorithm_file)
+    if (!is.null(config$initial_algorithm_file)) {
+      process_data_file(config$initial_algorithm_file)
     }
     initial_load_trigger(initial_load_trigger() + 1)
   })

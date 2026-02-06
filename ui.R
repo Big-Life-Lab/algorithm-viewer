@@ -55,7 +55,7 @@ ui <- fluidPage(
           div(
             # Model selection and message
             div(
-              style = ifelse(allow_file_uploads, "", "display: none"),
+              style = ifelse(config$allow_file_uploads, "", "display: none"),
               htmlOutput("model_message"),
               fileInput(
                 "upload", "Upload Algorithm:",

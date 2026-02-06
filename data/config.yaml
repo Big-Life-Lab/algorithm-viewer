@@ -1,0 +1,16 @@
+# If TRUE then allow the user to upload their own algorithm files to view
+allow_file_uploads: TRUE
+
+# The initial algorithm file to load automatically by default on startup
+# (eg. zip or yaml file).
+# Set this to NULL to not load a default algorithm (user must upload themself)
+# initial_algorithm_file: data/models/htnport-mpp/htnport-reduced.yaml
+initial_algorithm_file: data/models/htnport-reduced/htnport-reduced.yaml
+
+# @TODO: algorithm_file_selection not yet implemented
+# Selection of algorithm files the user can select from a dropdown.
+# Set to empty to not show the dropdown.
+# algorithm_file_selection:
+#   - data/models/htnport-mpp/htnport-reduced.yaml
+#   - data/models/htnport-mpp multiyaml/htnport-reduced-female.yaml
+#   - data/models/htnport-mpp multiyaml/htnport-reduced-male.yaml
