@@ -125,7 +125,7 @@ read_model_definitions <- function(file) {
 #' @return A named list of loaded files, keyed by file type.
 #'
 #' @keywords internal
-.get_files_from_model_export <- function(root_dir, model_export) {
+.load_files_from_model_export <- function(root_dir, model_export) {
   if (is.null(root_dir)) {
     root_dir <- dirname(model_export)
   }
@@ -311,23 +311,22 @@ read_model_definitions <- function(file) {
 #'
 #' @keywords internal
 .load_files <- function(info, root_dir) {
-  file_keys <- c("model_export", "model_variables", "model_variable_details")
   for (model_id in names(info$models)) {
-    cur_names <- names(info$models[[model_id]])
-    for (cur_file_key in intersect(file_keys, names(info$models[[model_id]]))) {
-      info$models[[model_id]][[cur_file_key]] <- read.csv(
-        file.path(root_dir, info$models[[model_id]][[cur_file_key]])
-      )
-    }
+    model_export_file <- info$models[[model_id]]$model_export
+    if (!is.null(model_export_file)) {
+      model_export_file <- file.path(root_dir, model_export_file)
+      info$models[[model_id]]$model_export <- read.csv(model_export_file)
 
-    if ("model_export" %in% names(info$models[[model_id]]) &&
-      is.character(names(info$models[[model_id]][["model_export"]]))) {
-      model_export_files <- .get_files_from_model_export(
-        root_dir,
-        info$models[[model_id]][["model_export"]]
+      # Load the files referenced in the model export file
+      model_export_files <- .load_files_from_model_export(
+        dirname(model_export_file),
+        info$models[[model_id]]$model_export
       )
-      for (file_key in names(model_export_files)) {
-        if (!(file_key %in% names(info$models[[model_id]]))) {
+
+      # Assign the files in the model export file to the model data, if they
+      # exist
+      for (file_key in list("variables", "variable_details", "model_steps")) {
+        if (file_key %in% names(model_export_files)) {
           info$models[[model_id]][[file_key]] <- model_export_files[[file_key]]
         }
       }
