@@ -29,6 +29,12 @@ lapply(file.path("R/curves", curve_files), source)
 # "Interaction Predictor" selector)
 empty_predictor <- "<empty>"
 
+# If a categorical variable has this many or more categories then use
+# radioButtons for the controls in the "Reference" tab. If it is less then
+# use a sliderTextInput. Radio buttons ensures that all the categorical
+# labels are visible, but a text slider is more compact and looks nicer.
+use_radio_buttons_category_threshold <- 0
+
 #' Generate Reference Group Input ID
 #'
 #' Creates a unique HTML input ID for a reference group variable slider.
@@ -176,38 +182,34 @@ server <- function(input, output, session) {
     reference_group
   }
 
-  #' Repopulate Reference Group Controls
+  #' Get The Type of Control for a Variable
   #'
-  #' Repopulates the existing reference group slider controls with the last
-  #' saved values for a specific model.
+  #' These are the controls that appear in the "Reference" tab.
   #'
-  #' @param model_id Character string specifying the model identifier to
-  #'   repopulate the reference group controls for.
+  #' @param model_id Character string specifying the model identifier.
+  #' @param variable The variable to get the control type for.
   #'
-  #' @return NULL (called for side effects on UI).
+  #' @return A character string indicating which control to use.
+  #'    For categorical variables this can be "radioButtons" or "sliderTextInput".
+  #'    For continuous variables this can be "sliderInput".
   #'
   #' @keywords internal
-  set_refgroup_control_values <- function(model_id) {
-    if (is.null(session$userData$model_definitions)) {
-      return()
-    }
-
+  get_variable_control_type <- function(model_id, variable) {
     model_data <- session$userData$model_definitions$models[[model_id]]
-    reference_group <- get_last_refgroup_values(model_data)
-
-    for (variable in names(reference_group)) {
-      val <- reference_group[[variable]]
-      ui_id <- .get_refgroup_input_id(model_id, variable)
-
-      if (is_variable_categorical(model_data, variable)) {
-        val <- get_variable_label_from_value(model_data, variable, val)
-        updateSliderTextInput(session, ui_id, selected = val)
-      } else {
-        updateSliderInput(session, ui_id, value = val)
+    if (is_variable_categorical(model_data, variable)) {
+      categories <- get_predictor_range(model_data, variable)
+      # If there are equal or more than use_radio_buttons_category_threshold
+      # categories then use radioButtons. If there are fewer categories
+      # then use sliderTextInput
+      if  (length(categories) >= use_radio_buttons_category_threshold) {
+        return("radioButtons")
       }
+      return("sliderTextInput")
     }
-  }
 
+    # Variable is continuous
+    "sliderInput"
+  }
 
   #' Get Currently Selected Models
   #'
@@ -250,22 +252,24 @@ server <- function(input, output, session) {
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
 
-    # Add a UI element to reference_group_input
-    append_ui <- function(item) {
-      reference_group_input[[length(reference_group_input) + 1]] <- item
-      reference_group_input
+    # Add a UI element to a list
+    append_ui <- function(lst, item) {
+      lst[[length(lst) + 1]] <- item
+      lst
     }
 
-    reference_group_input <- append_ui(br())
+    reference_group_input <- append_ui(reference_group_input, br())
 
     # Go through all models and create the reference group controls
     for (model_data in session$userData$model_definitions$models) {
+      current_model_input <- list()
+
       model_id <- model_data$model_id
 
       # Add a line (hr) between each model controls
-      if (length(reference_group_input) > 1) {
-        reference_group_input <- append_ui(hr())
-      }
+      # if (length(reference_group_input) > 1) {
+      #   current_model_input <- append_ui(current_model_input, hr())
+      # }
 
       # Add heading
       model_heading <- h4(shiny::HTML(add_model_color(
@@ -275,7 +279,10 @@ server <- function(input, output, session) {
         "20px",
         after = FALSE
       )))
-      reference_group_input <- append_ui(model_heading)
+      # model_heading <- h4(shiny::HTML(
+      #   cleanup_string(glue::glue("Model: {model_data$title}")),
+      # ))
+      current_model_input <- append_ui(current_model_input, model_heading)
 
       # Get the reference group values for the model.
       # If last_reference_group is set for the model, then use those
@@ -288,6 +295,7 @@ server <- function(input, output, session) {
         label <- get_variable_info(model_data, variable, "label")
         variable_range <- get_predictor_range(model_data, variable)
         input_id <- .get_refgroup_input_id(model_id, variable)
+        control_type <- get_variable_control_type(model_id, variable)
 
         if (is_variable_categorical(model_data, variable)) {
           # For categorical variables, add a sliderTextInput
@@ -313,13 +321,28 @@ server <- function(input, output, session) {
             selected <- labels[[1]]
           }
 
-          slider <- sliderTextInput(
-            inputId = input_id,
-            label = label,
-            choices = labels,
-            grid = TRUE,
-            selected = selected
-          )
+          if (control_type == "radioButtons") {
+            input_control <- radioButtons(
+              inputId = input_id,
+              label = label,
+              choices = labels,
+              selected = selected
+            )
+          } else if (control_type == "sliderTextInput") {
+            input_control <- sliderTextInput(
+              inputId = input_id,
+              label = label,
+              choices = labels,
+              grid = TRUE,
+              selected = selected,
+              force_edges = TRUE
+            )
+          } else {
+            stop(glue::glue(
+              "Unrecognized categorical control type '{control_type}' ",
+              "for variable '{variable}' and model ID '{model_id}'"
+            ))
+          }
         } else {
           # For continuous variables, add a sliderInput
           # Calculate the range and step information
@@ -336,17 +359,24 @@ server <- function(input, output, session) {
             step <- signif(variable_range[2] - variable_range[1], 5)
           }
 
-          slider <- sliderInput(
-            inputId = input_id,
-            label = label,
-            min = min_range,
-            max = max_range,
-            value = reference_value,
-            step = step
-          )
+          if (control_type == "sliderInput") {
+            input_control <- sliderInput(
+              inputId = input_id,
+              label = label,
+              min = min_range,
+              max = max_range,
+              value = reference_value,
+              step = step
+            )
+          } else {
+            stop(glue::glue(
+              "Unrecognized continuous control type '{control_type}' ",
+              "for variable '{variable}' and model ID '{model_id}'"
+            ))
+          }
         }
 
-        # Call get_refgroup_values_from_ui any time a slider changes
+        # Call get_refgroup_values_from_ui any time a control changes
         # This will save the last set reference group values
         cur_env <- env(model_id = model_id, input_id = input_id)
         observeEvent(
@@ -358,7 +388,7 @@ server <- function(input, output, session) {
           handler.env = cur_env
         )
 
-        reference_group_input <- append_ui(slider)
+        current_model_input <- append_ui(current_model_input, input_control)
       }
 
       # Add reset button for the model
@@ -370,9 +400,9 @@ server <- function(input, output, session) {
         icon = icon("arrow-rotate-left")
       )
 
-      reference_group_input <- append_ui(reset_button)
-      cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
+      current_model_input <- append_ui(current_model_input, reset_button)
 
+      cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
       observeEvent(
         input[[reset_button_id]],
         {
@@ -383,10 +413,72 @@ server <- function(input, output, session) {
         handler.env = cur_env,
         event.env = cur_env
       )
+
+      # Add a colored left margin that matches the model color
+      model_color <- unname(get_model_colors(list(model_data)))[[1]]
+      style <- glue::glue(
+        "width: 100%; ",
+        "border-left: solid 6px {model_color}; ",
+        "padding: 0 10px 0 10px;"
+      )
+      current_model_input <- list(div(style = style, current_model_input))
+
+      # Add an hr between each group
+      current_model_input <- append_ui(current_model_input, hr())
+
+      reference_group_input <- append_ui(reference_group_input,
+                                         current_model_input)
     }
 
     content <- div(id = refgroup_input_id, reference_group_input)
     insertUI(selector = "#refgroups", where = "afterBegin", ui = content)
+  }
+
+  #' Repopulate Reference Group Controls With Last Saved Values
+  #'
+  #' Repopulates the existing reference group controls with the last
+  #' saved values for a specific model.
+  #'
+  #' @param model_id Character string specifying the model identifier to
+  #'   repopulate the reference group controls for.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  set_refgroup_control_values <- function(model_id) {
+    if (is.null(session$userData$model_definitions)) {
+      return()
+    }
+
+    model_data <- session$userData$model_definitions$models[[model_id]]
+    reference_group <- get_last_refgroup_values(model_data)
+
+    for (variable in names(reference_group)) {
+      val <- reference_group[[variable]]
+      ui_id <- .get_refgroup_input_id(model_id, variable)
+      control_type <- get_variable_control_type(model_id, variable)
+
+      if (is_variable_categorical(model_data, variable)) {
+        val <- get_variable_label_from_value(model_data, variable, val)
+        if (control_type == "radioButtons") {
+          updateRadioButtons(session, ui_id, selected = val)
+        } else if (control_type == "sliderTextInput") {
+          updateSliderTextInput(session, ui_id, selected = val)
+        } else {
+          stop(glue::glue(
+            "Unrecognized categorical control type '{control_type}' ",
+            "for variable '{variable}' and model ID '{model_id}'"
+          ))
+        }
+      } else if (control_type == "sliderInput") {
+        updateSliderInput(session, ui_id, value = val)
+      } else {
+        stop(glue::glue(
+          "Unrecognized continuous control type '{control_type}' ",
+          "for variable '{variable}' and model ID '{model_id}'"
+        ))
+      }
+    }
   }
 
   #' Update Predictor Dropdown Choices
