@@ -283,14 +283,14 @@ read_model_definitions <- function(file) {
   for (model_id in names(info$models)) {
     model_export_file <- info$models[[model_id]]$model_export
     if (!is.null(model_export_file)) {
+      # Load model export file and assign to the model's $model_export
       model_export_file <- file.path(root_dir, model_export_file)
       model_export <- read.csv(model_export_file)
       info$models[[model_id]]$model_export <- model_export
 
-      model_export_root <- dirname(model_export_file)
-
       # Load variables, variable-details, and model-steps files,
       # assign them to the model's $variables, $variable_details, $model_steps
+      model_export_root <- dirname(model_export_file)
       for (file_type in c("variables", "variable-details", "model-steps")) {
         file_path <- model_export[model_export$fileType == file_type, ]$filePath
         file_path <- file.path(model_export_root, file_path)
