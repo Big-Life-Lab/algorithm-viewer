@@ -143,10 +143,40 @@ read_model_definitions <- function(file) {
   NULL
 }
 
+#' Copy Shared Configuration to All Models
+#'
+#' Copies configuration from the "_all_" template model to all other models,
+#' without overwriting existing values.
+#'
+#' @param info Model definitions list potentially containing an "_all_" model.
+#'
+#' @return Updated model definitions with shared configuration applied.
+#'
+#' @keywords internal
+.copy_from_all_model <- function(info) {
+  if (all_tag %in% names(info$models)) {
+    for (model_id in names(info$models)) {
+      if (model_id == all_tag) {
+        next
+      }
+      info$models[[model_id]] <- .copy_from_all(
+        info$models[[model_id]],
+        info$models[[all_tag]]
+      )
+    }
+
+    info$models[[all_tag]] <- NULL
+  }
+
+  info
+}
+
 #' Copy Missing Values from Template
 #'
 #' Recursively copies values from a template object to the target object
-#' for any keys not already present in the target.
+#' for any keys not already present in the target. This function
+#' is used by .copy_from_all_model (which should usually be called
+#' instead of .copy_from_all)
 #'
 #' @param info List to receive copied values.
 #' @param all_info Template list to copy values from.
@@ -156,12 +186,10 @@ read_model_definitions <- function(file) {
 #' @keywords internal
 .copy_from_all <- function(info, all_info) {
   for (key in names(all_info)) {
-    if (!(key %in% names(info))) {
-      if (is.list(info[[key]])) {
-        info[[key]] <- .copy_from_all(info[[key]], all_info[[key]])
-      } else {
-        info[[key]] <- all_info[[key]]
-      }
+    if (is.list(info[[key]])) {
+      info[[key]] <- .copy_from_all(info[[key]], all_info[[key]])
+    } else if (!(key %in% names(info))) {
+      info[[key]] <- all_info[[key]]
     }
   }
 
@@ -342,34 +370,6 @@ read_model_definitions <- function(file) {
   info
 }
 
-#' Copy Shared Configuration to All Models
-#'
-#' Copies configuration from the "_all_" template model to all other models,
-#' without overwriting existing values.
-#'
-#' @param info Model definitions list potentially containing an "_all_" model.
-#'
-#' @return Updated model definitions with shared configuration applied.
-#'
-#' @keywords internal
-.copy_from_all_model <- function(info) {
-  if (all_tag %in% names(info$models)) {
-    for (model_id in names(info$models)) {
-      if (model_id == all_tag) {
-        next
-      }
-      info$models[[model_id]] <- .copy_from_all(
-        info$models[[model_id]],
-        info$models[[all_tag]]
-      )
-    }
-
-    info$models[[all_tag]] <- NULL
-  }
-
-  info
-}
-
 #' Add Sequential Indices to Models
 #'
 #' Assigns a sequential model_index to each model in the definitions.
@@ -412,3 +412,10 @@ read_model_definitions <- function(file) {
 
   info
 }
+
+# defn <- read_model_definitions("/Users/martinwellman/Documents/Health/DataVisualization/algorithm-viewer/algorithm-viewer/data/models/htnport-full/htnport-full.yaml")
+# info$models$female$reference_group
+
+info <- read_yaml("/Users/martinwellman/Documents/Health/DataVisualization/algorithm-viewer/algorithm-viewer/data/models/htnport-full/htnport-full.yaml")
+info <- .copy_from_all_model(info)
+info$models$female$reference_group
