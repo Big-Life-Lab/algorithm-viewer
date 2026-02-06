@@ -16,7 +16,8 @@ library(htmltools)
 is_data_missing <- function(val) {
   is.null(val) ||
     length(val) == 0 ||
-    (is.character(val) && stringr::str_to_lower(val) == "n/a")
+    (is.character(val) && stringr::str_to_lower(val) == "n/a") ||
+    (is.character(val) && stringr::str_to_lower(val) == "na::b")
 }
 
 #' Get Variable Metadata
