@@ -412,10 +412,3 @@ read_model_definitions <- function(file) {
 
   info
 }
-
-# defn <- read_model_definitions("/Users/martinwellman/Documents/Health/DataVisualization/algorithm-viewer/algorithm-viewer/data/models/htnport-full/htnport-full.yaml")
-# info$models$female$reference_group
-
-info <- read_yaml("/Users/martinwellman/Documents/Health/DataVisualization/algorithm-viewer/algorithm-viewer/data/models/htnport-full/htnport-full.yaml")
-info <- .copy_from_all_model(info)
-info$models$female$reference_group
