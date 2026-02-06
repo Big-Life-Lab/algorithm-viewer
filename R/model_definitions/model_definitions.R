@@ -289,26 +289,14 @@ read_model_definitions <- function(file) {
 
       model_export_root <- dirname(model_export_file)
 
-      # Load variables file
-      variables_path <- model_export |>
-        filter(fileType == "variables") |>
-        pull(filePath)
-      variables_path <- file.path(model_export_root, variables_path)
-      info$models[[model_id]]$variables <- read.csv(variables_path)
-
-      # Load variable details file
-      var_details_path <- model_export |>
-        filter(fileType == "variable-details") |>
-        pull(filePath)
-      var_details_path <- file.path(model_export_root, var_details_path)
-      info$models[[model_id]]$variable_details <- read.csv(var_details_path)
-
-      # Load model steps file
-      model_steps_path <- model_export |>
-        filter(fileType == "model-steps") |>
-        pull(filePath)
-      model_steps_path <- file.path(model_export_root, model_steps_path)
-      info$models[[model_id]]$model_steps <- read.csv(model_steps_path)
+      # Load variables, variable-details, and model-steps files,
+      # assign them to the model's $variables, $variable_details, $model_steps
+      for (file_type in c("variables", "variable-details", "model-steps")) {
+        file_path <- model_export[model_export$fileType == file_type, ]$filePath
+        file_path <- file.path(model_export_root, file_path)
+        file_key <- gsub("[^A-Za-z0-9]", "_", file_type)
+        info$models[[model_id]][[file_key]] <- read.csv(file_path)
+      }
     }
   }
   info
