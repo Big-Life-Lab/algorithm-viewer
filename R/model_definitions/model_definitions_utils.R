@@ -6,7 +6,8 @@ library(htmltools)
 
 #' Check if Data Value is Missing
 #'
-#' Tests whether a value is NULL, empty, or represents missing data ("n/a").
+#' Tests whether a value is NULL, empty, or represents missing data
+#' ("n/a", "NA::b").
 #'
 #' @param val Value to check.
 #'
