@@ -5,7 +5,7 @@ meta:
 models:
   female:
     title: Female
-    model_export: ./HTNPoRT-reduced-female-model-export.csv
+    model_export: ./female-reduced/HTNPoRT-reduced-female-model-export.csv
     reference_group:
       clc_age: 20
       fmh_15: 2
@@ -13,7 +13,7 @@ models:
       diabx: 2
   male:
     title: Male
-    model_export: ./HTNPoRT-reduced-male-model-export.csv
+    model_export: ./male-reduced/HTNPoRT-reduced-male-model-export.csv
     reference_group:
       clc_age: 20
       fmh_15: 2

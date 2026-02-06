@@ -4,7 +4,6 @@ allow_file_uploads: TRUE
 # The initial algorithm file to load automatically by default on startup
 # (eg. zip or yaml file).
 # Set this to NULL to not load a default algorithm (user must upload themself)
-# initial_algorithm_file: data/models/htnport-mpp/htnport-reduced.yaml
 initial_algorithm_file: data/models/htnport-reduced/htnport-reduced.yaml
 
 # @TODO: algorithm_file_selection not yet implemented
