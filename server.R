@@ -304,6 +304,14 @@ server <- function(input, output, session) {
             variable,
             reference_value
           )
+          if (!(selected %in% labels)) {
+            labels_str <- paste0("'", labels, "'", collapse = ", ")
+            warning(glue::glue(
+              "Reference group value '{selected}' is not a valid value for ",
+              "variable {variable}. Must be one of {labels_str}."
+            ))
+            selected <- labels[[1]]
+          }
 
           slider <- sliderTextInput(
             inputId = input_id,
