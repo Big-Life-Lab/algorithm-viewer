@@ -5,6 +5,7 @@ allow_file_uploads: TRUE
 # (eg. zip or yaml file).
 # Set this to NULL to not load a default algorithm (user must upload themself)
 initial_algorithm_file: data/models/htnport-reduced/htnport-reduced.yaml
+# initial_algorithm_file: data/models/htnport-full/htnport-full.yaml
 
 # @TODO: algorithm_file_selection not yet implemented
 # Selection of algorithm files the user can select from a dropdown.
