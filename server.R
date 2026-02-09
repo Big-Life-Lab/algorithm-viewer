@@ -382,7 +382,11 @@ server <- function(input, output, session) {
         # Call save_last_reference_group_from_ui any time a control changes
         # This will save the last set reference group values. We also
         # redraw with redraw_trigger when the reference group changes.
-        cur_env <- env(model_id = model_id, input_id = input_id, variable = variable)
+        cur_env <- env(
+          model_id = model_id,
+          input_id = input_id,
+          variable = variable
+        )
         observeEvent(
           input[[input_id]],
           {
@@ -844,6 +848,7 @@ server <- function(input, output, session) {
     update_predictor_choices()
     update_interaction_predictor_choices()
     reload_trigger(reload_trigger() + 1)
+    redraw_trigger(redraw_trigger() + 1)
   }
 
   #' Process Uploaded Data File
