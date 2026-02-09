@@ -445,10 +445,6 @@ server <- function(input, output, session) {
       ui = content,
       immediate = TRUE
     )
-
-    for (model_data in session$userData$model_definitions$models) {
-      save_last_reference_group_from_ui(model_data$model_id)
-    }
   }
 
   #' Repopulate Reference Group Controls With Last Saved Values
@@ -609,14 +605,15 @@ server <- function(input, output, session) {
       dplyr::bind_rows()
 
     curve_data <- all_curve_data[[length(all_curve_data)]]
+    logarithmic <- session$userData$logarithmic
 
     tryCatch(
       {
-        # log10 vs identity transform, based on input$logarithmic.
-        transform <- ifelse(input$logarithmic, "log10", "identity")
+        # log10 vs identity transform
+        transform <- ifelse(logarithmic, "log10", "identity")
 
         ylabel <- ifelse(
-          input$logarithmic,
+          logarithmic,
           glue::glue("{curve_data$y_axis_label} (Logarithmic)"),
           curve_data$y_axis_label
         )
@@ -645,7 +642,7 @@ server <- function(input, output, session) {
         }
 
         y_limits <- NULL
-        if (!is.null(curve_data$ylim) && !input$logarithmic) {
+        if (!is.null(curve_data$ylim) && !logarithmic) {
           y_limits <- curve_data$ylim
         }
 
@@ -678,6 +675,11 @@ server <- function(input, output, session) {
     )
   }
 
+  observeEvent(input$logarithmic, {
+    session$userData$logarithmic <- input$logarithmic
+    redraw_trigger(redraw_trigger() + 1)
+  })
+
   observeEvent(input$predictor, {
     session$userData$predictor <- input$predictor
     redraw_trigger(redraw_trigger() + 1)
@@ -699,7 +701,7 @@ server <- function(input, output, session) {
 
     tryCatch(
       {
-        predictor <- session$userData$predictor #input$predictor
+        predictor <- session$userData$predictor
         all_curve_data <- list()
 
         # Go through all models and calculate the OR curves
