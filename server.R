@@ -267,11 +267,10 @@ server <- function(input, output, session) {
       model_id <- model_data$model_id
 
       # Add heading
-      heading_string <- glue::glue("Model: {model_data$title}")
       model_heading <- h4(
         shiny::HTML(add_model_color(
           model_data,
-          cleanup_string(heading_string),
+          cleanup_string(model_data$title),
           "20px",
           "20px",
           after = FALSE
