@@ -131,21 +131,19 @@ use_radio_buttons_category_threshold <- 0
 #'
 #' @export
 server <- function(input, output, session) {
+  # React to redraw_trigger when the plots need to be redrawn
+  redraw_trigger <- reactiveVal(0)
   # React to reload_trigger when something needs to be updated due to a loading
-  # of an algorithm zip file. In most cases, we can simply call
-  # selected_models() to react to a reload.
-  # selected_model_ids should generally not be used except for special cases.
-  # It is reacted to in selected_models() to make all other functions that
-  # access the selected models react automatically.
-  selected_model_ids <- reactiveVal(c())
+  # of an algorithm zip file.
   reload_trigger <- reactiveVal(0)
-
+  # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
-  #' Get Reference Group Values from UI
+  #' Get And Save Last Reference Group Values from UI
   #'
   #' Retrieves current reference group values from UI slider controls for
-  #' a specific model and caches them in the model data.
+  #' a specific model and caches them in the model data as 
+  #' $last_reference_group.
   #'
   #' @param model_id Character string specifying the model identifier.
   #'
@@ -153,15 +151,26 @@ server <- function(input, output, session) {
   #'   definitions are loaded.
   #'
   #' @keywords internal
-  get_refgroup_values_from_ui <- function(model_id) {
+  save_last_reference_group_from_ui <- function(model_id, variables = NULL) {
     if (is.null(session$userData$model_definitions)) {
       return()
     }
 
-    reference_group <- list()
+    reference_group <- session$userData$model_definitions$
+      models[[model_id]]$last_reference_group
+    if (is.null(reference_group)) {
+      reference_group <- list()
+    }
     model_data <- session$userData$model_definitions$models[[model_id]]
 
-    for (variable in names(model_data$reference_group)) {
+    # Gather the variables to save the values for
+    if (is.null(variables)) {
+      variables <- names(model_data$reference_group)
+    } else {
+      variables <- intersect(variables, names(model_data$reference_group))
+    }
+
+    for (variable in variables) {
       ui_id <- .get_refgroup_input_id(model_id, variable)
       val <- input[[ui_id]]
 
@@ -176,8 +185,8 @@ server <- function(input, output, session) {
       reference_group[[variable]] <- val
     }
 
-    session$userData$model_definitions$models[[model_id]]$last_reference_group <-
-      reference_group
+    session$userData$model_definitions$
+      models[[model_id]]$last_reference_group <- reference_group
 
     reference_group
   }
@@ -213,41 +222,37 @@ server <- function(input, output, session) {
 
   #' Get Currently Selected Models
   #'
-  #' Reactive expression that returns the model data for all currently
-  #' selected models based on the selected_model_ids reactive value.
-  #'
   #' @return Named list of model data objects for the selected models,
   #'   or an empty list if no model definitions are loaded.
   #'
   #' @keywords internal
-  selected_models <- reactive({
-    reload_trigger()
+  selected_models <- function() {
     if (is.null(session$userData$model_definitions)) {
       list()
     } else {
       model_defs <- session$userData$model_definitions
-      models <- model_defs$models[as.vector(selected_model_ids())]
+      models <- model_defs$models[as.vector(session$userData$selected_model_ids)]
       models <- models[!is.na(names(models))]
       models
     }
-  })
+  }
 
-  #' Update Reference Group UI Controls
+  #' Create the Reference Group UI Controls
   #'
-  #' Rebuilds the reference group slider controls in the UI for all loaded
-  #' models. Removes existing controls and creates new sliders for each
+  #' Rebuilds the reference group input controls in the UI for all loaded
+  #' models. Removes existing controls and creates new controls for each
   #' predictor variable, with appropriate input types for categorical vs
   #' continuous variables.
   #'
   #' @return NULL (called for side effects on UI).
   #'
   #' @keywords internal
-  update_refgroups <- function() {
+  create_refgroup_controls <- function() {
     # ID of the div containing the reference group sliders. This is for
     # removing then adding the div.
     refgroup_input_id <- "refgroup_input_id"
 
-    removeUI(selector = paste0("#", refgroup_input_id))
+    removeUI(selector = paste0("#", refgroup_input_id), immediate = TRUE)
 
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
@@ -280,9 +285,6 @@ server <- function(input, output, session) {
           "padding: 10px 0 8px 0; margin: 0; z-index: 10"
         )
       )
-      # model_heading <- h4(shiny::HTML(
-      #   cleanup_string(glue::glue("Model: {model_data$title}")),
-      # ))
       current_model_input <- append_ui(current_model_input, model_heading)
 
       # Get the reference group values for the model.
@@ -377,16 +379,19 @@ server <- function(input, output, session) {
           }
         }
 
-        # Call get_refgroup_values_from_ui any time a control changes
-        # This will save the last set reference group values
-        cur_env <- env(model_id = model_id, input_id = input_id)
+        # Call save_last_reference_group_from_ui any time a control changes
+        # This will save the last set reference group values. We also
+        # redraw with redraw_trigger when the reference group changes.
+        cur_env <- env(model_id = model_id, input_id = input_id, variable = variable)
         observeEvent(
           input[[input_id]],
           {
-            get_refgroup_values_from_ui(model_id)
+            save_last_reference_group_from_ui(model_id, c(variable))
+            redraw_trigger(redraw_trigger() + 1)
           },
           event.env = cur_env,
-          handler.env = cur_env
+          handler.env = cur_env,
+          ignoreInit = TRUE
         )
 
         current_model_input <- append_ui(current_model_input, input_control)
@@ -410,9 +415,11 @@ server <- function(input, output, session) {
           session$userData$model_definitions$models[[model_id]]$
             last_reference_group <- NULL
           set_refgroup_control_values(model_id)
+          redraw_trigger(redraw_trigger() + 1)
         },
         handler.env = cur_env,
-        event.env = cur_env
+        event.env = cur_env,
+        ignoreInit = TRUE
       )
 
       # Add a colored left margin that matches the model color
@@ -432,7 +439,16 @@ server <- function(input, output, session) {
     }
 
     content <- div(id = refgroup_input_id, reference_group_input)
-    insertUI(selector = "#refgroups", where = "afterBegin", ui = content)
+    insertUI(
+      selector = "#refgroups",
+      where = "afterBegin",
+      ui = content,
+      immediate = TRUE
+    )
+
+    for (model_data in session$userData$model_definitions$models) {
+      save_last_reference_group_from_ui(model_data$model_id)
+    }
   }
 
   #' Repopulate Reference Group Controls With Last Saved Values
@@ -662,18 +678,28 @@ server <- function(input, output, session) {
     )
   }
 
+  observeEvent(input$predictor, {
+    session$userData$predictor <- input$predictor
+    redraw_trigger(redraw_trigger() + 1)
+  })
+
+  observeEvent(input$interaction_predictor, {
+    session$userData$interaction_predictor <- input$interaction_predictor
+    redraw_trigger(redraw_trigger() + 1)
+  })
+
   output$pr_plot <- renderPlotly({
-    reload_trigger()
+    redraw_trigger()
+
+    req(session$userData$predictor)
 
     if (is.null(session$userData$model_definitions)) {
       return(make_plot(NULL))
     }
 
-    req(input$predictor)
-
     tryCatch(
       {
-        predictor <- input$predictor
+        predictor <- session$userData$predictor #input$predictor
         all_curve_data <- list()
 
         # Go through all models and calculate the OR curves
@@ -684,7 +710,7 @@ server <- function(input, output, session) {
             filter(variable == predictor) |>
             pull(variableType)
 
-          reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+          reference_group <- get_last_refgroup_values(model_data)
 
           tic <- Sys.time()
 
@@ -716,19 +742,19 @@ server <- function(input, output, session) {
 
   # Calculate and plot OR curves
   output$or_plot <- renderPlotly({
-    reload_trigger()
+    redraw_trigger()
+
+    req(session$userData$predictor)
 
     if (is.null(session$userData$model_definitions)) {
       return(make_plot(NULL))
     }
 
-    req(input$predictor)
-
     tryCatch(
       {
         all_curve_data <- list()
-        predictor <- input$predictor
-        interaction_predictor <- input$interaction_predictor
+        predictor <- session$userData$predictor
+        interaction_predictor <- session$userData$interaction_predictor
 
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
@@ -738,7 +764,7 @@ server <- function(input, output, session) {
             filter(variable == predictor) |>
             pull(variableType)
 
-          reference_group <- get_refgroup_values_from_ui(model_data$model_id)
+          reference_group <- get_last_refgroup_values(model_data)
 
           tic <- Sys.time()
 
@@ -780,16 +806,15 @@ server <- function(input, output, session) {
   #' Load Model Definitions from File
   #'
   #' Reads model definitions from a YAML file and stores them in the session
-  #' user data. Optionally triggers UI updates after loading.
+  #' user data.
   #'
   #' @param file Character string specifying the path to the YAML file.
-  #' @param call_update_all Logical indicating whether to call update_all()
-  #'   after loading. Default is TRUE.
   #'
   #' @return NULL (called for side effects).
   #'
   #' @keywords internal
-  load_model_definitions <- function(file, call_update_all = TRUE) {
+  load_model_definitions <- function(file) {
+    session$userData$selected_model_ids <- NULL
     tryCatch(
       {
         session$userData$model_definitions <- read_model_definitions(file)
@@ -799,24 +824,24 @@ server <- function(input, output, session) {
         message(paste("Error loading model definition:", e$message))
       }
     )
-    if (call_update_all) {
-      update_all()
-    }
   }
 
-  #' Update All UI Components
+  #' Recreate All UI Components and data and trigger a reload all.
   #'
   #' Refreshes all model-dependent UI components including model selections,
-  #' reference group controls, and predictor dropdowns.
+  #' reference group controls, and predictor dropdowns. Once everything is
+  #' created downstream reloading and redrawing is triggered.
   #'
   #' @return NULL (called for side effects on UI).
   #'
   #' @keywords internal
-  update_all <- function() {
+  recreate_and_trigger_reload <- function() {
+    session$userData$selected_model_ids <- NULL
     update_model_selections()
-    update_refgroups()
+    create_refgroup_controls()
     update_predictor_choices()
     update_interaction_predictor_choices()
+    reload_trigger(reload_trigger() + 1)
   }
 
   #' Process Uploaded Data File
@@ -899,10 +924,11 @@ server <- function(input, output, session) {
         ))
       } else {
         config_file <- file.path(temp_dir_path, config_files[[1]])
-        load_model_definitions(config_file, call_update_all = FALSE)
+        load_model_definitions(config_file)
       }
-      update_all()
     }
+
+    recreate_and_trigger_reload()
   }
 
   # Handle file that has been uploaded
@@ -915,7 +941,7 @@ server <- function(input, output, session) {
       file <- input$upload$datapath
       process_data_file(file)
     }
-  })
+  }, ignoreInit = TRUE)
 
   # Show a message to the user at the top of the "Models" tab
   output$model_message <- renderUI({
@@ -932,6 +958,7 @@ server <- function(input, output, session) {
   # Populate the main title of the page
   output$ui_title <- renderUI({
     reload_trigger()
+
     if (!is.null(session$userData$model_definitions)) {
       meta <- session$userData$model_definitions$meta
       glue::glue("{meta$algorithm} v{meta$version} Algorithm Viewer")
@@ -952,12 +979,12 @@ server <- function(input, output, session) {
     initial_load_trigger(initial_load_trigger() + 1)
   })
 
-  # When the Models checkboxes change selection then update the reactive values
-  # select_model_ids with a string vector of the selected model IDs. This
-  # will trigger all listeners on selected_model_ids.
-  observe({
-    selected_model_ids(input$model_id)
-  })
+  # Redraw when the selected Models changes
+  observeEvent(input$model_id, {
+    req(input$model_id)
+    session$userData$selected_model_ids <- input$model_id
+    redraw_trigger(redraw_trigger() + 1)
+  }, ignoreInit = TRUE)
 
   #' Update Model Selection Checkboxes
   #'
@@ -977,6 +1004,7 @@ server <- function(input, output, session) {
         include_model_colors = TRUE,
         escape_html = TRUE
       )
+
       updateCheckboxGroupInput(
         session,
         "model_id",
@@ -985,7 +1013,7 @@ server <- function(input, output, session) {
         choiceNames = choice_names,
         choiceValues = get_model_ids(model_defs$models)
       )
-      selected_model_ids(selected)
+      session$userData$selected_model_ids <- selected
     } else {
       # No model definitions loaded, so show an empty checkbox group
       updateCheckboxGroupInput(
@@ -996,10 +1024,8 @@ server <- function(input, output, session) {
         choiceNames = character(0),
         choiceValues = character(0)
       )
-      selected_model_ids(c())
+      session$userData$selected_model_ids <- c()
     }
-
-    reload_trigger(reload_trigger() + 1)
   }
 
   #' Create Error Modal Dialog
@@ -1061,7 +1087,8 @@ server <- function(input, output, session) {
   observeEvent(input$select_yaml_ok, {
     selected <- input$select_yaml_radio
     if (!is.null(selected) && selected != "") {
-      load_model_definitions(selected, call_update_all = TRUE)
+      load_model_definitions(selected)
+      recreate_and_trigger_reload()
     }
     removeModal()
   })
