@@ -266,19 +266,21 @@ server <- function(input, output, session) {
 
       model_id <- model_data$model_id
 
-      # Add a line (hr) between each model controls
-      # if (length(reference_group_input) > 1) {
-      #   current_model_input <- append_ui(current_model_input, hr())
-      # }
-
       # Add heading
-      model_heading <- h4(shiny::HTML(add_model_color(
-        model_data,
-        cleanup_string(glue::glue("Model: {model_data$title}")),
-        "20px",
-        "20px",
-        after = FALSE
-      )))
+      heading_string <- glue::glue("Model: {model_data$title}")
+      model_heading <- h4(
+        shiny::HTML(add_model_color(
+          model_data,
+          cleanup_string(heading_string),
+          "20px",
+          "20px",
+          after = FALSE
+        )),
+        style = paste(
+          "position: sticky; top: 0; background-color: #fff;",
+          "padding: 10px 0 8px 0; margin: 0; z-index: 10"
+        )
+      )
       # model_heading <- h4(shiny::HTML(
       #   cleanup_string(glue::glue("Model: {model_data$title}")),
       # ))
