@@ -29,38 +29,18 @@ lapply(file.path("R/curves", curve_files), source)
 # "Interaction Predictor" selector)
 empty_predictor <- "<empty>"
 
+# Prefix used for the reference group controls and the reference group reset
+# button. These are also used to destroy previous observeEvents when
+# repopulating the reference gorup controls/buttons (we destroy them by
+# matching the IDs with a regex starting with these values)
+reference_group_control_id_prefix <- "ref_control__"
+reference_group_reset_id_prefix <- "refreset__"
+
 # If a categorical variable has this many or more categories then use
 # radioButtons for the controls in the "Reference" tab. If it is less then
 # use a sliderTextInput. Radio buttons ensures that all the categorical
 # labels are visible, but a text slider is more compact and looks nicer.
 use_radio_buttons_category_threshold <- 0
-
-#' Generate Reference Group Input ID
-#'
-#' Creates a unique HTML input ID for a reference group variable slider.
-#'
-#' @param model_id Character string specifying the model identifier.
-#' @param variable Character string specifying the variable name.
-#'
-#' @return Character string with the formatted input ID.
-#'
-#' @keywords internal
-.get_refgroup_input_id <- function(model_id, variable) {
-  glue::glue("ref_{model_id}_{variable}")
-}
-
-#' Generate Reset Button ID
-#'
-#' Creates a unique HTML ID for a reference group reset button.
-#'
-#' @param model_id Character string specifying the model identifier.
-#'
-#' @return Character string with the formatted button ID.
-#'
-#' @keywords internal
-.get_refgroup_reset_button_id <- function(model_id) {
-  glue::glue("refreset_{model_id}")
-}
 
 #' Create a Plot Consisting of a Single String Message
 #'
@@ -139,6 +119,93 @@ server <- function(input, output, session) {
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
+  all_dynamic_observers <- list()
+
+  #' Destroy a Dynamic Observer
+  #'
+  #' Removes and destroys a previously registered dynamic observer by its
+  #' ID. If no observer exists with the given ID, this is a no-op.
+  #'
+  #' @param observe_id Character string identifying the observer to destroy.
+  #'
+  #' @return NULL (called for side effects).
+  #'
+  #' @keywords internal
+  destroy_dynamic_observer <- function(observe_id) {
+    if (observe_id %in% names(all_dynamic_observers)) {
+      all_dynamic_observers[[observe_id]]$event$destroy()
+      all_dynamic_observers[[observe_id]] <<- NULL
+    }
+  }
+
+  #' Destroy Dynamic Observers by Regex
+  #'
+  #' Removes and destroys all previously registered dynamic observers whose
+  #' IDs match the given regular expression pattern.
+  #'
+  #' @param observe_id_regex Character string containing a regular expression
+  #'   pattern to match against observer IDs.
+  #'
+  #' @return NULL (called for side effects).
+  #'
+  #' @keywords internal
+  destroy_dynamic_observer_regex <- function(observe_id_regex) {
+    for (cur_id in names(all_dynamic_observers)) {
+      if (grepl(observe_id_regex, cur_id)) {
+        destroy_dynamic_observer(cur_id)
+      }
+    }
+  }
+
+  #' Register a Dynamic Observer
+  #'
+  #' Registers a new dynamic observer, destroying any existing observer
+  #' with the same ID first. Stores the observer event and associated UI
+  #' item for later cleanup.
+  #'
+  #' @param observe_id Character string identifying the observer.
+  #' @param observe_item The UI input control associated with this observer.
+  #' @param observe_event The Shiny observer event object to register.
+  #'
+  #' @return NULL (called for side effects).
+  #'
+  #' @keywords internal
+  add_dynamic_observer <- function(observe_id, observe_item, observe_event) {
+    destroy_dynamic_observer(observe_id)
+    all_dynamic_observers[[observe_id]] <<- list(
+      event = observe_event,
+      item = observe_item
+    )
+  }
+
+  #' Generate Reference Group Input ID
+  #'
+  #' Creates a unique HTML input ID for a reference group variable slider.
+  #'
+  #' @param model_id Character string specifying the model identifier.
+  #' @param variable Character string specifying the variable name.
+  #'
+  #' @return Character string with the formatted input ID.
+  #'
+  #' @keywords internal
+  get_refgroup_input_id <- function(model_id, variable, index) {
+    glue::glue("{reference_group_control_id_prefix}{model_id}_{variable}")
+  }
+
+  #' Generate Reset Button ID
+  #'
+  #' Creates a unique HTML ID for a reference group reset button.
+  #'
+  #' @param model_id Character string specifying the model identifier.
+  #'
+  #' @return Character string with the formatted button ID.
+  #'
+  #' @keywords internal
+  get_refgroup_reset_button_id <- function(model_id, index) {
+    glue::glue("{reference_group_reset_id_prefix}{model_id}")
+  }
+
+
   #' Get And Save Last Reference Group Values from UI
   #'
   #' Retrieves current reference group values from UI slider controls for
@@ -171,7 +238,7 @@ server <- function(input, output, session) {
     }
 
     for (variable in variables) {
-      ui_id <- .get_refgroup_input_id(model_id, variable)
+      ui_id <- get_refgroup_input_id(model_id, variable)
       val <- input[[ui_id]]
 
       if (is.null(val)) {
@@ -231,7 +298,8 @@ server <- function(input, output, session) {
       list()
     } else {
       model_defs <- session$userData$model_definitions
-      models <- model_defs$models[as.vector(session$userData$selected_model_ids)]
+      models <- model_defs$
+        models[as.vector(session$userData$selected_model_ids)]
       models <- models[!is.na(names(models))]
       models
     }
@@ -248,6 +316,9 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   create_refgroup_controls <- function() {
+    destroy_dynamic_observer_regex(glue::glue("^{stringr::str_escape(reference_group_control_id_prefix)}.+$"))
+    destroy_dynamic_observer_regex(glue::glue("^{stringr::str_escape(reference_group_reset_id_prefix)}.+$"))
+
     # ID of the div containing the reference group sliders. This is for
     # removing then adding the div.
     refgroup_input_id <- "refgroup_input_id"
@@ -257,7 +328,6 @@ server <- function(input, output, session) {
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
 
-    # Add a UI element to a list
     append_ui <- function(lst, item) {
       lst[[length(lst) + 1]] <- item
       lst
@@ -297,7 +367,7 @@ server <- function(input, output, session) {
         reference_value <- reference_group[[variable]]
         label <- get_variable_info(model_data, variable, "label")
         variable_range <- get_predictor_range(model_data, variable)
-        input_id <- .get_refgroup_input_id(model_id, variable)
+        input_id <- get_refgroup_input_id(model_id, variable)
         control_type <- get_variable_control_type(model_id, variable)
 
         if (is_variable_categorical(model_data, variable)) {
@@ -387,22 +457,26 @@ server <- function(input, output, session) {
           input_id = input_id,
           variable = variable
         )
-        observeEvent(
-          input[[input_id]],
-          {
-            save_last_reference_group_from_ui(model_id, c(variable))
-            redraw_trigger(redraw_trigger() + 1)
-          },
-          event.env = cur_env,
-          handler.env = cur_env,
-          ignoreInit = TRUE
+        add_dynamic_observer(
+          input_id,
+          input_control,
+          observeEvent(
+            input[[input_id]],
+            {
+              save_last_reference_group_from_ui(model_id, c(variable))
+              redraw_trigger(redraw_trigger() + 1)
+            },
+            event.env = cur_env,
+            handler.env = cur_env,
+            ignoreInit = TRUE
+          )
         )
 
         current_model_input <- append_ui(current_model_input, input_control)
       }
 
       # Add reset button for the model
-      reset_button_id <- .get_refgroup_reset_button_id(model_id)
+      reset_button_id <- get_refgroup_reset_button_id(model_id)
 
       reset_button <- actionButton(
         reset_button_id,
@@ -413,17 +487,21 @@ server <- function(input, output, session) {
       current_model_input <- append_ui(current_model_input, reset_button)
 
       cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
-      observeEvent(
-        input[[reset_button_id]],
-        {
-          session$userData$model_definitions$models[[model_id]]$
-            last_reference_group <- NULL
-          set_refgroup_control_values(model_id)
-          redraw_trigger(redraw_trigger() + 1)
-        },
-        handler.env = cur_env,
-        event.env = cur_env,
-        ignoreInit = TRUE
+      add_dynamic_observer(
+        reset_button_id,
+        reset_button,
+        observeEvent(
+          input[[reset_button_id]],
+          {
+            session$userData$model_definitions$models[[model_id]]$
+              last_reference_group <- NULL
+            set_refgroup_control_values(model_id)
+            redraw_trigger(redraw_trigger() + 1)
+          },
+          handler.env = cur_env,
+          event.env = cur_env,
+          ignoreInit = TRUE
+        )
       )
 
       # Add a colored left margin that matches the model color
@@ -472,7 +550,7 @@ server <- function(input, output, session) {
 
     for (variable in names(reference_group)) {
       val <- reference_group[[variable]]
-      ui_id <- .get_refgroup_input_id(model_id, variable)
+      ui_id <- get_refgroup_input_id(model_id, variable)
       control_type <- get_variable_control_type(model_id, variable)
 
       if (is_variable_categorical(model_data, variable)) {
@@ -865,7 +943,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   process_data_file <- function(file) {
-    if (grepl(file_ext(file), "^(yaml|yml)$", ignore.case = TRUE)) {
+    if (grepl("^(yaml|yml)$", file_ext(file), ignore.case = TRUE)) {
       load_model_definitions(file)
     } else {
       temp_dir_path <- tempdir()
@@ -988,12 +1066,14 @@ server <- function(input, output, session) {
     initial_load_trigger(initial_load_trigger() + 1)
   })
 
-  # Redraw when the selected Models changes
+  # Redraw when the selected Models changes.
+  # The checkbox group returns NULL if nothing is selected, so we must
+  # set ignoreNULL = FALSE to make sure that we redraw when no model
+  # is selected
   observeEvent(input$model_id, {
-    req(input$model_id)
     session$userData$selected_model_ids <- input$model_id
     redraw_trigger(redraw_trigger() + 1)
-  }, ignoreInit = TRUE)
+  }, ignoreInit = TRUE, ignoreNULL = FALSE)
 
   #' Update Model Selection Checkboxes
   #'
