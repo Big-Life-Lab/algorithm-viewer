@@ -528,6 +528,7 @@ server <- function(input, output, session) {
       selected <- character(0)
     }
 
+    session$userData$predictor <- selected
     updateSelectInput(
       session,
       "predictor",
@@ -573,6 +574,7 @@ server <- function(input, output, session) {
       selected <- character(0)
     }
 
+    session$userData$interaction_predictor <- selected
     updateSelectInput(
       session,
       "interaction_predictor",
