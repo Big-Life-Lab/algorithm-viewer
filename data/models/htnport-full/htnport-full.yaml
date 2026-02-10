@@ -1,0 +1,31 @@
+meta:
+  algorithm: HTNPoRT Full
+  version: 1.0.0
+
+models:
+  female:
+    title: Female
+    model_export: ./female-full/HTNPoRT-full-female-model-export.csv
+  male:
+    title: Male
+    model_export: ./male-full/HTNPoRT-full-male-model-export.csv
+  _all_:
+    predictor_ranges:
+      hwmdbmi: seq(13, 49, by = 0.01)
+    reference_group:
+      clc_age: 24
+      married: 3
+      edudr04: 3
+      working: 2
+      gendmhi: 2
+      gen_025: 1
+      gen_045: 1
+      fmh_15: 1
+      hwmdbmi: 19.62
+      low_drink_score1: 1
+      minperweek: 30
+      smoke: 3
+      slp_11: 7
+      totalfv: 5
+      diabx: 2
+      ckd: 2      
