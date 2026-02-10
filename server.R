@@ -993,7 +993,10 @@ server <- function(input, output, session) {
         )
         showModal(errorModal("Error Loading Data", err_msg))
       } else if (length(config_files) > 1) {
-        escaped_files <- htmltools::htmlEscape(basename(config_files))
+        # The names of selections are the full path to the config file within
+        # the temporary directory. The values of selections are the values
+        # shown to the user in the dialog box (the values can be anything).
+        escaped_files <- htmltools::htmlEscape(config_files)
         selections <- setNames(
           file.path(temp_dir_path, config_files),
           escaped_files
