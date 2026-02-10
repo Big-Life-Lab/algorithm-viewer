@@ -483,6 +483,13 @@ server <- function(input, output, session) {
         label = glue::glue("Reset {model_data$title}"),
         icon = icon("arrow-rotate-left")
       )
+      reset_button <- div(
+        style = paste(
+          "position: sticky; bottom: 0; background-color: #fff;",
+          "padding: 10px 0 7px 0; margin: 0; z-index: 10"
+        ),
+        reset_button
+      )
 
       current_model_input <- append_ui(current_model_input, reset_button)
 
