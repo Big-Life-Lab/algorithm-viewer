@@ -94,7 +94,10 @@ ui <- fluidPage(
           "Reference",
           icon = icon("angle-double-down"),
           div(
-            style = "height: calc(100vh - 150px); overflow-y: scroll",
+            style = paste(
+              "height: calc(100vh - 140px); margin-bottom: 20px;",
+              "overflow-y: scroll"
+            ),
             div(id = "refgroups")
           )
         )
