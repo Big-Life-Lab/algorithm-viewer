@@ -486,7 +486,7 @@ server <- function(input, output, session) {
       reset_button <- div(
         style = paste(
           "position: sticky; bottom: 0; background-color: #fff;",
-          "padding: 10px 0 7px 0; margin: 0; z-index: 10"
+          "padding: 10px 0 7px 0; margin: 0; z-index: 9"
         ),
         reset_button
       )
