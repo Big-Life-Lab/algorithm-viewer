@@ -336,6 +336,7 @@ server <- function(input, output, session) {
     reference_group_input <- append_ui(reference_group_input, br())
 
     # Go through all models and create the reference group controls
+    last_model_id <- tail(names(session$userData$model_definitions$models), 1)
     for (model_data in session$userData$model_definitions$models) {
       current_model_input <- list()
 
@@ -521,7 +522,9 @@ server <- function(input, output, session) {
       current_model_input <- list(div(style = style, current_model_input))
 
       # Add an hr between each group
-      current_model_input <- append_ui(current_model_input, hr())
+      if (model_id != last_model_id) {
+        current_model_input <- append_ui(current_model_input, hr())
+      }
 
       reference_group_input <- append_ui(reference_group_input,
                                          current_model_input)
