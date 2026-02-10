@@ -316,14 +316,18 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   create_refgroup_controls <- function() {
-    destroy_dynamic_observer_regex(glue::glue("^{stringr::str_escape(reference_group_control_id_prefix)}.+$"))
-    destroy_dynamic_observer_regex(glue::glue("^{stringr::str_escape(reference_group_reset_id_prefix)}.+$"))
+    destroy_dynamic_observer_regex(
+      glue::glue("^{stringr::str_escape(reference_group_control_id_prefix)}.+$")
+    )
+    destroy_dynamic_observer_regex(
+      glue::glue("^{stringr::str_escape(reference_group_reset_id_prefix)}.+$")
+    )
 
-    # ID of the div containing the reference group sliders. This is for
-    # removing then adding the div.
-    refgroup_input_id <- "refgroup_input_id"
-
-    removeUI(selector = paste0("#", refgroup_input_id), immediate = TRUE)
+    refgroups_container_id <- "#refgroups"
+    removeUI(
+      selector = paste0(refgroups_container_id, " > *"),
+      immediate = TRUE
+    )
 
     # Create the reference group inputs, save them in reference_group_input
     reference_group_input <- list()
@@ -530,11 +534,10 @@ server <- function(input, output, session) {
                                          current_model_input)
     }
 
-    content <- div(id = refgroup_input_id, reference_group_input)
     insertUI(
-      selector = "#refgroups",
+      selector = refgroups_container_id,
       where = "afterBegin",
-      ui = content,
+      ui = div(reference_group_input),
       immediate = TRUE
     )
   }
