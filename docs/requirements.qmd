@@ -46,6 +46,28 @@ recreating the bottom left visualization of the
 [previous viewer](https://algorithm-viewer.projectbiglife.ca/#/cvdport-r) but
 for logistic regression models.
 
+### Predictor Transformations
+
+**Objective:** Optionally apply transformations to input vectors before passing
+them to the model when calculating odds ratio curves.
+
+- **Supported Transformations:**
+  - Centering: Center a predictor by subtracting a centering value.
+  - Dummy: Create binary dummy variables from categorical predictors.
+  - Restricted Cubic Splines: Transform a predictor with a restricted cubic
+    spline.
+  - Interactions: Multiply two or more predictors to create a derived
+    interaction term.
+  - Logistic: Apply a logistic equation using an intercept and coefficients.
+
+- **Transformation Specification:**
+  - Should comply with the transformations specified in the
+    [Model Parameters](https://github.com/Big-Life-Lab/model-parameters)
+    repository.
+  - Full specification for input transformations is found in the [Predictor
+    Transformations Specification](predictor-transformations-spec.qmd)
+    document.
+
 ### Odds Ratio Curves
 
 **Objective:** Generate interactive visualizations showing how odds

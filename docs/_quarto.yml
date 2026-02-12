@@ -9,6 +9,7 @@ website:
     contents:
       - index.qmd
       - requirements.qmd
+      - predictor-transformations-spec.qmd
 
 format:
   html:
