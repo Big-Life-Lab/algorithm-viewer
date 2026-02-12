@@ -701,6 +701,12 @@ server <- function(input, output, session) {
       lapply(function(x) x$df) |>
       dplyr::bind_rows()
 
+    # Factoring by Model will force the legend to be listed in
+    # the order that they appear in df$Model (which should match the
+    # order in the model definitions file). If we did not do this
+    # then the legend would be sorted alphabetically.
+    df$Model <- factor(df$Model, levels = unique(df$Model))
+
     curve_data <- all_curve_data[[length(all_curve_data)]]
     logarithmic <- session$userData$logarithmic
 
