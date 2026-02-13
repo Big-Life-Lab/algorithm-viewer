@@ -295,7 +295,11 @@ convert_df_variable_to_label <- function(df,
     indices <- unlist(df[[df_column]]) |>
       lapply(function(x) which(x == allowable_values)) |>
       unlist()
-    df[[df_column]] <- labels[indices]
+    df[[df_column]] <- factor(
+      labels[indices],
+      ordered = TRUE,
+      levels = labels
+    )
   }
   df
 }
