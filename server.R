@@ -658,6 +658,13 @@ server <- function(input, output, session) {
 
         # Create plot
         if (curve_data$x_axis_type == "Categorical") {
+          # Maintain the order of the x-axis categories
+          df[[curve_data$x_axis_label]] <-
+            factor(
+              df[[curve_data$x_axis_label]],
+              levels = unique(df[[curve_data$x_axis_label]])
+            )
+
           model_colors <- get_model_colors(
             session$userData$model_definitions$models
           )
