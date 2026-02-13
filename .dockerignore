@@ -1,0 +1,11 @@
+.git
+.gitignore
+.Rproj.user
+*.Rproj
+*.md
+Dockerfile
+docker-compose.yml
+.dockerignore
+webr
+server copy.R
+test.R

@@ -1,0 +1,8 @@
+services:
+  algorithm-viewer:
+    build: .
+    platform: linux/amd64
+    ports:
+      - "3838:3838"
+    volumes:
+      - ./data:/srv/shiny-server/algorithm-viewer/data

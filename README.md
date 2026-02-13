@@ -94,6 +94,27 @@ shiny::runApp()
 
 Open `app.R` and click the "Run App" button.
 
+### With Docker
+
+Build and run using Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Or build and run manually:
+
+```bash
+docker build -t algorithm-viewer .
+docker run -p 3838:3838 -v ./data:/srv/shiny-server/algorithm-viewer/data algorithm-viewer
+```
+
+Then open `http://localhost:3838` in your browser.
+
+The volume mount (`-v`) allows the container to use algorithm files from your
+local `data/` directory. To use different algorithm files, place them in
+`data/models/` and update `data/config.yaml` accordingly.
+
 ## Deployment
 
 The [Deployment Specification](DEPLOYMENT.md) is a planning document that
