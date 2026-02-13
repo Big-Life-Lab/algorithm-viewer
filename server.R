@@ -36,12 +36,6 @@ empty_predictor <- "<empty>"
 reference_group_control_id_prefix <- "ref_control__"
 reference_group_reset_id_prefix <- "refreset__"
 
-# If a categorical variable has this many or more categories then use
-# radioButtons for the controls in the "Reference" tab. If it is less then
-# use a sliderTextInput. Radio buttons ensures that all the categorical
-# labels are visible, but a text slider is more compact and looks nicer.
-use_radio_buttons_category_threshold <- 0
-
 #' Create a Plot Consisting of a Single String Message
 #'
 #' Generates a minimal plotly plot displaying a centered text message.
@@ -94,6 +88,7 @@ use_radio_buttons_category_threshold <- 0
 #'
 #' @keywords internal
 .make_aes <- function(aes_args, ...) {
+  # Append ... to aes_args, then past as params to aes function
   aes_args <- c(aes_args, list(...))
   do.call(aes, aes_args)
 }
@@ -114,11 +109,18 @@ server <- function(input, output, session) {
   # React to redraw_trigger when the plots need to be redrawn
   redraw_trigger <- reactiveVal(0)
   # React to reload_trigger when something needs to be updated due to a loading
-  # of an algorithm zip file.
+  # of an algorithm file.
   reload_trigger <- reactiveVal(0)
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
+  # A named list of all dynamic observers. These are created by observeEvent,
+  # and can be created and destroyed later if their corresponding UI element
+  # gets destroyed (R Shiny doesn't do this automatically). The names
+  # are the IDs of the UI element that the observeEvent is for.
+  # Dynamic observers are only used for the controls in the Reference tab.
+  # In the future these should be removed from the main server function and
+  # moved into a separate R Shiny module for reference group controls.
   all_dynamic_observers <- list()
 
   #' Destroy a Dynamic Observer
@@ -258,35 +260,6 @@ server <- function(input, output, session) {
     reference_group
   }
 
-  #' Get The Type of Control for a Variable
-  #'
-  #' These are the controls that appear in the "Reference" tab.
-  #'
-  #' @param model_id Character string specifying the model identifier.
-  #' @param variable The variable to get the control type for.
-  #'
-  #' @return A character string indicating which control to use.
-  #'    For categorical variables this can be "radioButtons" or "sliderTextInput".
-  #'    For continuous variables this can be "sliderInput".
-  #'
-  #' @keywords internal
-  get_variable_control_type <- function(model_id, variable) {
-    model_data <- session$userData$model_definitions$models[[model_id]]
-    if (is_variable_categorical(model_data, variable)) {
-      categories <- get_predictor_range(model_data, variable)
-      # If there are equal or more than use_radio_buttons_category_threshold
-      # categories then use radioButtons. If there are fewer categories
-      # then use sliderTextInput
-      if  (length(categories) >= use_radio_buttons_category_threshold) {
-        return("radioButtons")
-      }
-      return("sliderTextInput")
-    }
-
-    # Variable is continuous
-    "sliderInput"
-  }
-
   #' Get Currently Selected Models
   #'
   #' @return Named list of model data objects for the selected models,
@@ -373,7 +346,6 @@ server <- function(input, output, session) {
         label <- get_variable_info(model_data, variable, "label")
         variable_range <- get_predictor_range(model_data, variable)
         input_id <- get_refgroup_input_id(model_id, variable)
-        control_type <- get_variable_control_type(model_id, variable)
 
         if (is_variable_categorical(model_data, variable)) {
           # For categorical variables, add a sliderTextInput
@@ -399,28 +371,12 @@ server <- function(input, output, session) {
             selected <- labels[[1]]
           }
 
-          if (control_type == "radioButtons") {
-            input_control <- radioButtons(
-              inputId = input_id,
-              label = label,
-              choices = labels,
-              selected = selected
-            )
-          } else if (control_type == "sliderTextInput") {
-            input_control <- sliderTextInput(
-              inputId = input_id,
-              label = label,
-              choices = labels,
-              grid = TRUE,
-              selected = selected,
-              force_edges = TRUE
-            )
-          } else {
-            stop(glue::glue(
-              "Unrecognized categorical control type '{control_type}' ",
-              "for variable '{variable}' and model ID '{model_id}'"
-            ))
-          }
+          input_control <- radioButtons(
+            inputId = input_id,
+            label = label,
+            choices = labels,
+            selected = selected
+          )
         } else {
           # For continuous variables, add a sliderInput
           # Calculate the range and step information
@@ -437,21 +393,14 @@ server <- function(input, output, session) {
             step <- signif(variable_range[2] - variable_range[1], 5)
           }
 
-          if (control_type == "sliderInput") {
-            input_control <- sliderInput(
-              inputId = input_id,
-              label = label,
-              min = min_range,
-              max = max_range,
-              value = reference_value,
-              step = step
-            )
-          } else {
-            stop(glue::glue(
-              "Unrecognized continuous control type '{control_type}' ",
-              "for variable '{variable}' and model ID '{model_id}'"
-            ))
-          }
+          input_control <- sliderInput(
+            inputId = input_id,
+            label = label,
+            min = min_range,
+            max = max_range,
+            value = reference_value,
+            step = step
+          )
         }
 
         # Call save_last_reference_group_from_ui any time a control changes
@@ -545,7 +494,8 @@ server <- function(input, output, session) {
   #' Repopulate Reference Group Controls With Last Saved Values
   #'
   #' Repopulates the existing reference group controls with the last
-  #' saved values for a specific model.
+  #' saved values for a specific model. This will not destroy or create
+  #' controls, but instead update their values.
   #'
   #' @param model_id Character string specifying the model identifier to
   #'   repopulate the reference group controls for.
@@ -564,27 +514,12 @@ server <- function(input, output, session) {
     for (variable in names(reference_group)) {
       val <- reference_group[[variable]]
       ui_id <- get_refgroup_input_id(model_id, variable)
-      control_type <- get_variable_control_type(model_id, variable)
 
       if (is_variable_categorical(model_data, variable)) {
         val <- get_variable_label_from_value(model_data, variable, val)
-        if (control_type == "radioButtons") {
-          updateRadioButtons(session, ui_id, selected = val)
-        } else if (control_type == "sliderTextInput") {
-          updateSliderTextInput(session, ui_id, selected = val)
-        } else {
-          stop(glue::glue(
-            "Unrecognized categorical control type '{control_type}' ",
-            "for variable '{variable}' and model ID '{model_id}'"
-          ))
-        }
-      } else if (control_type == "sliderInput") {
-        updateSliderInput(session, ui_id, value = val)
+        updateRadioButtons(session, ui_id, selected = val)
       } else {
-        stop(glue::glue(
-          "Unrecognized continuous control type '{control_type}' ",
-          "for variable '{variable}' and model ID '{model_id}'"
-        ))
+        updateSliderInput(session, ui_id, value = val)
       }
     }
   }
@@ -778,21 +713,25 @@ server <- function(input, output, session) {
     )
   }
 
+  # Handle change in "Logarithmic" checkbox item
   observeEvent(input$logarithmic, {
     session$userData$logarithmic <- input$logarithmic
     redraw_trigger(redraw_trigger() + 1)
   })
 
+  # Handle change in "Predictor" drop down box
   observeEvent(input$predictor, {
     session$userData$predictor <- input$predictor
     redraw_trigger(redraw_trigger() + 1)
   })
 
+  # Handle change in "Interaction Predictor" drop down box
   observeEvent(input$interaction_predictor, {
     session$userData$interaction_predictor <- input$interaction_predictor
     redraw_trigger(redraw_trigger() + 1)
   })
 
+  # Predicted Risk plot
   output$pr_plot <- renderPlotly({
     redraw_trigger()
 
@@ -845,7 +784,7 @@ server <- function(input, output, session) {
     )
   })
 
-  # Calculate and plot OR curves
+  # Odss Ratios plots
   output$or_plot <- renderPlotly({
     redraw_trigger()
 
@@ -935,7 +874,7 @@ server <- function(input, output, session) {
   #'
   #' Refreshes all model-dependent UI components including model selections,
   #' reference group controls, and predictor dropdowns. Once everything is
-  #' created downstream reloading and redrawing is triggered.
+  #' created we trigger downstream reloading and redrawing.
   #'
   #' @return NULL (called for side effects on UI).
   #'
@@ -1115,28 +1054,23 @@ server <- function(input, output, session) {
         include_model_colors = TRUE,
         escape_html = TRUE
       )
-
-      updateCheckboxGroupInput(
-        session,
-        "model_id",
-        label = "Models:",
-        selected = selected,
-        choiceNames = choice_names,
-        choiceValues = get_model_ids(model_defs$models)
-      )
-      session$userData$selected_model_ids <- selected
+      choice_values <- get_model_ids(model_defs$models)
     } else {
       # No model definitions loaded, so show an empty checkbox group
-      updateCheckboxGroupInput(
-        session,
-        "model_id",
-        label = "Models:",
-        selected = character(0),
-        choiceNames = character(0),
-        choiceValues = character(0)
-      )
-      session$userData$selected_model_ids <- c()
+      selected <- character(0)
+      choice_names <- character(0)
+      choice_values <- character(0)
     }
+
+    updateCheckboxGroupInput(
+      session,
+      "model_id",
+      label = "Models:",
+      selected = selected,
+      choiceNames = choice_names,
+      choiceValues = choice_values
+    )
+    session$userData$selected_model_ids <- selected
   }
 
   #' Create Error Modal Dialog
