@@ -94,6 +94,13 @@ shiny::runApp()
 
 Open `app.R` and click the "Run App" button.
 
+## Deployment
+
+The [Deployment Specification](DEPLOYMENT.md) is a planning document that
+discusses various deployment options we may want to implement in the future,
+including a public web application, a hosted algorithm showcase for sharing
+models via URL, and a local development tool for scientists building algorithms.
+
 ## Requirements
 
 ### R Version
