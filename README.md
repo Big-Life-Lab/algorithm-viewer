@@ -48,7 +48,8 @@ algorithm-viewer/
 ├── server.R              # Server-side logic and reactive elements
 ├── R/                    # R source files
 │   ├── curves/           # Curve calculation functions
-│   └── model_definitions/# Model definitions/config file parser
+│   ├── model_definitions/# Model definitions/config file parser
+│   └── utils/            # Utility functions
 └── data/
     └── models/           # Prepackaged model config files (YAML + CSV exports)
 ```
@@ -90,9 +91,9 @@ for details on configuration files.
 shiny::runApp()
 ```
 
-### In RStudio
+### In RStudio or VS Code
 
-Open `app.R` and click the "Run App" button.
+Open `app.R` and click the "Run App"/"Run Shiny App" button.
 
 ### With Docker
 
@@ -141,12 +142,19 @@ models via URL, and a local development tool for scientists building algorithms.
 - glue
 - cli
 - stringr
+- archive
+- htmltools
+- viridis
+- yaml
+- [model.parameters.pipeline](https://github.com/Big-Life-Lab/model-parameters-pipeline)
+  (installed from GitHub)
 
 Install all dependencies:
 
 ```r
 install.packages(c("shiny", "shinyWidgets", "bslib", "plotly", "ggplot2",
-                   "dplyr", "rlang", "glue", "cli", "stringr"))
+                   "dplyr", "rlang", "glue", "cli", "stringr", "archive",
+                   "htmltools", "viridis", "yaml"))
 
 install.packages("devtools")
 devtools::install_github("Big-Life-Lab/model-parameters-pipeline")
