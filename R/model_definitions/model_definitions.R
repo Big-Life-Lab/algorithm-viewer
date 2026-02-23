@@ -20,10 +20,6 @@
 #' @name model_definitions
 NULL
 
-library(yaml)
-library(viridis)
-library(model.parameters.pipeline)
-
 source("R/model_definitions/model_definitions_utils.R")
 source("R/utils/function_parser.R")
 
@@ -82,7 +78,7 @@ all_tag <- "_all_"
 #' @export
 read_model_definitions <- function(file) {
   root_dir <- dirname(file)
-  info <- read_yaml(file)
+  info <- yaml::read_yaml(file)
 
   info <- .copy_from_all_model(info)
   info <- .assign_root_dir(info, root_dir)
@@ -224,7 +220,7 @@ read_model_definitions <- function(file) {
     if (rng == "else" || is_data_missing(rng)) {
       next
     }
-    rng_yaml <- read_yaml(text = rng)
+    rng_yaml <- yaml::read_yaml(text = rng)
     if (is.null(rng_yaml)) {
       next
     }
@@ -347,7 +343,7 @@ read_model_definitions <- function(file) {
     model_export <- info$models[[model_id]]$model_export
     model_export_file <- file.path(root_dir, model_export)
     info$models[[model_id]]$model_pipeline <-
-      prepare_model_pipeline(model_export_file)
+      model.parameters.pipeline::prepare_model_pipeline(model_export_file)
   }
 
   info
@@ -402,7 +398,7 @@ read_model_definitions <- function(file) {
 #'
 #' @keywords internal
 .add_model_colors <- function(info) {
-  model_colors <- viridis(length(info$models))
+  model_colors <- viridis::viridis(length(info$models))
   for (idx in seq_along(names(info$models))) {
     model_id <- names(info$models)[[idx]]
     if (is.null(info$models[[model_id]]$model_color)) {

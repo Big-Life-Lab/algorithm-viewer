@@ -1,9 +1,3 @@
-library(dplyr)
-library(shiny)
-library(shinyWidgets)
-library(bslib)
-library(plotly)
-
 # Standard height of the plots
 plot_height <- "calc(100vh - 170px)"
 
@@ -115,13 +109,13 @@ ui <- fluidPage(
           "Odds Ratio",
           icon = icon("chart-line"),
           br(),
-          plotlyOutput("or_plot", height = plot_height)
+          plotly::plotlyOutput("or_plot", height = plot_height)
         ),
         tabPanel(
           "Predicted Risk",
           icon = icon("chart-line"),
           br(),
-          plotlyOutput("pr_plot", height = plot_height)
+          plotly::plotlyOutput("pr_plot", height = plot_height)
         ),
         tabPanel(
           "Help",

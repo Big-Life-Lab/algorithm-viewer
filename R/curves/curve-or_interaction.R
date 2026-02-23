@@ -1,5 +1,4 @@
 library(dplyr)
-library(model.parameters.pipeline)
 source("R/model_definitions/model_definitions_utils.R")
 
 #' Calculate Odds Ratio Curve with Interaction
@@ -81,12 +80,12 @@ calculate_or_curve_interaction <- function(predictor,
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
   mod1 <- model_data$model_pipeline
-  mod1 <- run_model_pipeline(
+  mod1 <- model.parameters.pipeline::run_model_pipeline(
     mod1,
     data = df1
   )
   mod2 <- model_data$model_pipeline
-  mod2 <- run_model_pipeline(
+  mod2 <- model.parameters.pipeline::run_model_pipeline(
     mod2,
     data = df2
   )

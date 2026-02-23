@@ -1,19 +1,3 @@
-library(dplyr)
-library(rlang)
-library(ggplot2)
-library(plotly)
-library(shiny)
-library(shinyWidgets)
-library(cli)
-library(htmltools)
-library(archive)
-if (FALSE) {
-  # Required by ggplot2 when exporting for Shinylive
-  library(munsell)
-  # Required by htmltools::includeMarkdown when exporting for Shinylive
-  library(markdown)
-}
-
 source("R/model_definitions/model_definitions.R")
 
 # Remove scientific notation from plots
@@ -56,21 +40,21 @@ reference_group_reset_id_prefix <- "refreset__"
     stringr::str_wrap(width = 50)
 
   df <- data.frame(label = label)
-  p <- ggplot() +
-    geom_text(
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_text(
       data = df,
-      aes(label = label),
+      ggplot2::aes(label = label),
       x = 0.5,
       y = 0.5,
       color = color
     ) +
-    theme_void() +
-    theme(axis.line = element_blank())
+    ggplot2::theme_void() +
+    ggplot2::theme(axis.line = ggplot2::element_blank())
 
-  ggplotly(p, tooltip = NULL) |>
-    style(hoverinfo = "none") |>
-    config(displayModeBar = FALSE) |>
-    layout(
+  plotly::ggplotly(p, tooltip = NULL) |>
+    plotly::style(hoverinfo = "none") |>
+    plotly::config(displayModeBar = FALSE) |>
+    plotly::layout(
       xaxis = list(fixedrange = TRUE),
       yaxis = list(fixedrange = TRUE)
     )
@@ -90,7 +74,7 @@ reference_group_reset_id_prefix <- "refreset__"
 .make_aes <- function(aes_args, ...) {
   # Append ... to aes_args, then past as params to aes function
   aes_args <- c(aes_args, list(...))
-  do.call(aes, aes_args)
+  do.call(ggplot2::aes, aes_args)
 }
 
 #' Shiny Server Function
@@ -406,7 +390,7 @@ server <- function(input, output, session) {
         # Call save_last_reference_group_from_ui any time a control changes
         # This will save the last set reference group values. We also
         # redraw with redraw_trigger when the reference group changes.
-        cur_env <- env(
+        cur_env <- rlang::env(
           model_id = model_id,
           input_id = input_id,
           variable = variable
@@ -447,7 +431,7 @@ server <- function(input, output, session) {
 
       current_model_input <- append_ui(current_model_input, reset_button)
 
-      cur_env <- env(model_id = model_id, reset_button_id = reset_button_id)
+      cur_env <- rlang::env(model_id = model_id, reset_button_id = reset_button_id)
       add_dynamic_observer(
         reset_button_id,
         reset_button,
@@ -668,7 +652,7 @@ server <- function(input, output, session) {
           model_colors <- get_model_colors(
             session$userData$model_definitions$models
           )
-          p <- ggplot(
+          p <- ggplot2::ggplot(
             data = df,
             .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
           ) +
@@ -678,12 +662,12 @@ server <- function(input, output, session) {
           model_colors <- get_model_colors(
             session$userData$model_definitions$models
           )
-          p <- ggplot(
+          p <- ggplot2::ggplot(
             data = df,
             .make_aes(curve_data$aes_args, color = dplyr::sym("Model"))
           ) +
-            geom_line(linewidth = 1.2) +
-            scale_color_manual(values = model_colors, aesthetics = "color")
+            ggplot2::geom_line(linewidth = 1.2) +
+            ggplot2::scale_color_manual(values = model_colors, aesthetics = "color")
         }
 
         y_limits <- NULL
@@ -692,28 +676,28 @@ server <- function(input, output, session) {
         }
 
         p <- p +
-          scale_y_continuous(transform = transform, limits = y_limits) +
-          geom_hline(yintercept = 1, linetype = "dashed", color = "gray50") +
-          labs(
+          ggplot2::scale_y_continuous(transform = transform, limits = y_limits) +
+          ggplot2::geom_hline(yintercept = 1, linetype = "dashed", color = "gray50") +
+          ggplot2::labs(
             title = curve_data$title,
             subtitle = curve_data$title,
             x = curve_data$x_axis_label,
             y = ylabel
           ) +
-          theme_minimal() +
-          theme(
+          ggplot2::theme_minimal() +
+          ggplot2::theme(
             legend.position = "right",
-            plot.title = element_text(size = 14, face = "bold"),
-            plot.subtitle = element_text(size = 12),
-            axis.title = element_text(size = 11)
+            plot.title = ggplot2::element_text(size = 14, face = "bold"),
+            plot.subtitle = ggplot2::element_text(size = 12),
+            axis.title = ggplot2::element_text(size = 11)
           )
 
-        ggplotly(p) |>
-          layout(hovermode = "x unified")
+        plotly::ggplotly(p) |>
+          plotly::layout(hovermode = "x unified")
       },
       error = function(e) {
         .make_message_plot(
-          paste("Error calculating OR:", e$message),
+          paste("Error making plot:", e$message),
           color = "red"
         )
       }
@@ -739,7 +723,7 @@ server <- function(input, output, session) {
   })
 
   # Predicted Risk plot
-  output$pr_plot <- renderPlotly({
+  output$pr_plot <- plotly::renderPlotly({
     redraw_trigger()
 
     req(session$userData$predictor)
@@ -792,7 +776,7 @@ server <- function(input, output, session) {
   })
 
   # Odss Ratios plots
-  output$or_plot <- renderPlotly({
+  output$or_plot <- plotly::renderPlotly({
     redraw_trigger()
 
     req(session$userData$predictor)
@@ -908,7 +892,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   process_data_file <- function(file) {
-    if (grepl("^(yaml|yml)$", file_ext(file), ignore.case = TRUE)) {
+    if (grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)) {
       load_model_definitions(file)
     } else {
       temp_dir_path <- tempdir()
@@ -919,7 +903,7 @@ server <- function(input, output, session) {
 
       tryCatch(
         {
-          files_in_archive <- archive_extract(file, dir = temp_dir_path)
+          files_in_archive <- archive::archive_extract(file, dir = temp_dir_path)
           yaml_pattern <- "(\\.yaml|\\.yml)$"
           config_files <- files_in_archive[
             grepl(yaml_pattern, files_in_archive, ignore.case = TRUE)

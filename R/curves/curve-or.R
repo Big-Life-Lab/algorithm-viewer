@@ -1,5 +1,4 @@
 library(dplyr)
-library(model.parameters.pipeline)
 source("R/model_definitions/model_definitions_utils.R")
 
 #' Calculate Odds Ratio Curve for a Predictor
@@ -49,7 +48,7 @@ calculate_or_curve <- function(predictor,
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
   mod <- model_data$model_pipeline
-  mod <- run_model_pipeline(
+  mod <- model.parameters.pipeline::run_model_pipeline(
     mod,
     data = df
   )
