@@ -1,4 +1,5 @@
 source("R/model_definitions/model_definitions.R")
+source("R/modules/reference_group.R")
 
 # Remove scientific notation from plots
 options(scipen = 8)
@@ -12,13 +13,6 @@ lapply(file.path("R/curves", curve_files), source)
 # ID and name for the empty predictor (eg. to specify nothing in the
 # "Interaction Predictor" selector)
 empty_predictor <- "<empty>"
-
-# Prefix used for the reference group controls and the reference group reset
-# button. These are also used to destroy previous observeEvents when
-# repopulating the reference gorup controls/buttons (we destroy them by
-# matching the IDs with a regex starting with these values)
-reference_group_control_id_prefix <- "ref_control__"
-reference_group_reset_id_prefix <- "refreset__"
 
 #' Create a Plot Consisting of a Single String Message
 #'
@@ -98,150 +92,69 @@ server <- function(input, output, session) {
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
-  # A named list of all dynamic observers. These are created by observeEvent,
-  # and can be created and destroyed later if their corresponding UI element
-  # gets destroyed (R Shiny doesn't do this automatically). The names
-  # are the IDs of the UI element that the observeEvent is for.
-  # Dynamic observers are only used for the controls in the Reference tab.
-  # In the future these should be removed from the main server function and
-  # moved into a separate R Shiny module for reference group controls.
-  all_dynamic_observers <- list()
+  # All reference group modules (one module per model). These allow us to retrieve
+  # the reference group values (from reference_groups[[model_id]]$rv_values()) and
+  # destroy the reference groups when no longer needed (with
+  # reference_groups[[model_id]]$destroy_module())
+  reference_groups <- list()
+  # Every time we create new reference groups, we increment and append this number
+  # to the reference group IDs. This ensures that we never reuse the same IDs,
+  # any avoids getting redundant change calls from destroying then creating
+  # the controls with the same IDs.
+  reference_groups_index <- 0
 
-  #' Destroy a Dynamic Observer
+  #' Create Reference Group Controls
   #'
-  #' Removes and destroys a previously registered dynamic observer by its
-  #' ID. If no observer exists with the given ID, this is a no-op.
+  #' Destroys any existing reference group modules and UI elements, then
+  #' recreates them from the current model definitions. Each model gets a
+  #' \code{\link{referenceGroupUI}}/\code{\link{referenceGroupServer}} pair
+  #' inserted into the \code{#refgroups} container.
   #'
-  #' @param observe_id Character string identifying the observer to destroy.
-  #'
-  #' @return NULL (called for side effects).
+  #' @return NULL (called for side effects on UI and module state).
   #'
   #' @keywords internal
-  destroy_dynamic_observer <- function(observe_id) {
-    if (observe_id %in% names(all_dynamic_observers)) {
-      all_dynamic_observers[[observe_id]]$event$destroy()
-      all_dynamic_observers[[observe_id]] <<- NULL
-    }
-  }
-
-  #' Destroy Dynamic Observers by Regex
-  #'
-  #' Removes and destroys all previously registered dynamic observers whose
-  #' IDs match the given regular expression pattern.
-  #'
-  #' @param observe_id_regex Character string containing a regular expression
-  #'   pattern to match against observer IDs.
-  #'
-  #' @return NULL (called for side effects).
-  #'
-  #' @keywords internal
-  destroy_dynamic_observer_regex <- function(observe_id_regex) {
-    for (cur_id in names(all_dynamic_observers)) {
-      if (grepl(observe_id_regex, cur_id)) {
-        destroy_dynamic_observer(cur_id)
+  create_refgroup_controls <- function() {
+    # Destroy existing reference groups
+    for (refgroup in reference_groups) {
+      if (!is.null(refgroup$destroy_module)) {
+        refgroup$destroy_module()
       }
     }
-  }
+    reference_groups <- list()
 
-  #' Register a Dynamic Observer
-  #'
-  #' Registers a new dynamic observer, destroying any existing observer
-  #' with the same ID first. Stores the observer event and associated UI
-  #' item for later cleanup.
-  #'
-  #' @param observe_id Character string identifying the observer.
-  #' @param observe_item The UI input control associated with this observer.
-  #' @param observe_event The Shiny observer event object to register.
-  #'
-  #' @return NULL (called for side effects).
-  #'
-  #' @keywords internal
-  add_dynamic_observer <- function(observe_id, observe_item, observe_event) {
-    destroy_dynamic_observer(observe_id)
-    all_dynamic_observers[[observe_id]] <<- list(
-      event = observe_event,
-      item = observe_item
+    # Empty the reference group container
+    refgroups_container_id <- "#refgroups"
+    shiny::removeUI(
+      selector = paste0(refgroups_container_id, " > *"),
+      immediate = TRUE
     )
-  }
 
-  #' Generate Reference Group Input ID
-  #'
-  #' Creates a unique HTML input ID for a reference group variable slider.
-  #'
-  #' @param model_id Character string specifying the model identifier.
-  #' @param variable Character string specifying the variable name.
-  #'
-  #' @return Character string with the formatted input ID.
-  #'
-  #' @keywords internal
-  get_refgroup_input_id <- function(model_id, variable, index) {
-    glue::glue("{reference_group_control_id_prefix}{model_id}_{variable}")
-  }
+    # Create the reference group UI (plus module servers)
+    # Incrementing and adding reference_groups_index to the ID ensures that
+    # when we create new reference group controls we always have a unique ID
+    # for the modules. This avoids receiving extra redraw_trigger calls
+    # or other reactive changes on creation when duplicate IDs are used.
+    last_model_id <- tail(names(session$userData$model_definitions$models), 1)
+    refgroup_ui <- list()
+    reference_groups_index <- reference_groups_index + 1
+    for (model_data in session$userData$model_definitions$models) {
+      model_id <- model_data$model_id
+      refgroup_id <- paste0(model_id, "__", reference_groups_index)
+      refgroup_ui[[length(refgroup_ui) + 1]] <- referenceGroupUI(refgroup_id, model_data)
+      reference_groups[[model_id]] <<- referenceGroupServer(refgroup_id, model_data, redraw_trigger)
 
-  #' Generate Reset Button ID
-  #'
-  #' Creates a unique HTML ID for a reference group reset button.
-  #'
-  #' @param model_id Character string specifying the model identifier.
-  #'
-  #' @return Character string with the formatted button ID.
-  #'
-  #' @keywords internal
-  get_refgroup_reset_button_id <- function(model_id, index) {
-    glue::glue("{reference_group_reset_id_prefix}{model_id}")
-  }
-
-
-  #' Get And Save Last Reference Group Values from UI
-  #'
-  #' Retrieves current reference group values from UI slider controls for
-  #' a specific model and caches them in the model data as 
-  #' $last_reference_group.
-  #'
-  #' @param model_id Character string specifying the model identifier.
-  #'
-  #' @return Named list of reference group values, or NULL if no model
-  #'   definitions are loaded.
-  #'
-  #' @keywords internal
-  save_last_reference_group_from_ui <- function(model_id, variables = NULL) {
-    if (is.null(session$userData$model_definitions)) {
-      return()
-    }
-
-    reference_group <- session$userData$model_definitions$
-      models[[model_id]]$last_reference_group
-    if (is.null(reference_group)) {
-      reference_group <- list()
-    }
-    model_data <- session$userData$model_definitions$models[[model_id]]
-
-    # Gather the variables to save the values for
-    if (is.null(variables)) {
-      variables <- names(model_data$reference_group)
-    } else {
-      variables <- intersect(variables, names(model_data$reference_group))
-    }
-
-    for (variable in variables) {
-      ui_id <- get_refgroup_input_id(model_id, variable)
-      val <- input[[ui_id]]
-
-      if (is.null(val)) {
-        val <- model_data$reference_group[[variable]]
-      } else {
-        if (is_variable_categorical(model_data, variable)) {
-          val <- get_variable_value_from_label(model_data, variable, val)
-        }
+      if (model_id != last_model_id) {
+        refgroup_ui[[length(refgroup_ui) + 1]] <- hr()
       }
-
-      reference_group[[variable]] <- val
     }
 
-    session$userData$model_definitions$
-      models[[model_id]]$last_reference_group <- reference_group
-
-    reference_group
+    # Add the reference group UI
+    shiny::insertUI(
+      selector = refgroups_container_id,
+      where = "afterBegin",
+      ui = refgroup_ui,
+      immediate = TRUE
+    )    
   }
 
   #' Get Currently Selected Models
@@ -259,252 +172,6 @@ server <- function(input, output, session) {
         models[as.vector(session$userData$selected_model_ids)]
       models <- models[!is.na(names(models))]
       models
-    }
-  }
-
-  #' Create the Reference Group UI Controls
-  #'
-  #' Rebuilds the reference group input controls in the UI for all loaded
-  #' models. Removes existing controls and creates new controls for each
-  #' predictor variable, with appropriate input types for categorical vs
-  #' continuous variables.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  create_refgroup_controls <- function() {
-    destroy_dynamic_observer_regex(
-      glue::glue("^{stringr::str_escape(reference_group_control_id_prefix)}.+$")
-    )
-    destroy_dynamic_observer_regex(
-      glue::glue("^{stringr::str_escape(reference_group_reset_id_prefix)}.+$")
-    )
-
-    refgroups_container_id <- "#refgroups"
-    removeUI(
-      selector = paste0(refgroups_container_id, " > *"),
-      immediate = TRUE
-    )
-
-    # Create the reference group inputs, save them in reference_group_input
-    reference_group_input <- list()
-
-    append_ui <- function(lst, item) {
-      lst[[length(lst) + 1]] <- item
-      lst
-    }
-
-    reference_group_input <- append_ui(reference_group_input, br())
-
-    # Go through all models and create the reference group controls
-    last_model_id <- tail(names(session$userData$model_definitions$models), 1)
-    for (model_data in session$userData$model_definitions$models) {
-      current_model_input <- list()
-
-      model_id <- model_data$model_id
-
-      # Add heading
-      model_heading <- h4(
-        shiny::HTML(add_model_color(
-          model_data,
-          cleanup_string(model_data$title),
-          "20px",
-          "20px",
-          after = FALSE
-        )),
-        style = paste(
-          "position: sticky; top: 0; background-color: #fff;",
-          "padding: 10px 0 8px 0; margin: 0; z-index: 10"
-        )
-      )
-      current_model_input <- append_ui(current_model_input, model_heading)
-
-      # Get the reference group values for the model.
-      # If last_reference_group is set for the model, then use those
-      # values instead.
-      reference_group <- get_last_refgroup_values(model_data)
-
-      # For each value in the reference group, create a slider
-      for (variable in names(reference_group)) {
-        reference_value <- reference_group[[variable]]
-        label <- get_variable_info(model_data, variable, "label")
-        variable_range <- get_predictor_range(model_data, variable)
-        input_id <- get_refgroup_input_id(model_id, variable)
-
-        if (is_variable_categorical(model_data, variable)) {
-          # For categorical variables, add a sliderTextInput
-          # Get the labels for the full variable range
-          labels <- get_variable_label_from_value(
-            model_data,
-            variable,
-            as.vector(variable_range)
-          )
-
-          # Get the selected label
-          selected <- get_variable_label_from_value(
-            model_data,
-            variable,
-            reference_value
-          )
-          if (!(selected %in% labels)) {
-            labels_str <- paste0("'", labels, "'", collapse = ", ")
-            warning(glue::glue(
-              "Reference group value '{selected}' is not a valid value for ",
-              "variable {variable}. Must be one of {labels_str}."
-            ))
-            selected <- labels[[1]]
-          }
-
-          input_control <- radioButtons(
-            inputId = input_id,
-            label = label,
-            choices = labels,
-            selected = selected
-          )
-        } else {
-          # For continuous variables, add a sliderInput
-          # Calculate the range and step information
-          min_range <- min(variable_range)
-          max_range <- max(variable_range)
-
-          is_integer_range <- is.integer(min_range) &&
-            is.integer(max_range) &&
-            all(min_range:max_range == sort(variable_range))
-
-          if (is_integer_range) {
-            step <- 1
-          } else {
-            step <- signif(variable_range[2] - variable_range[1], 5)
-          }
-
-          input_control <- sliderInput(
-            inputId = input_id,
-            label = label,
-            min = min_range,
-            max = max_range,
-            value = reference_value,
-            step = step
-          )
-        }
-
-        # Call save_last_reference_group_from_ui any time a control changes
-        # This will save the last set reference group values. We also
-        # redraw with redraw_trigger when the reference group changes.
-        cur_env <- rlang::env(
-          model_id = model_id,
-          input_id = input_id,
-          variable = variable
-        )
-        add_dynamic_observer(
-          input_id,
-          input_control,
-          observeEvent(
-            input[[input_id]],
-            {
-              save_last_reference_group_from_ui(model_id, c(variable))
-              redraw_trigger(redraw_trigger() + 1)
-            },
-            event.env = cur_env,
-            handler.env = cur_env,
-            ignoreInit = TRUE
-          )
-        )
-
-        current_model_input <- append_ui(current_model_input, input_control)
-      }
-
-      # Add reset button for the model
-      reset_button_id <- get_refgroup_reset_button_id(model_id)
-
-      reset_button <- actionButton(
-        reset_button_id,
-        label = glue::glue("Reset {model_data$title}"),
-        icon = icon("arrow-rotate-left")
-      )
-      reset_button <- div(
-        style = paste(
-          "position: sticky; bottom: 0; background-color: #fff;",
-          "padding: 10px 0 7px 0; margin: 0; z-index: 9"
-        ),
-        reset_button
-      )
-
-      current_model_input <- append_ui(current_model_input, reset_button)
-
-      cur_env <- rlang::env(model_id = model_id, reset_button_id = reset_button_id)
-      add_dynamic_observer(
-        reset_button_id,
-        reset_button,
-        observeEvent(
-          input[[reset_button_id]],
-          {
-            session$userData$model_definitions$models[[model_id]]$
-              last_reference_group <- NULL
-            set_refgroup_control_values(model_id)
-            redraw_trigger(redraw_trigger() + 1)
-          },
-          handler.env = cur_env,
-          event.env = cur_env,
-          ignoreInit = TRUE
-        )
-      )
-
-      # Add a colored left margin that matches the model color
-      model_color <- unname(get_model_colors(list(model_data)))[[1]]
-      style <- glue::glue(
-        "width: 100%; ",
-        "border-left: solid 6px {model_color}; ",
-        "padding: 0 10px 0 10px;"
-      )
-      current_model_input <- list(div(style = style, current_model_input))
-
-      # Add an hr between each group
-      if (model_id != last_model_id) {
-        current_model_input <- append_ui(current_model_input, hr())
-      }
-
-      reference_group_input <- append_ui(reference_group_input,
-                                         current_model_input)
-    }
-
-    insertUI(
-      selector = refgroups_container_id,
-      where = "afterBegin",
-      ui = div(reference_group_input),
-      immediate = TRUE
-    )
-  }
-
-  #' Repopulate Reference Group Controls With Last Saved Values
-  #'
-  #' Repopulates the existing reference group controls with the last
-  #' saved values for a specific model. This will not destroy or create
-  #' controls, but instead update their values.
-  #'
-  #' @param model_id Character string specifying the model identifier to
-  #'   repopulate the reference group controls for.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  set_refgroup_control_values <- function(model_id) {
-    if (is.null(session$userData$model_definitions)) {
-      return()
-    }
-
-    model_data <- session$userData$model_definitions$models[[model_id]]
-    reference_group <- get_last_refgroup_values(model_data)
-
-    for (variable in names(reference_group)) {
-      val <- reference_group[[variable]]
-      ui_id <- get_refgroup_input_id(model_id, variable)
-
-      if (is_variable_categorical(model_data, variable)) {
-        val <- get_variable_label_from_value(model_data, variable, val)
-        updateRadioButtons(session, ui_id, selected = val)
-      } else {
-        updateSliderInput(session, ui_id, value = val)
-      }
     }
   }
 
@@ -745,7 +412,7 @@ server <- function(input, output, session) {
             dplyr::filter(variable == predictor) |>
             dplyr::pull(variableType)
 
-          reference_group <- get_last_refgroup_values(model_data)
+          reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
 
           tic <- Sys.time()
 
@@ -799,7 +466,7 @@ server <- function(input, output, session) {
             dplyr::filter(variable == predictor) |>
             dplyr::pull(variableType)
 
-          reference_group <- get_last_refgroup_values(model_data)
+          reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
 
           tic <- Sys.time()
 
