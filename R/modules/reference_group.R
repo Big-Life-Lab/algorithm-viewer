@@ -11,6 +11,7 @@
 #' The module is made destroyable via `shiny.destroy` so that it can be
 #' cleanly removed and recreated when models are reloaded.
 #'
+#' @details
 #' `referenceGroupServer()` returns a named list with two elements:
 #' \describe{
 #'   \item{rv_values}{A [shiny::reactiveVal()] containing the current
@@ -22,6 +23,23 @@
 #'     Call this before recreating the module to avoid orphaned
 #'     observers.}
 #' }
+#' 
+#' There are two ways to reactively respond to changes in the reference
+#' group values:
+#' \itemize{
+#'   \item Pass in a reactiveVal as the change_trigger parameter to
+#'         `referenceGroupServer()`. This integer reactive value will be
+#'         incremented whenever the reference group values change.
+#'   \item React to `$rv_values()` in the named list returned by
+#'         `referenceGroupServer()`
+#' }
+#' 
+#' It is best to always use a unique ID whenever destroying and creating
+#' reference groups. While duplicate IDs will work (as long as the
+#' previous reference group is first destroyed with `$destroy_module()`)
+#' there might be redundant reactive changes to the reference group
+#' values caused by deleting and destroying input controls with the same
+#' duplicate IDs.
 #'
 #' @examples
 #' \dontrun{
