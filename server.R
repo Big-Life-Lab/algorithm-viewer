@@ -656,8 +656,8 @@ server <- function(input, output, session) {
             data = df,
             .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
           ) +
-            geom_col(position = "dodge") +
-            scale_fill_manual(values = model_colors, aesthetics = "fill")
+            ggplot2::geom_col(position = "dodge") +
+            ggplot2::scale_fill_manual(values = model_colors, aesthetics = "fill")
         } else {
           model_colors <- get_model_colors(
             session$userData$model_definitions$models
