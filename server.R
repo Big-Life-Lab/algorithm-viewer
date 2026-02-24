@@ -742,8 +742,8 @@ server <- function(input, output, session) {
         for (model_data in selected_models()) {
           # Get predictor type (Categorical or Continuous)
           predictor_type <- model_data$variables |>
-            filter(variable == predictor) |>
-            pull(variableType)
+            dplyr::filter(variable == predictor) |>
+            dplyr::pull(variableType)
 
           reference_group <- get_last_refgroup_values(model_data)
 
@@ -796,8 +796,8 @@ server <- function(input, output, session) {
         for (model_data in selected_models()) {
           # Get predictor type (Categorical or Continuous)
           predictor_type <- model_data$variables |>
-            filter(variable == predictor) |>
-            pull(variableType)
+            dplyr::filter(variable == predictor) |>
+            dplyr::pull(variableType)
 
           reference_group <- get_last_refgroup_values(model_data)
 
