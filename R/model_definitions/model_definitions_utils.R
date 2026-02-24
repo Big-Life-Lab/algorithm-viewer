@@ -443,32 +443,6 @@ add_model_color <- function(model_data, label, width, height, after = TRUE) {
   label
 }
 
-#' Get Last Reference Group Values
-#'
-#' Retrieves the current reference group values, merging any user-modified
-#' values from last_reference_group with the original defaults.
-#'
-#' @param model_data List containing model data with reference_group and
-#'   optionally last_reference_group fields.
-#'
-#' @return Named list of reference group values for all predictor variables.
-#'
-#' @keywords internal
-get_last_refgroup_values <- function(model_data) {
-  reference_group <- model_data$reference_group
-
-  if (!is.null(model_data$last_reference_group)) {
-    last_ref <- model_data$last_reference_group
-
-    for (variable in names(last_ref)) {
-      val <- last_ref[[variable]]
-      reference_group[[variable]] <- val
-    }
-  }
-
-  reference_group
-}
-
 #' Gather Predictor Choices
 #'
 #' Get all the possible predictor choices for the specified models.
