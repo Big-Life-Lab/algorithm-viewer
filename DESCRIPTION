@@ -23,6 +23,8 @@ Imports:
     ggplot2,
     glue,
     htmltools,
+    markdown,
+    munsell,
     plotly,
     rlang,
     shiny,
