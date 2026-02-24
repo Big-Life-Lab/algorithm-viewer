@@ -51,11 +51,8 @@ jobs:
         shell: Rscript {0}
         id: packages
         run: |
-          # Find package dependencies using {renv} and install with {pak}
-          # pak::pak(
-          #   unique(renv::dependencies(".")$Package)
-          # )
-          pak::pkg_install(".")
+          # Install all dependencies found in DESCRIPTION file
+          remotes::install_deps(".")
 
       - name: Build site
         shell: Rscript {0}
