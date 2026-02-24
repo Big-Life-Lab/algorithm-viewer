@@ -8,14 +8,14 @@ RUN apt-get update && apt-get install -y \
     libarchive-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install R package dependencies
-RUN R -e "install.packages(c('shiny', 'shinyWidgets', 'bslib', 'plotly', \
-    'ggplot2', 'dplyr', 'rlang', 'glue', 'cli', 'stringr', 'viridis', \
-    'yaml', 'archive', 'htmltools', 'markdown', 'remotes'))"
-RUN R -e "remotes::install_github('Big-Life-Lab/model-parameters-pipeline@v0.1.2-alpha')"
-
 # Copy application
 COPY . /srv/shiny-server/algorithm-viewer/
+
+# Install the 'remotes' package
+RUN R -e "install.packages('remotes', repos = 'http://cran.us.r-project.org')"
+
+# Install R package dependencies
+RUN R -e "remotes::install_deps('/srv/shiny-server/algorithm-viewer/')"
 
 EXPOSE 3838
 
