@@ -205,8 +205,8 @@ read_model_definitions <- function(file) {
 #' @keywords internal
 .get_range_from_variable_details <- function(model_data, variable) {
   info <- model_data$variable_details |>
-    filter(variable == !!variable) |>
-    select(recStart, recEnd)
+    dplyr::filter(variable == !!variable) |>
+    dplyr::select(recStart, recEnd)
 
   full_range <- c()
 
@@ -250,8 +250,8 @@ read_model_definitions <- function(file) {
 #' @keywords internal
 .get_model_predictors <- function(model_data) {
   model_data$variables |>
-    filter(role == "Predictor") |>
-    pull(variable)
+    dplyr::filter(role == "Predictor") |>
+    dplyr::pull(variable)
 }
 
 #' Parse Predictor Ranges

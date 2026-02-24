@@ -1,4 +1,3 @@
-library(dplyr)
 source("R/model_definitions/model_definitions_utils.R")
 
 #' Calculate Odds Ratio Curve for a Predictor

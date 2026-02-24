@@ -33,8 +33,8 @@ get_variable_info <- function(model_data,
                               heading,
                               escape_html = FALSE) {
   val <- model_data$variables |>
-    filter(variable == !!variable) |>
-    pull(!!heading)
+    dplyr::filter(variable == !!variable) |>
+    dplyr::pull(!!heading)
   if (is_data_missing(val)) {
     NULL
   } else if (escape_html) {
@@ -115,9 +115,9 @@ get_variable_labels_to_values <- function(model_data,
                                           variable,
                                           escape_html = FALSE) {
   info <- model_data$variable_details |>
-    filter(variable == !!variable) |>
-    filter(recEnd != "NA::b") |>
-    pull(recEnd, catLabel) |>
+    dplyr::filter(variable == !!variable) |>
+    dplyr::filter(recEnd != "NA::b") |>
+    dplyr::pull(recEnd, catLabel) |>
     as.list()
   if (escape_html) {
     info <- cleanup_string(info)
@@ -139,8 +139,8 @@ get_variable_labels_to_values <- function(model_data,
 #' @export
 is_variable_of_type <- function(model_data, variable, type) {
   info <- model_data$variables |>
-    filter(variable == !!variable) |>
-    filter(variableType == !!type)
+    dplyr::filter(variable == !!variable) |>
+    dplyr::filter(variableType == !!type)
   nrow(info) > 0
 }
 
@@ -483,8 +483,8 @@ gather_predictor_choices <- function(models) {
   for (model_data in models) {
     # Get predictors from variables table (role == "Predictor")
     predictors <- model_data$variables |>
-      filter(role == "Predictor") |>
-      select(variable, label)
+      dplyr::filter(role == "Predictor") |>
+      dplyr::select(variable, label)
 
     # Create named vector for selectInput
     cur_predictor_choices <- setNames(predictors$variable, predictors$label)

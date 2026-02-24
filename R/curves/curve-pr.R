@@ -1,4 +1,3 @@
-library(dplyr)
 source("R/model_definitions/model_definitions_utils.R")
 
 #' Calculate Predicted Risk Curve for a Predictor
