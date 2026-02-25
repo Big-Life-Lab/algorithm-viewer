@@ -82,6 +82,8 @@ get_cached_curve_data <- function(session, curve_type, model_id) {
 #'
 #' @return A list with elements \code{params} and \code{data}, or NULL if no
 #'   cached entry exists.
+#'
+#' @keywords internal
 .get_cached_curve_entry <- function(session, curve_type, model_id) {
   session$userData$cached_curve_data[[curve_type]][[model_id]]
 }
