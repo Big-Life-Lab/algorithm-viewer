@@ -9,7 +9,8 @@
 #'  seq(1, 100, by = 0.1)
 #'
 #' More complicated parameters are not allowed (eg, 10*10 instead of 100 will
-#' not work).
+#' not work). In the future we may want to replace this with a more complete
+#' function parse, eg. by using an AST parsing library.
 #'
 #' @examples
 #' \dontrun{
@@ -44,13 +45,21 @@ NULL
 #'
 #' @export
 get_function_and_params <- function(s) {
+  # This expression matches 1. The function name, and 2. The parameters
+  # found within brackets (the parameters match does not include the
+  # brackets)
   expr <- "^([A-Za-z_\\.][A-Za-z_0-9\\.]*)\\(([^\\(\\)]*)\\)$"
   res <- stringr::str_match(s, expr)
   if (length(res) == 3 && !any(is.na(res))) {
+    # Match was found. Get the function name and parse the parameters.
+    # At this point the parameters is a single string, such as
+    # "1, 2, by = 3"
     func_name <- stringr::str_trim(res[2])
     params <- stringr::str_trim(res[3])
 
     if (stringr::str_length(params) > 0) {
+      # Split by commas. This currently does not support commas
+      # in strings.
       params <- params |>
         stringr::str_split(",") |>
         unlist() |>
@@ -82,7 +91,7 @@ get_function_and_params <- function(s) {
 #' Converts a string representation of a parameter value to its appropriate
 #' R type (string, double, or integer).
 #'
-#' @param value Character string to parse.
+#' @param value Character string to parse (eg. "3.5", "'test'", "4").
 #'
 #' @return The parsed value as character, double, or integer.
 #'
@@ -91,17 +100,21 @@ get_function_and_params <- function(s) {
   if (stringr::str_length(value) >= 2) {
     if ((stringr::str_starts(value, "'") && stringr::str_ends(value, "'")) ||
       (stringr::str_starts(value, '"') && stringr::str_ends(value, '"'))) {
+      # A string. It starts or ends with double quotes or single quotes, so
+      # remove the quotes.
       value <- substr(value, 2, stringr::str_length(value) - 1)
       return(value)
     }
   }
   if (stringr::str_detect(value, ".")) {
+    # There is a decimal point, so cast to a double
     casted_value <- as.double(value)
     if (!is.na(casted_value)) {
       return(casted_value)
     }
     stop(paste("Invalid value", value))
   } else {
+    # There is no decimal point, so cast to an integer
     casted_value <- as.integer(value)
     if (!is.na(casted_value)) {
       return(casted_value)
@@ -116,7 +129,8 @@ get_function_and_params <- function(s) {
 #' Parses a vector of parameter strings into a named list, handling both
 #' named (key=value) and positional parameters.
 #'
-#' @param params Character vector of parameter strings.
+#' @param params Character vector of parameter strings. These are
+#'   the individual parameters, eg. c("1", "2", "by = 3")
 #'
 #' @return A named list of parsed parameter values.
 #'
@@ -126,6 +140,9 @@ get_function_and_params <- function(s) {
   for (param in params) {
     num_equals <- stringr::str_count(param, "=")
     if (num_equals == 1) {
+      # This is a named parameter, that has one equal sign.
+      # Get the parameter name (eg. "by") and the value
+      # (eg. "3")
       parts <- param |>
         stringr::str_split("=") |>
         unlist() |>
@@ -133,6 +150,7 @@ get_function_and_params <- function(s) {
         as.list()
       named_list[parts[[1]]] <- .parse_param_value(parts[[2]])
     } else if (num_equals == 0) {
+      # This is an unnamed parameter
       named_list <- append(named_list, .parse_param_value(param))
     }
   }
