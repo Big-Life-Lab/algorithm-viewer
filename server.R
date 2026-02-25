@@ -1,5 +1,6 @@
 source("R/model_definitions/model_definitions.R")
 source("R/modules/reference_group.R")
+source("R/utils/cached_curve_data.R")
 
 # Remove scientific notation from plots
 options(scipen = 8)
@@ -407,28 +408,41 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          # Get predictor type (Categorical or Continuous)
-          predictor_type <- model_data$variables |>
-            dplyr::filter(variable == predictor) |>
-            dplyr::pull(variableType)
-
           reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
 
-          tic <- Sys.time()
-
-          # Calculate the OR curve for the model
-          curve_data <- calculate_pr_curve(
-            predictor,
-            model_data,
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = predictor,
             reference_group = reference_group
           )
+          if (is_reusable_cached_curve_data(session, "pr", model_data$model_id, model_params)) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <- get_cached_curve_data(session, "pr", model_data$model_id)
+          } else {
+            # Get predictor type (Categorical or Continuous)
+            predictor_type <- model_data$variables |>
+              dplyr::filter(variable == predictor) |>
+              dplyr::pull(variableType)
 
-          elapsed <- Sys.time() - tic
-          message(paste0(
-            "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-          ))
+            tic <- Sys.time()
 
-          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+            # Calculate the OR curve for the model
+            curve_data <- calculate_pr_curve(
+              predictor,
+              model_data,
+              reference_group = reference_group
+            )
+
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+            
+            # Save the data to our cache
+            set_cached_curve_data(session, "pr", model_data$model_id, model_params, curve_data)
+          }
         }
 
         make_plot(all_curve_data)
@@ -461,37 +475,51 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          # Get predictor type (Categorical or Continuous)
-          predictor_type <- model_data$variables |>
-            dplyr::filter(variable == predictor) |>
-            dplyr::pull(variableType)
-
           reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
 
-          tic <- Sys.time()
-
-          # Calculate the OR curve for the model
-          if (interaction_predictor == empty_predictor) {
-            curve_data <- calculate_or_curve(
-              predictor,
-              model_data,
-              reference_group = reference_group
-            )
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = predictor,
+            interaction_predictor = interaction_predictor,
+            reference_group = reference_group
+          )
+          if (is_reusable_cached_curve_data(session, "or", model_data$model_id, model_params)) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <- get_cached_curve_data(session, "or", model_data$model_id)
           } else {
-            curve_data <- calculate_or_curve_interaction(
-              predictor,
-              interaction_predictor,
-              model_data,
-              reference_group = reference_group
-            )
+            # Get predictor type (Categorical or Continuous)
+            predictor_type <- model_data$variables |>
+              dplyr::filter(variable == predictor) |>
+              dplyr::pull(variableType)
+
+            tic <- Sys.time()
+
+            # Calculate the OR curve for the model
+            if (interaction_predictor == empty_predictor) {
+              curve_data <- calculate_or_curve(
+                predictor,
+                model_data,
+                reference_group = reference_group
+              )
+            } else {
+              curve_data <- calculate_or_curve_interaction(
+                predictor,
+                interaction_predictor,
+                model_data,
+                reference_group = reference_group
+              )
+            }
+
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+            # Save the data to our cache
+            set_cached_curve_data(session, "or", model_data$model_id, model_params, curve_data)
           }
-
-          elapsed <- Sys.time() - tic
-          message(paste0(
-            "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-          ))
-
-          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
         }
 
         make_plot(all_curve_data)
@@ -539,6 +567,7 @@ server <- function(input, output, session) {
   #' @keywords internal
   recreate_and_trigger_reload <- function() {
     session$userData$selected_model_ids <- NULL
+    clear_cached_curve_data(session)
     update_model_selections()
     create_refgroup_controls()
     update_predictor_choices()
