@@ -58,8 +58,8 @@ get_function_and_params <- function(s) {
     params <- stringr::str_trim(res[3])
 
     if (stringr::str_length(params) > 0) {
-      # Split by commas. This currently does not support commas
-      # in strings.
+      # Split by commas. This currently does not ignore commas
+      # in quoted strings.
       params <- params |>
         stringr::str_split(",") |>
         unlist() |>
