@@ -132,32 +132,13 @@ models via URL, and a local development tool for scientists building algorithms.
 
 ### Required Packages
 
-- shiny
-- shinyWidgets
-- bslib
-- plotly
-- ggplot2
-- dplyr
-- rlang
-- glue
-- cli
-- stringr
-- archive
-- htmltools
-- viridis
-- yaml
-- [model.parameters.pipeline](https://github.com/Big-Life-Lab/model-parameters-pipeline)
-  (installed from GitHub)
+See the [DESCRIPTION](DESCRIPTION) file for a list of required packages.
 
 Install all dependencies:
 
 ```r
-install.packages(c("shiny", "shinyWidgets", "bslib", "plotly", "ggplot2",
-                   "dplyr", "rlang", "glue", "cli", "stringr", "archive",
-                   "htmltools", "viridis", "yaml"))
-
-install.packages("devtools")
-devtools::install_github("Big-Life-Lab/model-parameters-pipeline")
+install.packages("remotes")
+remotes::install_deps(".")
 ```
 
 ## License
