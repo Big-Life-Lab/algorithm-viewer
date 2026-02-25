@@ -8,9 +8,6 @@
 #' changes, supports resetting to defaults, and exposes reactive values
 #' for consumption by other parts of the application.
 #'
-#' The module is made destroyable via `shiny.destroy` so that it can be
-#' cleanly removed and recreated when models are reloaded.
-#'
 #' @details
 #' `referenceGroupServer()` returns a named list with two elements:
 #' \describe{
@@ -19,11 +16,10 @@
 #'     Call `refgroup$rv_values()` to read values reactively, or wrap
 #'     in [shiny::isolate()] when a non-reactive snapshot is needed.}
 #'   \item{destroy_module}{A function that destroys the module's
-#'     observers and UI elements via [shiny.destroy::destroyModule()].
-#'     Call this before recreating the module to avoid orphaned
-#'     observers.}
+#'     observers and UI elements via. Call this before recreating the
+#'     module to avoid orphaned observers.}
 #' }
-#' 
+#'
 #' There are two ways to reactively respond to changes in the reference
 #' group values:
 #' \itemize{
@@ -68,6 +64,9 @@
 #' }
 #' @name reference_group
 NULL
+
+# The ID of the generated HTML element that contains the reference group
+.refgroup_container_id <- "refgroup_container"
 
 #' Create Reference Group UI (Internal)
 #'
@@ -117,7 +116,7 @@ NULL
 
     if (is_variable_categorical(model_data, variable)) {
       # For categorical variables, add a radioButtons
-      
+
       # Get the labels for the full variable range
       labels <- get_variable_label_from_value(
         model_data,
@@ -148,7 +147,7 @@ NULL
       )
     } else {
       # For continuous variables, add a sliderInput
-      
+
       # Calculate the range and step information
       min_range <- min(variable_range)
       max_range <- max(variable_range)
@@ -202,7 +201,7 @@ NULL
     "border-left: solid 6px {model_color}; ",
     "padding: 0 10px 0 10px;"
   )
-  reference_group_input <- shiny::div(style = style, reference_group_input)
+  reference_group_input <- shiny::div(style = style, id = ns(.refgroup_container_id), reference_group_input)
 
   tagList(reference_group_input)
 }
@@ -368,8 +367,14 @@ NULL
       }
       observers <- list()
 
-      # Destroy the module
-      shiny.destroy::destroyModule(id)
+      # Remove UI
+      removeUI(
+        selector = paste0("#", shiny::NS(id, .refgroup_container_id)),
+        immediate = TRUE
+      )
+
+      # Destroy the module (if using shiny.destroy)
+      # shiny.destroy::destroyModule(id)
     }
 
     list(
@@ -379,30 +384,5 @@ NULL
   })
 }
 
-#' Reference Group Server (Destroyable)
-#'
-#' Destroyable wrapper around [.referenceGroupServer_internal()] created
-#' via [shiny.destroy::makeModuleServerDestroyable()].
-#'
-#' @inheritParams .referenceGroupServer_internal
-#'
-#' @return A named list; see [.referenceGroupServer_internal()] for details.
-#'
-#' @export
-referenceGroupServer <- shiny.destroy::makeModuleServerDestroyable(
-  .referenceGroupServer_internal
-)
-
-#' Reference Group UI (Destroyable)
-#'
-#' Destroyable wrapper around [.referenceGroupUI_internal()] created
-#' via [shiny.destroy::makeModuleUIDestroyable()].
-#'
-#' @inheritParams .referenceGroupUI_internal
-#'
-#' @return A [shiny::tagList()] of reference group input controls.
-#'
-#' @export
-referenceGroupUI <- shiny.destroy::makeModuleUIDestroyable(
-  .referenceGroupUI_internal
-)
+referenceGroupServer <- .referenceGroupServer_internal
+referenceGroupUI <- .referenceGroupUI_internal
