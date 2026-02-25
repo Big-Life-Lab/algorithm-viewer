@@ -424,7 +424,7 @@ server <- function(input, output, session) {
               dplyr::filter(variable == predictor) |>
               dplyr::pull(variableType)
 
-            tic <- Sys.time()
+            # tic <- Sys.time()
 
             # Calculate the OR curve for the model
             curve_data <- calculate_pr_curve(
@@ -433,10 +433,10 @@ server <- function(input, output, session) {
               reference_group = reference_group
             )
 
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-            ))
+            # elapsed <- Sys.time() - tic
+            # message(paste0(
+            #   "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+            # ))
 
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
@@ -492,7 +492,7 @@ server <- function(input, output, session) {
               dplyr::filter(variable == predictor) |>
               dplyr::pull(variableType)
 
-            tic <- Sys.time()
+            # tic <- Sys.time()
 
             # Calculate the OR curve for the model
             if (interaction_predictor == empty_predictor) {
@@ -510,10 +510,10 @@ server <- function(input, output, session) {
               )
             }
 
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-            ))
+            # elapsed <- Sys.time() - tic
+            # message(paste0(
+            #   "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+            # ))
 
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
