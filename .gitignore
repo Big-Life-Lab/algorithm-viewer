@@ -21,8 +21,6 @@ webr/
 # knitr and R Markdown
 *_cache/
 /cache/
-*.html
-!README.html
 
 # Compiled R package files
 *.Rd
