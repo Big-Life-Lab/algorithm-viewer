@@ -116,7 +116,7 @@ is_reusable_cached_curve_data <- function(session, curve_type, model_id, model_p
   old_params <- old_params[order(names(old_params))]
   model_params <- model_params[order(names(model_params))]
 
-  return(identical(old_params, model_params))
+  identical(old_params, model_params)
 }
 
 #' Clear all cached curve data

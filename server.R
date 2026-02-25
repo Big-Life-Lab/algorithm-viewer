@@ -439,7 +439,7 @@ server <- function(input, output, session) {
             ))
 
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-            
+
             # Save the data to our cache
             set_cached_curve_data(session, "pr", model_data$model_id, model_params, curve_data)
           }
