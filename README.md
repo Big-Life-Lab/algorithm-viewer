@@ -49,6 +49,7 @@ algorithm-viewer/
 ├── R/                    # R source files
 │   ├── curves/           # Curve calculation functions
 │   ├── model_definitions/# Model definitions/config file parser
+│   ├── modules/          # R Shiny modules
 │   └── utils/            # Utility functions
 └── data/
     └── models/           # Prepackaged model config files (YAML + CSV exports)
