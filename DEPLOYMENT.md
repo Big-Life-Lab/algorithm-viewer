@@ -167,12 +167,6 @@ should accept a GET query parameter specifying which algorithm to display.
 https://viewer.biglifelab.ca/?algorithm=htnport-full
 ```
 
-Or, for deployments hosting algorithms for multiple scientists:
-
-```
-https://viewer.biglifelab.ca/?algorithm=smith-2025-cvd-risk
-```
-
 **Implementation approach:**
 
 The application reads the `algorithm` query parameter at startup using
@@ -390,36 +384,11 @@ public web application (Option 1) and the local development tool (Option 3).
 The Hosted Algorithm Showcase (Option 2) can also use this image when not using
 Shinylive.
 
-**Dockerfile outline:**
-
-```dockerfile
-FROM rocker/shiny:4
-
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    libcurl4-openssl-dev \
-    libssl-dev \
-    libxml2-dev \
-    libarchive-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install R package dependencies
-RUN R -e "install.packages(c('shiny', 'shinyWidgets', 'bslib', 'plotly', \
-    'ggplot2', 'dplyr', 'rlang', 'glue', 'cli', 'stringr', 'viridis', \
-    'yaml', 'archive', 'htmltools', 'markdown', 'remotes'))"
-RUN R -e "remotes::install_github('Big-Life-Lab/model-parameters-pipeline@v0.1.2-alpha')"
-
-# Copy application
-COPY . /srv/shiny-server/algorithm-viewer/
-
-EXPOSE 3838
-
-CMD ["R", "-e", "shiny::runApp('/srv/shiny-server/algorithm-viewer', host='0.0.0.0', port=3838)"]
-```
-
 The image should be published to a container registry (e.g., Docker Hub, GitHub
 Container Registry) and tagged with version numbers corresponding to Algorithm
 Viewer releases.
+
+A working [Dockerfile](Dockerfile) is already available in the Algorithm Viewer repository.
 
 ### 5.2 Configuration System
 
@@ -445,11 +414,11 @@ The `allow_file_uploads` and `initial_algorithm_file` settings, together with
 the optional `algorithms` registry, are sufficient to configure the application
 for all three deployment options:
 
-| Setting | Option 1 | Option 2 (single) | Option 2 (multi) | Option 3 |
+| Setting | Public Web Application | Hosted Algorithm Showcase (single) | Hosted Algorithm Showcase (multi) | Local Development Tool |
 |---------|----------|--------------------|-------------------|----------|
 | `allow_file_uploads` | `TRUE` | `FALSE` | `FALSE` | `TRUE` |
 | `initial_algorithm_file` | optional | set | set (default) | optional |
-| `algorithms` | `NULL` | `NULL` | populated | `NULL` |
+| `algorithms` | `NULL` | `NULL` | populated | optional |
 
 ### 5.3 CI/CD Pipeline
 
