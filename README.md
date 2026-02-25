@@ -1,6 +1,7 @@
 # Algorithm Viewer
 
-An R Shiny application for visualizing health risk prediction algorithms, displaying odds ratio and predicted risk curves.
+An R Shiny application for visualizing health risk prediction algorithms,
+displaying odds ratio and predicted risk curves.
 
 ## About
 
