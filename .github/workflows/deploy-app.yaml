@@ -63,7 +63,7 @@ jobs:
       - name: Build site
         shell: Rscript {0}
         run: |
-          shinylive::export(".", "site", assets_version = "0.9.1")
+          shinylive::export(".", "site")
 
       - name: Upload site artifact
         if: github.ref == 'refs/heads/proto'
