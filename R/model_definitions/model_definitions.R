@@ -21,6 +21,7 @@
 NULL
 
 source("R/model_definitions/model_definitions_utils.R")
+source("R/utils/make_string_values_unique.R")
 source("R/utils/function_parser.R")
 
 all_tag <- "_all_"
@@ -115,20 +116,7 @@ read_model_definitions <- function(file) {
     unname()
 
   # Modify titles so that all titles are unique
-  for (idx in seq_along(titles)) {
-    cur_title <- titles[[idx]]
-    new_title <- cur_title
-
-    # Increment num until "{cur_title} ({num})" is unique
-    # among all titles occurring before the current
-    # title
-    num <- 1
-    while (new_title %in% titles[seq_len(idx - 1)]) {
-      num <- num + 1
-      new_title <- glue::glue("{cur_title} ({num})")
-    }
-    titles[[idx]] <- new_title
-  }
+  titles <- make_string_values_unique(titles)
 
   # Assign all the titles to all the models
   for (idx in seq_along(info$models)) {
