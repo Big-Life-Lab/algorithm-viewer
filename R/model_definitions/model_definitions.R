@@ -81,6 +81,7 @@ read_model_definitions <- function(file) {
   info <- yaml::read_yaml(file)
 
   info <- .copy_from_all_model(info)
+  info <- .make_model_titles_unique(info)
   info <- .assign_root_dir(info, root_dir)
   info <- .load_model_pipelines(info, root_dir)
   info <- .load_model_export_files(info, root_dir)
@@ -88,6 +89,52 @@ read_model_definitions <- function(file) {
   info <- .add_model_indices_and_ids(info)
   info <- .add_model_colors(info)
   info <- .add_empty_pipelines(info)
+
+  info
+}
+
+#' Make model titles unique
+#'
+#' Ensures all model titles within the model definitions are unique by
+#' appending a numeric suffix (e.g., \code{"Title (2)"}) to any duplicate
+#' titles. Duplicates are resolved in order, so the first occurrence keeps
+#' its original title and subsequent duplicates receive incrementing suffixes.
+#'
+#' @param info Model definitions list containing at minimum a \code{$models}
+#'   element where each entry has a \code{title} field.
+#'
+#' @return The \code{info} list with model titles updated so that all titles
+#'   are unique.
+#'
+#' @keywords internal
+.make_model_titles_unique <- function(info) {
+  # Get all the titles
+  titles <- info$models |>
+    sapply(`[[`, "title") |>
+    unlist() |>
+    unname()
+
+  # Modify titles so that all titles are unique
+  for (idx in seq_along(titles)) {
+    cur_title <- titles[[idx]]
+    new_title <- cur_title
+
+    # Increment num until "{cur_title} ({num})" is unique
+    # among all titles occurring before the current
+    # title
+    num <- 1
+    while (new_title %in% titles[seq_len(idx - 1)]) {
+      num <- num + 1
+      new_title <- glue::glue("{cur_title} ({num})")
+    }
+    titles[[idx]] <- new_title
+  }
+
+  # Assign all the titles to all the models
+  for (idx in seq_along(info$models)) {
+    model_id <- names(info$models)[[idx]]
+    info$models[[model_id]]$title <- titles[[idx]]
+  }
 
   info
 }
