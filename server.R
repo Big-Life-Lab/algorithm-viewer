@@ -127,7 +127,8 @@ server <- function(input, output, session) {
     refgroups_container_id <- "#refgroups"
     shiny::removeUI(
       selector = paste0(refgroups_container_id, " > *"),
-      immediate = TRUE
+      immediate = TRUE,
+      multiple = TRUE
     )
 
     # Create the reference group UI (plus module servers)
@@ -136,7 +137,7 @@ server <- function(input, output, session) {
     # for the modules. This avoids receiving extra redraw_trigger calls
     # or other reactive changes on creation when duplicate IDs are used.
     last_model_id <- tail(names(session$userData$model_definitions$models), 1)
-    refgroup_ui <- list()
+    refgroup_ui <- tagList()
     reference_groups_index <- reference_groups_index + 1
     for (model_data in session$userData$model_definitions$models) {
       model_id <- model_data$model_id
@@ -155,7 +156,7 @@ server <- function(input, output, session) {
       where = "afterBegin",
       ui = refgroup_ui,
       immediate = TRUE
-    )    
+    )
   }
 
   #' Get Currently Selected Models
@@ -424,7 +425,7 @@ server <- function(input, output, session) {
               dplyr::filter(variable == predictor) |>
               dplyr::pull(variableType)
 
-            # tic <- Sys.time()
+            tic <- Sys.time()
 
             # Calculate the OR curve for the model
             curve_data <- calculate_pr_curve(
@@ -433,10 +434,10 @@ server <- function(input, output, session) {
               reference_group = reference_group
             )
 
-            # elapsed <- Sys.time() - tic
-            # message(paste0(
-            #   "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-            # ))
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+            ))
 
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
@@ -492,7 +493,7 @@ server <- function(input, output, session) {
               dplyr::filter(variable == predictor) |>
               dplyr::pull(variableType)
 
-            # tic <- Sys.time()
+            tic <- Sys.time()
 
             # Calculate the OR curve for the model
             if (interaction_predictor == empty_predictor) {
@@ -510,10 +511,10 @@ server <- function(input, output, session) {
               )
             }
 
-            # elapsed <- Sys.time() - tic
-            # message(paste0(
-            #   "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-            # ))
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+            ))
 
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
