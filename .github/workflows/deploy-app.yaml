@@ -54,10 +54,16 @@ jobs:
           # Install all dependencies found in DESCRIPTION file
           remotes::install_deps(".")
 
+      - name: Show package versions (Debug)
+        shell: Rscript {0}
+        run: |
+          # Display all package versions
+          print(as.data.frame(installed.packages()[,c(1, 3:4)]), row.names=FALSE)
+
       - name: Build site
         shell: Rscript {0}
         run: |
-          shinylive::export(".", "site")
+          shinylive::export(".", "site", assets_version = "0.9.1")
 
       - name: Upload site artifact
         if: github.ref == 'refs/heads/proto'
