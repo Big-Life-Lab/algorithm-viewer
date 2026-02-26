@@ -452,8 +452,9 @@ add_model_color <- function(model_data, label, width, height, after = TRUE) {
 #' @return Named list where names are predictor labels and values are predictor
 #'   variable names (e.g., list(Diabetes = "diabx")).
 gather_predictor_choices <- function(models) {
-  predictor_choices <- list()
 
+  variables <- c()
+  labels <- c()
   for (model_data in models) {
     # Get predictors from variables table (role == "Predictor")
     predictors <- model_data$variables |>
@@ -461,10 +462,15 @@ gather_predictor_choices <- function(models) {
       dplyr::select(variable, label)
 
     # Create named vector for selectInput
-    cur_predictor_choices <- setNames(predictors$variable, predictors$label)
-    predictor_choices <- c(predictor_choices, cur_predictor_choices)
+    variables <- c(variables, predictors$variable)
+    labels <- c(labels, predictors$label)
   }
 
-  predictor_choices <- predictor_choices[unique(names(predictor_choices))]
+  unique_variables <- !duplicated(variables)
+  variables <- variables[unique_variables]
+  labels <- labels[unique_variables]
+
+  predictor_choices <- setNames(variables, labels)
+
   predictor_choices
 }
