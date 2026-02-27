@@ -80,7 +80,14 @@ all_tag <- "_all_"
 #' @export
 read_model_definitions <- function(file) {
   root_dir <- dirname(file)
-  info <- yaml::read_yaml(file)
+  tryCatch({
+    info <- yaml::read_yaml(file)
+  }, error = function(e) {
+    stop(paste(
+      "Could not load the model definitions file",
+      file
+    ))
+  })
 
   info <- .copy_from_all_model(info)
   info <- .make_model_titles_unique(info)
