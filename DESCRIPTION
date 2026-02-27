@@ -34,4 +34,4 @@ Imports:
     yaml,
     model.parameters.pipeline
 Remotes:
-  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.2.0-alpha
+  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.2.1-alpha
