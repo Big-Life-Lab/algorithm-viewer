@@ -78,20 +78,18 @@ calculate_or_curve_interaction <- function(predictor,
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
-  mod1 <- model_data$model_pipeline
-  mod1 <- model.parameters.pipeline::run_model_pipeline(
-    mod1,
-    data = df1
-  )
-  mod2 <- model_data$model_pipeline
-  mod2 <- model.parameters.pipeline::run_model_pipeline(
-    mod2,
-    data = df2
-  )
+  dat1 <- model.parameters.pipeline::run_model_pipeline(
+    model_data$model_pipeline,
+    dat = df1
+  ) |> model.parameters.pipeline::get_pipeline_output()
+  dat2 <- model.parameters.pipeline::run_model_pipeline(
+    model_data$model_pipeline,
+    dat = df2
+  ) |> model.parameters.pipeline::get_pipeline_output()
 
   predicted_col <- "logistic_1"
-  or <- (mod1$df[[predicted_col]] / (1 - mod1$df[[predicted_col]])) /
-    (mod2$df[[predicted_col]] / (1 - mod2$df[[predicted_col]]))
+  or <- (dat1[[predicted_col]] / (1 - dat1[[predicted_col]])) /
+    (dat2[[predicted_col]] / (1 - dat2[[predicted_col]]))
 
   # Convert the variable IDs (eg. clc_age) to the variable labels
   # (eg. Age)

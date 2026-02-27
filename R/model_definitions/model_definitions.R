@@ -23,6 +23,7 @@ NULL
 source("R/model_definitions/model_definitions_utils.R")
 source("R/utils/make_string_values_unique.R")
 source("R/utils/function_parser.R")
+source("R/utils/path_utils.R")
 
 all_tag <- "_all_"
 
@@ -377,8 +378,21 @@ read_model_definitions <- function(file) {
   for (model_id in names(info$models)) {
     model_export <- info$models[[model_id]]$model_export
     model_export_file <- file.path(root_dir, model_export)
+
+    if (!is_file_descendant_of(model_export_file, root_dir)) {
+      stop(paste(
+        "A model export file specified in the algorithm definition file does",
+        "not exist or points to a file outside of the allowed directory",
+        "structure:",
+        model_export
+      ))
+    }
+
     info$models[[model_id]]$model_pipeline <-
-      model.parameters.pipeline::prepare_model_pipeline(model_export_file)
+      model.parameters.pipeline::prepare_model_pipeline(
+        model_export_file,
+        sandbox_path = root_dir
+      )
   }
 
   info

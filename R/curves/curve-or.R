@@ -46,16 +46,15 @@ calculate_or_curve <- function(predictor,
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
   # The odds ratio is predicted_risk / ref_predicted_risk
-  mod <- model_data$model_pipeline
-  mod <- model.parameters.pipeline::run_model_pipeline(
-    mod,
-    data = df
-  )
+  dat <- model.parameters.pipeline::run_model_pipeline(
+    model_data$model_pipeline,
+    dat = df
+  ) |> model.parameters.pipeline::get_pipeline_output()
 
   predicted_col <- "logistic_1"
-  or <- (mod$df[[predicted_col]] / (1 - mod$df[[predicted_col]])) /
-    (mod$df[[predicted_col]][output_rows + 1] /
-      (1 - mod$df[[predicted_col]][output_rows + 1]))
+  or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
+    (dat[[predicted_col]][output_rows + 1] /
+      (1 - dat[[predicted_col]][output_rows + 1]))
 
   labels <- convert_df_variable_to_label(
     df, model_data, predictor, predictor
