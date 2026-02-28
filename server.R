@@ -391,59 +391,9 @@ server <- function(input, output, session) {
     redraw_trigger(redraw_trigger() + 1)
   })
 
-  #' Clear the last stored error
-  #'
-  #' Resets the error state by removing any previously stored error message
-  #' from the session's user data.
-  #'
-  #' @return `NULL` invisibly.
-  clear_last_error <- function() {
-    session$userData$last_error <- NULL
-  }
-
-  #' Store an error message and trigger a redraw
-  #'
-  #' Saves `error_message` to the session's user data, logs it via
-  #' [message()], and increments `redraw_trigger` so that reactive outputs
-  #' re-render with the new error state.
-  #'
-  #' @param error_message A character string describing the error.
-  #' @return `NULL` invisibly.
-  set_last_error <- function(error_message) {
-    session$userData$last_error <- error_message
-    message(error_message)
-    redraw_trigger(redraw_trigger() + 1)
-  }
-
-  #' Check whether an error is currently stored
-  #'
-  #' @return `TRUE` if an error message is present in the session's user data,
-  #'   `FALSE` otherwise.
-  has_error <- function() {
-    !is.null(session$userData$last_error)
-  }
-
-  #' Render the last stored error as a plot
-  #'
-  #' Produces a [plotly] message plot displaying the current error message
-  #' formatted in red. Intended to be returned from `renderPlotly` blocks
-  #' when [has_error()] is `TRUE`.
-  #'
-  #' @return A plotly figure containing the formatted error message.
-  show_last_error <- function() {
-    .make_message_plot(
-      glue::glue("<b>Error</b>: {session$userData$last_error}"),
-      color = "red"
-    )
-  }
-
   # Predicted Risk plot
   output$pr_plot <- plotly::renderPlotly({
     redraw_trigger()
-
-    if (has_error()) {
-      return(show_last_error())
-    }
 
     req(session$userData$predictor)
 
@@ -510,10 +460,6 @@ server <- function(input, output, session) {
   # Odss Ratios plots
   output$or_plot <- plotly::renderPlotly({
     redraw_trigger()
-
-    if (has_error()) {
-      return(show_last_error())
-    }
 
     req(session$userData$predictor)
 
@@ -599,7 +545,6 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   load_model_definitions <- function(file) {
-    clear_last_error()
     session$userData$selected_model_ids <- NULL
     tryCatch(
       {
@@ -607,7 +552,7 @@ server <- function(input, output, session) {
       },
       error = function(e) {
         session$userData$model_definitions <- NULL
-        set_last_error(paste("Error loading model definition:", e$message))
+        showModal(errorModal("Error Loading Model Definitions", e$message))
       }
     )
   }
