@@ -51,7 +51,7 @@ calculate_or_curve <- function(predictor,
     dat = df
   ) |> model.parameters.pipeline::get_pipeline_output()
 
-  predicted_col <- "logistic_1"
+  predicted_col <- colnames(dat)[[1]]
   or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
     (dat[[predicted_col]][output_rows + 1] /
       (1 - dat[[predicted_col]][output_rows + 1]))

@@ -87,9 +87,10 @@ calculate_or_curve_interaction <- function(predictor,
     dat = df2
   ) |> model.parameters.pipeline::get_pipeline_output()
 
-  predicted_col <- "logistic_1"
-  or <- (dat1[[predicted_col]] / (1 - dat1[[predicted_col]])) /
-    (dat2[[predicted_col]] / (1 - dat2[[predicted_col]]))
+  predicted_col_1 <- colnames(dat1)[[1]]
+  predicted_col_2 <- colnames(dat2)[[1]]
+  or <- (dat1[[predicted_col_1]] / (1 - dat1[[predicted_col_1]])) /
+    (dat2[[predicted_col_2]] / (1 - dat2[[predicted_col_2]]))
 
   # Convert the variable IDs (eg. clc_age) to the variable labels
   # (eg. Age)

@@ -48,7 +48,7 @@ calculate_pr_curve <- function(predictor,
     model_data$model_pipeline,
     dat = df
   ) |> model.parameters.pipeline::get_pipeline_output()
-  predicted_col <- "logistic_1"
+  predicted_col <- colnames(dat)[[1]]
   pr <- dat[[predicted_col]]
 
   labels <- convert_df_variable_to_label(
