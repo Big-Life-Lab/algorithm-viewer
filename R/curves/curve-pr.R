@@ -56,15 +56,6 @@ calculate_pr_curve <- function(predictor,
     escape_html = TRUE
   )[[predictor]][1:output_rows]
 
-  if (is_variable_categorical(model_data, predictor)) {
-    ref_label <- get_variable_label_from_value(
-      model_data, predictor, predictor_reference_value,
-      escape_html = TRUE
-    )
-  } else {
-    ref_label <- predictor_reference_value
-  }
-
   # Create the DataFrame of odds ratios
   output_df <- data.frame(
     x = predictor_range[1:output_rows],
