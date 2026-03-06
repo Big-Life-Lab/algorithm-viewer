@@ -1,8 +1,11 @@
+source("R/utils/config.R")
+
 # Standard height of the plots
 plot_height <- "calc(100vh - 170px)"
 
 ui <- fluidPage(
   title = "Algorithm Viewer",
+  shinyjs::useShinyjs(),
   tags$head(
     tags$link(
       rel = "icon", type = "image/png",
@@ -48,11 +51,20 @@ ui <- fluidPage(
           br(),
           div(
             # Model selection and message
+            htmlOutput("model_message"),
             div(
-              style = ifelse(config$allow_file_uploads, "", "display: none"),
-              htmlOutput("model_message"),
+              style = ifelse(config_has_algorithms(), "", "display: none"),
+              selectInput(
+                inputId = "algorithms",
+                label = "Preloaded Algorithms",
+                choices = NULL
+              )
+            ),
+            div(
+              style = ifelse(config_allow_file_uploads(), "", "display: none"),
               fileInput(
-                "upload", "Upload Algorithm:",
+                "upload",
+                "Upload Algorithm:",
                 accept = c(".zip", ".tar", ".gz")
               ),
               hr(),
@@ -60,7 +72,14 @@ ui <- fluidPage(
                 inputId = "model_id",
                 label = "Models:"
               ),
-              hr()
+            ),
+
+            hr(
+              style = ifelse(
+                config_has_algorithms() || config_allow_file_uploads(),
+                "",
+                "display: none"
+              )
             ),
 
             # Predictor selection (will be populated dynamically)
