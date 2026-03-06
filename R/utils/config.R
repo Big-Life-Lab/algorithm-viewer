@@ -7,6 +7,8 @@
 #' @name config
 NULL
 
+source("R/utils/path_utils.R")
+
 # Load the global configuration
 if (!exists(".CONFIG")) {
   .CONFIG <- yaml::read_yaml(file.path("data", "config.yaml"))
@@ -67,17 +69,7 @@ config_has_algorithms <- function() {
 #' @param algorithm_id A character string identifying the algorithm.
 #' @return A normalised character file path, or `NULL` if resolution fails.
 config_get_algorithm_file <- function(algorithm_id) {
-  unnormalizedFile <- .CONFIG$algorithms[[algorithm_id]]$file
-  file <- NULL
-  tryCatch(
-    {
-      file <- normalizePath(unnormalizedFile, mustWork = TRUE)
-    },
-    error = function(e) {
-      # Do nothing
-    }
-  )
-  file
+  expand_and_normalize_path(.CONFIG$algorithms[[algorithm_id]]$file)
 }
 
 #' Get algorithm choices for display in a selection input
@@ -111,16 +103,8 @@ config_get_algorithm_choices <- function() {
 #'   algorithm is found or the path cannot be normalised.
 config_get_algorithm_id_from_file <- function(file) {
   # Try to normalize the file path
-  unnormalizedFile <- file
-  file <- NULL
-  tryCatch(
-    {
-      file <- normalizePath(unnormalizedFile)
-    },
-    error = function(e) {
-      # Do nothing
-    }
-  )
+  file <- expand_and_normalize_path(file)
+
   if (is.null(file)) {
     # Could not normalize the file (path doesn't exist)
     return(NULL)
