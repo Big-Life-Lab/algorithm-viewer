@@ -258,8 +258,6 @@ NULL
     # The current reference group values (matching what we see in the UI)
     reference_group_values_internal <-
       shiny::reactiveVal(default_reference_group)
-    reference_group_values_external <-
-      shiny::reactiveVal(default_reference_group)
 
     for (variable in names(default_reference_group)) {
       input_id <- variable
@@ -386,7 +384,9 @@ NULL
       )
 
       # Destroy the module (if using shiny.destroy)
+      # nolint start
       # shiny.destroy::destroyModule(id)
+      # nolint end
     }
 
     list(
