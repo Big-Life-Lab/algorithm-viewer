@@ -1,6 +1,7 @@
 source("R/model_definitions/model_definitions.R")
 source("R/modules/reference_group.R")
 source("R/utils/cached_curve_data.R")
+source("R/utils/config.R")
 
 # Remove scientific notation from plots
 options(scipen = 8)
@@ -11,9 +12,10 @@ options(shiny.maxRequestSize = 30 * 1024^2)
 curve_files <- list.files(path = "R/curves", pattern = "^curve-.*\\.R$")
 lapply(file.path("R/curves", curve_files), source)
 
-# ID and name for the empty predictor (eg. to specify nothing in the
-# "Interaction Predictor" selector)
-empty_predictor <- "<empty>"
+# ID and name for the empty value for UI selections (eg. in the
+# "Interaction Predictor" dropdown to specify that we want no interaction
+# predictor)
+empty_selection <- "<empty>"
 
 #' Create a Plot Consisting of a Single String Message
 #'
@@ -243,12 +245,12 @@ server <- function(input, output, session) {
     # If at least one model is selected, then add the empty predictor
     if (length(models) > 0) {
       new_list <- list()
-      new_list[[empty_predictor]] <- empty_predictor
+      new_list[[empty_selection]] <- empty_selection
       predictor_choices <- c(new_list, predictor_choices)
     }
 
     if (length(models) > 0) {
-      selected <- empty_predictor
+      selected <- empty_selection
     } else {
       selected <- character(0)
     }
@@ -496,7 +498,7 @@ server <- function(input, output, session) {
             tic <- Sys.time()
 
             # Calculate the OR curve for the model
-            if (interaction_predictor == empty_predictor) {
+            if (interaction_predictor == empty_selection) {
               curve_data <- calculate_or_curve(
                 predictor,
                 model_data,
@@ -569,10 +571,11 @@ server <- function(input, output, session) {
   recreate_and_trigger_reload <- function() {
     session$userData$selected_model_ids <- NULL
     clear_cached_curve_data(session)
+    update_preloaded_algorithms()
     update_model_selections()
-    create_refgroup_controls()
     update_predictor_choices()
     update_interaction_predictor_choices()
+    create_refgroup_controls()
     reload_trigger(reload_trigger() + 1)
     redraw_trigger(redraw_trigger() + 1)
   }
@@ -589,9 +592,14 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   process_data_file <- function(file) {
-    if (grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)) {
+    if (is.null(file)) {
+      # Empty file
+      session$userData$model_definitions <- NULL
+    } else if (grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)) {
+      # YAML file
       load_model_definitions(file)
     } else {
+      # An archive
       temp_dir_path <- tempdir()
 
       session$userData$model_definitions <- NULL
@@ -669,7 +677,7 @@ server <- function(input, output, session) {
 
   # Handle file that has been uploaded
   observeEvent(input$upload, {
-    if (!config$allow_file_uploads) {
+    if (!config_allow_file_uploads()) {
       return()
     }
 
@@ -677,15 +685,29 @@ server <- function(input, output, session) {
       file <- input$upload$datapath
       process_data_file(file)
     }
-  }, ignoreInit = TRUE)
+  })
 
   # Show a message to the user at the top of the "Models" tab
   output$model_message <- renderUI({
     reload_trigger()
     if (is.null(session$userData$model_definitions)) {
+      has_algorithms <- config_has_algorithms()
+      allow_file_uploads <- config_allow_file_uploads()
+      if (has_algorithms && allow_file_uploads) {
+        msg <- paste(
+          "Select an algorithm from the \"Preloaded Algorithms\" dropdown",
+          "or click \"Browse\" to upload your own algorithm."
+        )
+      } else if (has_algorithms) {
+        msg <- "Select an algorithm from the \"Preloaded Algorithms\" dropdown."
+      } else if (allow_file_uploads) {
+        msg <- "Click \"Browse\" to upload an algorithm."
+      } else {
+        msg <- ""
+      }
       msg <- paste0(
-        "No algorithm has been loaded. Click the \"Browse\" button below ",
-        "to upload your data as a ZIP file or other archive."
+        "No algorithm has been loaded.  ",
+        msg
       )
       div(msg, style = "color: #ff0000;", br(), br())
     }
@@ -709,9 +731,16 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
-    if (!is.null(config$initial_algorithm_file)) {
-      process_data_file(config$initial_algorithm_file)
+    if (!is.null(config_get_initial_algorithm_file())) {
+      # Load initial algorithm
+      process_data_file(config_get_initial_algorithm_file())
+    } else {
+      # Did not load an initial algorithm, but we still need
+      # to create all the UI elements and perform other initial
+      # setup
+      recreate_and_trigger_reload()
     }
+
     initial_load_trigger(initial_load_trigger() + 1)
   })
 
@@ -723,6 +752,78 @@ server <- function(input, output, session) {
     session$userData$selected_model_ids <- input$model_id
     redraw_trigger(redraw_trigger() + 1)
   }, ignoreInit = TRUE, ignoreNULL = FALSE)
+
+  # Handle selection from the "Preloaded Algorithms" dropdown
+  observeEvent(input$algorithms, {
+    selected_file <- config_get_algorithm_file(input$algorithms)
+    if (!is.null(selected_file)) {
+      # A file is selected. If it is not the currently loaded file then
+      # load it.
+      current_source_file <- session$userData$model_definitions$source_file
+      if (is.null(current_source_file) || selected_file != current_source_file) {
+        process_data_file(selected_file)
+        # Clear the text in the file upload UI control
+        shinyjs::reset(id = "upload")
+      }
+    }
+  })
+
+  #' Update Preloaded Algorithms Dropdown
+  #'
+  #' Refreshes the algorithms dropdown with the list of preloaded algorithms
+  #' from the app config, and sets the selected value to the algorithm whose
+  #' source file matches the currently loaded model definitions. If no match
+  #' is found, the selection is cleared.
+  #'
+  #' Does nothing if no preloaded algorithms are defined in the config.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  update_preloaded_algorithms <- function() {
+    if (config_has_algorithms()) {
+      # Find the preloaded algorithm ID that has the same config file as
+      # the currently loaded one. If the source file exists then we
+      # need to select it, otherwise we select nothing
+      selected <- config_get_algorithm_id_from_file(
+        session$userData$model_definitions$source_file
+      )
+      if (is.null(selected)) {
+        selected <- character(0)
+        choices <- config_get_algorithm_choices()
+
+        # When we select nothing in the dropdown, R Shiny doesn't recognize
+        # this as a change in the selected value. Instead, it assumes that
+        # whatever was previously selected remains the selected value.
+        # If the user then reselects the previously selected value then
+        # the "algorithms" dropdown will not trigger observers. To avoid this,
+        # we add an extra fake ID to the dropdown, select that fake ID,
+        # then clear the selection with selected = character(0).
+
+        # Make a fake ID consisting of "x"s so that its length is one
+        # character longer than the longest existing ID. This will
+        # guarantee our fake ID doesn't clash with an existing
+        # algorithm ID
+        max_choice_id_length <- unname(unlist(choices)) |>
+          stringr::str_length()
+        max_choice_id_length <- max(max_choice_id_length)
+        fake_choice <- strrep("x", max_choice_id_length + 1)
+        choices[[fake_choice]] <- fake_choice
+        updateSelectInput(
+          session,
+          "algorithms",
+          choices = choices,
+          selected = fake_choice
+        )
+      }
+      updateSelectInput(
+        session,
+        "algorithms",
+        choices = config_get_algorithm_choices(),
+        selected = selected
+      )
+    }
+  }
 
   #' Update Model Selection Checkboxes
   #'
