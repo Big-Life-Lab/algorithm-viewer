@@ -79,6 +79,7 @@ all_tag <- "_all_"
 #'
 #' @export
 read_model_definitions <- function(file) {
+  file <- normalizePath(file)
   root_dir <- dirname(file)
   tryCatch({
     info <- yaml::read_yaml(file)
@@ -88,6 +89,8 @@ read_model_definitions <- function(file) {
       file
     ))
   })
+
+  info$source_file <- file
 
   info <- .copy_from_all_model(info)
   info <- .make_model_titles_unique(info)
