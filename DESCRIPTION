@@ -28,6 +28,7 @@ Imports:
     plotly,
     rlang,
     shiny,
+    shinyjs,
     shinyWidgets,
     stringr,
     viridis,
