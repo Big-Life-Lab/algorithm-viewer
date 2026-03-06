@@ -93,7 +93,8 @@ get_variable_values_to_labels <- function(model_data,
                                           variable,
                                           escape_html = FALSE) {
   info <- get_variable_labels_to_values(
-    model_data, variable, escape_html = escape_html
+    model_data, variable,
+    escape_html = escape_html
   )
   as.list(setNames(names(info), info))
 }
@@ -211,7 +212,8 @@ get_variable_label_from_value <- function(model_data,
                                           value,
                                           escape_html = FALSE) {
   values_to_labels <- get_variable_values_to_labels(
-    model_data, variable, escape_html = escape_html
+    model_data, variable,
+    escape_html = escape_html
   )
   unname(unlist(values_to_labels)[value])
 }
@@ -231,10 +233,12 @@ get_variable_label_and_units <- function(model_data,
                                          variable,
                                          escape_html = FALSE) {
   label <- get_variable_info(
-    model_data, variable, "label", escape_html = escape_html
+    model_data, variable, "label",
+    escape_html = escape_html
   )
   units <- get_variable_info(
-    model_data, variable, "units", escape_html = escape_html
+    model_data, variable, "units",
+    escape_html = escape_html
   )
 
   res <- label
@@ -336,7 +340,8 @@ get_model_colors <- function(models, names_field = "title") {
   model_colors <- get_all_models_field(models, "model_color")
   if (!is.null(names_field)) {
     names(model_colors) <- get_all_models_field(
-      models, names_field, escape_html = TRUE
+      models, names_field,
+      escape_html = TRUE
     )
   }
 
@@ -363,7 +368,8 @@ get_model_choices <- function(models,
   choices <- get_model_ids(models)
   if (!is.null(names_field)) {
     names(choices) <- get_all_models_field(
-      models, names_field, escape_html = escape_html
+      models, names_field,
+      escape_html = escape_html
     )
   }
 
@@ -452,7 +458,6 @@ add_model_color <- function(model_data, label, width, height, after = TRUE) {
 #' @return Named list where names are predictor labels and values are predictor
 #'   variable names (e.g., list(Diabetes = "diabx")).
 gather_predictor_choices <- function(models) {
-
   variables <- c()
   labels <- c()
   for (model_data in models) {

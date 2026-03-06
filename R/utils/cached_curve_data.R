@@ -35,22 +35,25 @@
 #'
 #' @examples
 #' \dontrun{
-#'   # Store curve data after calculation
+#' # Store curve data after calculation
+#' set_cached_curve_data(
+#'   session, "survival", "model_1", model_params, curve_df
+#' )
+#'
+#' # On next update, check if cached data can be reused
+#' if (is_reusable_cached_curve_data(
+#'   session, "survival", "model_1", model_params
+#' )) {
+#'   curve_df <- get_cached_curve_data(session, "survival", "model_1")
+#' } else {
+#'   curve_df <- calculate_curve(...)
 #'   set_cached_curve_data(
-#'     session, "survival", "model_1", model_params, curve_df)
+#'     session, "survival", "model_1", model_params, curve_df
+#'   )
+#' }
 #'
-#'   # On next update, check if cached data can be reused
-#'   if (is_reusable_cached_curve_data(
-#'     session, "survival", "model_1", model_params)) {
-#'     curve_df <- get_cached_curve_data(session, "survival", "model_1")
-#'   } else {
-#'     curve_df <- calculate_curve(...)
-#'     set_cached_curve_data(
-#'       session, "survival", "model_1", model_params, curve_df)
-#'   }
-#'
-#'   # Clear all cached data (e.g., when loading a new model file)
-#'   clear_cached_curve_data(session)
+#' # Clear all cached data (e.g., when loading a new model file)
+#' clear_cached_curve_data(session)
 #' }
 #'
 #' @name cached_curve_data

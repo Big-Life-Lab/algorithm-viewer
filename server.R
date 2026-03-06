@@ -95,15 +95,15 @@ server <- function(input, output, session) {
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
-  # All reference group modules (one module per model). These allow us to retrieve
-  # the reference group values (from reference_groups[[model_id]]$rv_values()) and
-  # destroy the reference groups when no longer needed (with
-  # reference_groups[[model_id]]$destroy_module())
+  # All reference group modules (one module per model). These allow us to
+  # retrieve the reference group values (from
+  # reference_groups[[model_id]]$rv_values()) and destroy the reference groups
+  # when no longer needed (with reference_groups[[model_id]]$destroy_module())
   reference_groups <- list()
-  # Every time we create new reference groups, we increment and append this number
-  # to the reference group IDs. This ensures that we never reuse the same IDs,
-  # any avoids getting redundant change calls from destroying then creating
-  # the controls with the same IDs.
+  # Every time we create new reference groups, we increment and append this
+  # number to the reference group IDs. This ensures that we never reuse the
+  # same IDs, any avoids getting redundant change calls from destroying then
+  # creating the controls with the same IDs.
   reference_groups_index <- 0
 
   #' Create Reference Group Controls
@@ -144,8 +144,10 @@ server <- function(input, output, session) {
     for (model_data in session$userData$model_definitions$models) {
       model_id <- model_data$model_id
       refgroup_id <- paste0(model_id, "__", reference_groups_index)
-      refgroup_ui[[length(refgroup_ui) + 1]] <- referenceGroupUI(refgroup_id, model_data)
-      reference_groups[[model_id]] <<- referenceGroupServer(refgroup_id, model_data, redraw_trigger)
+      refgroup_ui[[length(refgroup_ui) + 1]] <-
+        referenceGroupUI(refgroup_id, model_data)
+      reference_groups[[model_id]] <<-
+        referenceGroupServer(refgroup_id, model_data, redraw_trigger)
 
       if (model_id != last_model_id) {
         refgroup_ui[[length(refgroup_ui) + 1]] <- hr()
@@ -328,7 +330,10 @@ server <- function(input, output, session) {
             .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
           ) +
             ggplot2::geom_col(position = "dodge") +
-            ggplot2::scale_fill_manual(values = model_colors, aesthetics = "fill")
+            ggplot2::scale_fill_manual(
+              values = model_colors,
+              aesthetics = "fill"
+            )
         } else {
           model_colors <- get_model_colors(
             session$userData$model_definitions$models
@@ -338,7 +343,10 @@ server <- function(input, output, session) {
             .make_aes(curve_data$aes_args, color = dplyr::sym("Model"))
           ) +
             ggplot2::geom_line(linewidth = 1.2) +
-            ggplot2::scale_color_manual(values = model_colors, aesthetics = "color")
+            ggplot2::scale_color_manual(
+              values = model_colors,
+              aesthetics = "color"
+            )
         }
 
         y_limits <- NULL
@@ -347,8 +355,15 @@ server <- function(input, output, session) {
         }
 
         p <- p +
-          ggplot2::scale_y_continuous(transform = transform, limits = y_limits) +
-          ggplot2::geom_hline(yintercept = 1, linetype = "dashed", color = "gray50") +
+          ggplot2::scale_y_continuous(
+            transform = transform,
+            limits = y_limits
+          ) +
+          ggplot2::geom_hline(
+            yintercept = 1,
+            linetype = "dashed",
+            color = "gray50"
+          ) +
           ggplot2::labs(
             title = curve_data$title,
             subtitle = curve_data$title,
@@ -411,16 +426,25 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
+          reference_group <- isolate(
+            reference_groups[[model_data$model_id]]$rv_values()
+          )
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
             predictor = predictor,
             reference_group = reference_group
           )
-          if (is_reusable_cached_curve_data(session, "pr", model_data$model_id, model_params)) {
+          if (
+            is_reusable_cached_curve_data(
+              session,
+              "pr",
+              model_data$model_id, model_params
+            )
+          ) {
             # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <- get_cached_curve_data(session, "pr", model_data$model_id)
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_curve_data(session, "pr", model_data$model_id)
           } else {
             # Get predictor type (Categorical or Continuous)
             predictor_type <- model_data$variables |>
@@ -444,7 +468,13 @@ server <- function(input, output, session) {
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
             # Save the data to our cache
-            set_cached_curve_data(session, "pr", model_data$model_id, model_params, curve_data)
+            set_cached_curve_data(
+              session,
+              "pr",
+              model_data$model_id,
+              model_params,
+              curve_data
+            )
           }
         }
 
@@ -478,7 +508,8 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- isolate(reference_groups[[model_data$model_id]]$rv_values())
+          reference_group <-
+            isolate(reference_groups[[model_data$model_id]]$rv_values())
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
@@ -486,9 +517,17 @@ server <- function(input, output, session) {
             interaction_predictor = interaction_predictor,
             reference_group = reference_group
           )
-          if (is_reusable_cached_curve_data(session, "or", model_data$model_id, model_params)) {
+          if (
+            is_reusable_cached_curve_data(
+              session,
+              "or",
+              model_data$model_id,
+              model_params
+            )
+          ) {
             # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <- get_cached_curve_data(session, "or", model_data$model_id)
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_curve_data(session, "or", model_data$model_id)
           } else {
             # Get predictor type (Categorical or Continuous)
             predictor_type <- model_data$variables |>
@@ -521,7 +560,13 @@ server <- function(input, output, session) {
             all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
             # Save the data to our cache
-            set_cached_curve_data(session, "or", model_data$model_id, model_params, curve_data)
+            set_cached_curve_data(
+              session,
+              "or",
+              model_data$model_id,
+              model_params,
+              curve_data
+            )
           }
         }
 
@@ -595,7 +640,9 @@ server <- function(input, output, session) {
     if (is.null(file)) {
       # Empty file
       session$userData$model_definitions <- NULL
-    } else if (grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)) {
+    } else if (
+      grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)
+    ) {
       # YAML file
       load_model_definitions(file)
     } else {
@@ -608,7 +655,8 @@ server <- function(input, output, session) {
 
       tryCatch(
         {
-          files_in_archive <- archive::archive_extract(file, dir = temp_dir_path)
+          files_in_archive <-
+            archive::archive_extract(file, dir = temp_dir_path)
           yaml_pattern <- "(\\.yaml|\\.yml)$"
           config_files <- files_in_archive[
             grepl(yaml_pattern, files_in_archive, ignore.case = TRUE)
@@ -748,10 +796,14 @@ server <- function(input, output, session) {
   # The checkbox group returns NULL if nothing is selected, so we must
   # set ignoreNULL = FALSE to make sure that we redraw when no model
   # is selected
-  observeEvent(input$model_id, {
-    session$userData$selected_model_ids <- input$model_id
-    redraw_trigger(redraw_trigger() + 1)
-  }, ignoreInit = TRUE, ignoreNULL = FALSE)
+  observeEvent(input$model_id,
+    {
+      session$userData$selected_model_ids <- input$model_id
+      redraw_trigger(redraw_trigger() + 1)
+    },
+    ignoreInit = TRUE,
+    ignoreNULL = FALSE
+  )
 
   # Handle selection from the "Preloaded Algorithms" dropdown
   observeEvent(input$algorithms, {
@@ -760,7 +812,9 @@ server <- function(input, output, session) {
       # A file is selected. If it is not the currently loaded file then
       # load it.
       current_source_file <- session$userData$model_definitions$source_file
-      if (is.null(current_source_file) || selected_file != current_source_file) {
+      if (
+        is.null(current_source_file) || selected_file != current_source_file
+      ) {
         process_data_file(selected_file)
         # Clear the text in the file upload UI control
         shinyjs::reset(id = "upload")

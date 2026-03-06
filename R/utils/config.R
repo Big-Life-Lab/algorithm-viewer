@@ -69,11 +69,14 @@ config_has_algorithms <- function() {
 config_get_algorithm_file <- function(algorithm_id) {
   unnormalizedFile <- .CONFIG$algorithms[[algorithm_id]]$file
   file <- NULL
-  tryCatch({
-    file <- normalizePath(unnormalizedFile, mustWork = TRUE)
-  }, error = function(e) {
-    # Do nothing
-  })
+  tryCatch(
+    {
+      file <- normalizePath(unnormalizedFile, mustWork = TRUE)
+    },
+    error = function(e) {
+      # Do nothing
+    }
+  )
   file
 }
 
@@ -110,11 +113,14 @@ config_get_algorithm_id_from_file <- function(file) {
   # Try to normalize the file path
   unnormalizedFile <- file
   file <- NULL
-  tryCatch({
-    file <- normalizePath(unnormalizedFile)
-  }, error = function(e) {
-    # Do nothing
-  })
+  tryCatch(
+    {
+      file <- normalizePath(unnormalizedFile)
+    },
+    error = function(e) {
+      # Do nothing
+    }
+  )
   if (is.null(file)) {
     # Could not normalize the file (path doesn't exist)
     return(NULL)

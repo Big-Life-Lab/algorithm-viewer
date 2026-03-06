@@ -81,14 +81,17 @@ all_tag <- "_all_"
 read_model_definitions <- function(file) {
   file <- normalizePath(file)
   root_dir <- dirname(file)
-  tryCatch({
-    info <- yaml::read_yaml(file)
-  }, error = function(e) {
-    stop(paste(
-      "Could not load the model definitions file",
-      file
-    ))
-  })
+  tryCatch(
+    {
+      info <- yaml::read_yaml(file)
+    },
+    error = function(e) {
+      stop(paste(
+        "Could not load the model definitions file",
+        file
+      ))
+    }
+  )
 
   info$source_file <- file
 

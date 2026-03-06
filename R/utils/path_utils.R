@@ -13,15 +13,18 @@ expand_and_normalize_path <- function(p, add_trailing_slash = FALSE) {
   # Try to normalize the path. If the path does not exist then
   # we return NULL
   normalized <- NULL
-  tryCatch({
-    normalized <- normalizePath(
-      p,
-      winslash = .Platform$file.sep,
-      mustWork = TRUE
-    )
-  }, error = function(e) {
-    # This error handler stops normalizePath from printing out an error
-  })
+  tryCatch(
+    {
+      normalized <- normalizePath(
+        p,
+        winslash = .Platform$file.sep,
+        mustWork = TRUE
+      )
+    },
+    error = function(e) {
+      # This error handler stops normalizePath from printing out an error
+    }
+  )
   if (is.null(normalized)) {
     return(NULL)
   }

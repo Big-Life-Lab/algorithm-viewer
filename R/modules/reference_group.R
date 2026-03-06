@@ -29,7 +29,7 @@
 #'   \item React to `$rv_values()` in the named list returned by
 #'         `referenceGroupServer()`
 #' }
-#' 
+#'
 #' It is best to always use a unique ID whenever destroying and creating
 #' reference groups. While duplicate IDs will work (as long as the
 #' previous reference group is first destroyed with `$destroy_module()`)
@@ -201,7 +201,11 @@ NULL
     "border-left: solid 6px {model_color}; ",
     "padding: 0 10px 0 10px;"
   )
-  reference_group_input <- shiny::div(style = style, id = ns(.refgroup_container_id), reference_group_input)
+  reference_group_input <- shiny::div(
+    style = style,
+    id = ns(.refgroup_container_id),
+    reference_group_input
+  )
 
   tagList(reference_group_input)
 }
@@ -230,7 +234,11 @@ NULL
 #'   }
 #'
 #' @keywords internal
-.referenceGroupServer_internal <- function(id, model_data, change_trigger = NULL) {
+.referenceGroupServer_internal <- function(
+  id,
+  model_data,
+  change_trigger = NULL
+) {
   shiny::moduleServer(id, function(input, output, session) {
     # List of all observers for the reference group controls
     # We need these so we can destroy them later
@@ -248,8 +256,10 @@ NULL
     }
 
     # The current reference group values (matching what we see in the UI)
-    reference_group_values_internal <- shiny::reactiveVal(default_reference_group)
-    reference_group_values_external <- shiny::reactiveVal(default_reference_group)
+    reference_group_values_internal <-
+      shiny::reactiveVal(default_reference_group)
+    reference_group_values_external <-
+      shiny::reactiveVal(default_reference_group)
 
     for (variable in names(default_reference_group)) {
       input_id <- variable
@@ -257,7 +267,8 @@ NULL
         input_id = input_id,
         variable = variable
       )
-      observers[[length(observers) + 1]] <- observeEvent(input[[input_id]], {
+      observers[[length(observers) + 1]] <- observeEvent(input[[input_id]],
+        {
           save_values_from_ui(c(variable))
         },
         event.env = cur_env,
@@ -270,7 +281,8 @@ NULL
       model_data = model_data,
       model_id = model_data$model_id
     )
-    observers[[length(observers) + 1]] <- observeEvent(input$reset_button, {
+    observers[[length(observers) + 1]] <- observeEvent(input$reset_button,
+      {
         reference_group_values_internal(default_reference_group)
         set_ui_from_values()
       },
@@ -281,7 +293,7 @@ NULL
     #' Save the Values in the UI to the Internal Reference Group Values.
     #'
     #' Retrieves current reference group values from UI input controls.
-    #' 
+    #'
     #' @param variables A list of variables to save from the UI. Since
     #'   accessing the UI can be slow (especially in Shinylive) we
     #'   should only save the UI values that have changed. If NULL

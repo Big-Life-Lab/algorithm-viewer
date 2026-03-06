@@ -73,7 +73,6 @@ ui <- fluidPage(
                 label = "Models:"
               ),
             ),
-
             hr(
               style = ifelse(
                 config_has_algorithms() || config_allow_file_uploads(),
