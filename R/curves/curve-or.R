@@ -54,7 +54,7 @@ calculate_or_curve <- function(predictor,
   predicted_col <- colnames(dat)[[1]]
   or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
     (dat[[predicted_col]][output_rows + 1] /
-      (1 - dat[[predicted_col]][output_rows + 1]))
+       (1 - dat[[predicted_col]][output_rows + 1]))
 
   labels <- convert_df_variable_to_label(
     df, model_data, predictor, predictor
