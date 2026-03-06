@@ -52,8 +52,8 @@ get_function_and_params <- function(s) {
   res <- stringr::str_match(s, expr)
   if (length(res) == 3 && !any(is.na(res))) {
     # Match was found. Get the function name and parse the parameters.
-    # At this point the parameters is a single string, such as
-    # "1, 2, by = 3"
+    # At this point the parameters is a single string, such as:
+    # 1, 2, by = 3
     func_name <- stringr::str_trim(res[2])
     params <- stringr::str_trim(res[3])
 
@@ -98,8 +98,10 @@ get_function_and_params <- function(s) {
 #' @keywords internal
 .parse_param_value <- function(value) {
   if (stringr::str_length(value) >= 2) {
-    if ((stringr::str_starts(value, "'") && stringr::str_ends(value, "'")) ||
-      (stringr::str_starts(value, '"') && stringr::str_ends(value, '"'))) {
+    if (
+      (stringr::str_starts(value, "'") && stringr::str_ends(value, "'")) ||
+        (stringr::str_starts(value, '"') && stringr::str_ends(value, '"'))
+    ) {
       # A string. It starts or ends with double quotes or single quotes, so
       # remove the quotes.
       value <- substr(value, 2, stringr::str_length(value) - 1)
