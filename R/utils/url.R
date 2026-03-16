@@ -19,6 +19,7 @@
 #' # reload:
 #' url_set_algorithm_id("htnport-full", session = session)
 #' }
+NULL
 
 source("R/utils/config.R")
 
