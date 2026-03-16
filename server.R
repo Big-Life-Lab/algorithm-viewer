@@ -586,6 +586,98 @@ server <- function(input, output, session) {
     )
   })
 
+  # Relative Risk plots
+  output$rr_plot <- plotly::renderPlotly({
+    redraw_trigger()
+
+    req(session$userData$predictor)
+
+    if (is.null(session$userData$model_definitions)) {
+      return(make_plot(NULL))
+    }
+
+    tryCatch(
+      {
+        all_curve_data <- list()
+        predictor <- session$userData$predictor
+        interaction_predictor <- session$userData$interaction_predictor
+
+        # Go through all models and calculate the OR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          reference_group <-
+            isolate(reference_groups[[model_data$model_id]]$rv_values())
+
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = predictor,
+            interaction_predictor = interaction_predictor,
+            reference_group = reference_group
+          )
+          if (
+            is_reusable_cached_curve_data(
+              session,
+              "rr",
+              model_data$model_id,
+              model_params
+            )
+          ) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_curve_data(session, "rr", model_data$model_id)
+          } else {
+            # Get predictor type (Categorical or Continuous)
+            predictor_type <- model_data$variables |>
+              dplyr::filter(variable == predictor) |>
+              dplyr::pull(variableType)
+
+            tic <- Sys.time()
+
+            # Calculate the RR curve for the model
+            if (interaction_predictor == empty_selection) {
+              curve_data <- calculate_rr_curve(
+                predictor,
+                model_data,
+                reference_group = reference_group
+              )
+            } else {
+              curve_data <- calculate_rr_curve_interaction(
+                predictor,
+                interaction_predictor,
+                model_data,
+                reference_group = reference_group
+              )
+            }
+
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+            # Save the data to our cache
+            set_cached_curve_data(
+              session,
+              "rr",
+              model_data$model_id,
+              model_params,
+              curve_data
+            )
+          }
+        }
+
+        make_plot(all_curve_data)
+      },
+      error = function(e) {
+        .make_message_plot(
+          glue::glue("<b>Error</b>: {e$message}"),
+          color = "red"
+        )
+      }
+    )
+  })
+
   #' Load Model Definitions from File
   #'
   #' Reads model definitions from a YAML file and stores them in the session

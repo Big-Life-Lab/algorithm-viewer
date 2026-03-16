@@ -136,6 +136,12 @@ ui <- fluidPage(
           plotly::plotlyOutput("pr_plot", height = plot_height)
         ),
         tabPanel(
+          "Relative Risk",
+          icon = icon("chart-line"),
+          br(),
+          plotly::plotlyOutput("rr_plot", height = plot_height)
+        ),
+        tabPanel(
           "Help",
           icon = icon("circle-question"),
           style = "max-width: 800px",
