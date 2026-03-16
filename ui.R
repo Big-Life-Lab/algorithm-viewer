@@ -53,7 +53,7 @@ ui <- fluidPage(
             # Model selection and message
             htmlOutput("model_message"),
             div(
-              style = ifelse(config_has_algorithms(), "", "display: none"),
+              style = ifelse(config_allow_algorithms_selection(), "", "display: none"),
               selectInput(
                 inputId = "algorithms",
                 label = "Preloaded Algorithms",

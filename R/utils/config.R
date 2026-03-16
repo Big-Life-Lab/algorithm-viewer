@@ -62,6 +62,19 @@ config_get_bool <- function(key, default) {
   return(.CONFIG[[key]])
 }
 
+#' Check whether algorithm selection is permitted (ie. we can display a list of
+#' algorithms for the user to select from).
+#'
+#' Returns `TRUE` when the config defines at least one algorithm and
+#' `.CONFIG$allow_algorithms_selection` is `TRUE` (the default).
+#'
+#' @return `TRUE` if algorithm selection is enabled, `FALSE` otherwise.
+config_allow_algorithms_selection <- function() {
+  # Users can select from a dropdown of algorithms if the config has a list of
+  # algorithms to choose from and allow_algorithms_selection has been set to TRUE
+  config_has_algorithms() && config_get_bool("allow_algorithms_selection", TRUE)
+}
+
 #' Check whether an algorithm ID may be passed via the URL.
 #'
 #' Reads `.CONFIG$allow_algorithm_in_url`. Defaults to `TRUE` when the value is
