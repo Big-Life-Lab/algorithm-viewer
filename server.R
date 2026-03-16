@@ -17,6 +17,11 @@ lapply(file.path("R/curves", curve_files), source)
 # predictor)
 empty_selection <- "<empty>"
 
+# When the config file allows specifying algorithms in the URL,
+# algorithm_query_param is the parameter name for specifying the
+# algorithm ID
+algorithm_query_param <- "algorithm"
+
 #' Create a Plot Consisting of a Single String Message
 #'
 #' Generates a minimal plotly plot displaying a centered text message.
@@ -729,6 +734,11 @@ server <- function(input, output, session) {
       return()
     }
 
+    # Since the file was uploaded, it does not represent any preloaded algorithms
+    # specified in the config, so we clear the URL query string.
+    if (config_allow_algorithm_in_url()) {
+      shiny::updateQueryString("?", mode = "replace", session = session)
+    }
     if (!is.null(input$upload)) {
       file <- input$upload$datapath
       process_data_file(file)
@@ -779,7 +789,14 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
-    if (!is.null(config_get_initial_algorithm_file())) {
+    if (config_url_has_algorithm_id(session, algorithm_query_param)) {
+      # The URL has an algorithm specified (eg
+      # "example.com/?algorithm=htnport-reduced"), so try to load the
+      # algorithm specified in the URL.
+      process_data_file(config_get_algorithm_file(
+        config_get_algorithm_id_from_url(session, algorithm_query_param)
+      ))
+    } else if (!is.null(config_get_initial_algorithm_file())) {
       # Load initial algorithm
       process_data_file(config_get_initial_algorithm_file())
     } else {
@@ -809,6 +826,16 @@ server <- function(input, output, session) {
   observeEvent(input$algorithms, {
     selected_file <- config_get_algorithm_file(input$algorithms)
     if (!is.null(selected_file)) {
+      if (config_allow_algorithm_in_url()) {
+        # Update the query string so users can bookmark the page/share
+        # the url and have the selected algorithm automatically loaded.
+        shiny::updateQueryString(
+          paste0("?", algorithm_query_param, "=", input$algorithms),
+          mode = "replace",
+          session = session
+        )
+      }
+
       # A file is selected. If it is not the currently loaded file then
       # load it.
       current_source_file <- session$userData$model_definitions$source_file

@@ -44,12 +44,94 @@ config_get_initial_algorithm_file <- function() {
 #'
 #' @return `TRUE` if file uploads are enabled, `FALSE` otherwise.
 config_allow_file_uploads <- function() {
-  if (!is.logical(.CONFIG$allow_file_uploads)) {
-    # Default value is FALSE
+  config_get_bool("allow_file_uploads", FALSE)
+}
+
+#' Get a boolean value from the global config
+#'
+#' Returns the logical value stored at `.CONFIG[[key]]`. If the value is not a
+#' logical, `default` is returned instead.
+#'
+#' @param key A character string naming the config key to look up.
+#' @param default The value to return when the key is absent or not logical.
+#' @return A logical value.
+config_get_bool <- function(key, default) {
+  if (!is.logical(.CONFIG[[key]])) {
+    return(default)
+  }
+  return(.CONFIG[[key]])
+}
+
+#' Check whether an algorithm ID may be passed via the URL.
+#'
+#' Reads `.CONFIG$allow_algorithm_in_url`. Defaults to `TRUE` when the value is
+#' absent or not a logical.
+#'
+#' @return `TRUE` if URL-based algorithm selection is enabled, `FALSE` otherwise.
+config_allow_algorithm_in_url <- function() {
+  config_get_bool("allow_algorithm_in_url", TRUE)
+}
+
+#' Check whether the current URL contains an algorithm ID query parameter
+#'
+#' This does not verify if the algorithm ID is valid and found in the config,
+#' instead it just checks for the presence of the algorithm in the URL.
+#' 
+#' Returns `FALSE` immediately if URL-based algorithm selection is disabled.
+#' Otherwise inspects the Shiny session's query string for the given parameter.
+#'
+#' @param session The Shiny session object.
+#' @param algorithm_query_param A character string naming the URL query parameter
+#'   that carries the algorithm ID.
+#' @return `TRUE` if the parameter is present in the URL, `FALSE` otherwise.
+config_url_has_algorithm_id <- function(session, algorithm_query_param) {
+  # If algorithms in the URL are not allowed then always return FALSE
+  if (!config_allow_algorithm_in_url()) {
     return(FALSE)
   }
+  # Check if the URL has a query parameter named algorithm_query_param
+  params <- shiny::getQueryString(session)
+  !is.null(params[[algorithm_query_param]])
+}
 
-  .CONFIG$allow_file_uploads
+#' Get the algorithm ID from the current URL query string
+#'
+#' Returns `NULL` if URL-based algorithm selection is disabled, if no algorithms
+#' are defined in the config, if the query parameter is absent, or if the
+#' supplied ID does not match any known algorithm.
+#'
+#' @param session The Shiny session object.
+#' @param algorithm_query_param A character string naming the URL query parameter
+#'   that carries the algorithm ID.
+#' @return The algorithm ID as a character string, or `NULL`.
+config_get_algorithm_id_from_url <- function(session, algorithm_query_param) {
+  # If algorithms in the URL are not allowed, or if a list of algorithms is
+  # not available in the config, then always return NULL (no algorithm in URL)
+  if (!config_allow_algorithm_in_url() || !config_has_algorithms()) {
+    return(NULL)
+  }
+
+  # Get the algorithm ID from the URL, and if it is a valid algorithm ID
+  # found in the config file then return the ID
+  params <- shiny::getQueryString(session)
+  query_algorithm_id <- params[[algorithm_query_param]]
+  if (is.null(query_algorithm_id)) {
+    return(NULL)
+  } else if (config_algorithm_id_exists(query_algorithm_id)) {
+    return(query_algorithm_id)
+  }
+
+  NULL
+}
+
+#' Check whether an algorithm ID is defined in the config
+#'
+#' @param algorithm_id A character string to look up in `.CONFIG$algorithms`.
+#' @return `TRUE` if the ID is present, `FALSE` otherwise.
+config_algorithm_id_exists <- function(algorithm_id) {
+  # Check if the algorithm ID is in the list of algorithms in the config
+  # file
+  algorithm_id %in% names(.CONFIG$algorithms)
 }
 
 #' Check whether any algorithms are defined in the config
