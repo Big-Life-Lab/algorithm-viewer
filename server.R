@@ -2,6 +2,7 @@ source("R/model_definitions/model_definitions.R")
 source("R/modules/reference_group.R")
 source("R/utils/cached_curve_data.R")
 source("R/utils/config.R")
+source("R/utils/url.R")
 
 # Remove scientific notation from plots
 options(scipen = 8)
@@ -16,11 +17,6 @@ lapply(file.path("R/curves", curve_files), source)
 # "Interaction Predictor" dropdown to specify that we want no interaction
 # predictor)
 empty_selection <- "<empty>"
-
-# When the config file allows specifying algorithms in the URL,
-# algorithm_query_param is the parameter name for specifying the
-# algorithm ID
-algorithm_query_param <- "algorithm"
 
 #' Create a Plot Consisting of a Single String Message
 #'
@@ -829,7 +825,7 @@ server <- function(input, output, session) {
     # Since the file was uploaded, it does not represent any preloaded algorithms
     # specified in the config, so we clear the URL query string.
     if (config_allow_algorithm_in_url()) {
-      shiny::updateQueryString("?", mode = "replace", session = session)
+      url_update_query_string("?", mode = "replace", session = session)
     }
     if (!is.null(input$upload)) {
       file <- input$upload$datapath
@@ -881,12 +877,12 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
-    if (config_url_has_algorithm_id(session, algorithm_query_param)) {
+    if (url_has_algorithm_id(session)) {
       # The URL has an algorithm specified (eg
       # "example.com/?algorithm=htnport-reduced"), so try to load the
       # algorithm specified in the URL.
       process_data_file(config_get_algorithm_file(
-        config_get_algorithm_id_from_url(session, algorithm_query_param)
+        url_get_algorithm_id(session)
       ))
     } else if (!is.null(config_get_initial_algorithm_file())) {
       # Load initial algorithm
@@ -921,11 +917,7 @@ server <- function(input, output, session) {
       if (config_allow_algorithm_in_url()) {
         # Update the query string so users can bookmark the page/share
         # the url and have the selected algorithm automatically loaded.
-        shiny::updateQueryString(
-          paste0("?", algorithm_query_param, "=", input$algorithms),
-          mode = "replace",
-          session = session
-        )
+        url_set_algorithm_id(input$algorithms, session = session)
       }
 
       # A file is selected. If it is not the currently loaded file then
