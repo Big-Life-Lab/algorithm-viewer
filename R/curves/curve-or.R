@@ -36,7 +36,7 @@ calculate_or_curve <- function(predictor,
   predictor_reference_value <- reference_group[[predictor]]
   output_rows <- length(predictor_range)
 
-  # Create the input matrix (duplicate model_data$reference_group for each
+  # Create the input matrix (duplicate reference_group for each
   # value in predictor_range, set the predictor to the predictor_range, then
   # add an extra unmodified reference group to the end, at index output_rows+1)
   df <- data.frame(reference_group)
