@@ -77,7 +77,8 @@ calculate_or_curve_interaction <- function(predictor,
   }
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
-  # The odds ratio is predicted_risk / ref_predicted_risk
+  # The odds ratio is odds / reference_group_odds, where odds is calculated
+  # as predicted_risk / (1 - predicted_risk)
   dat1 <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
     dat = df1

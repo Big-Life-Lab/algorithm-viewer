@@ -38,14 +38,16 @@ calculate_or_curve <- function(predictor,
 
   # Create the input matrix (duplicate model_data$reference_group for each
   # value in predictor_range, set the predictor to the predictor_range, then
-  # add an extra unmodified reference group to the end)
+  # add an extra unmodified reference group to the end, at index output_rows+1)
   df <- data.frame(reference_group)
   df <- df[rep(1, output_rows + 1), ]
   df[predictor] <- append(predictor_range, predictor_reference_value)
   rownames(df) <- seq_len(nrow(df))
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
-  # The odds ratio is predicted_risk / ref_predicted_risk
+  # The odds ratio is odds / reference_group_odds, where odds is calculated
+  # as predicted_risk / (1 - predicted_risk)
+  # Note that the reference group is located at row output_rows + 1
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
     dat = df
