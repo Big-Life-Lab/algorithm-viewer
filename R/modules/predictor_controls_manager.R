@@ -142,7 +142,7 @@ create_predictor_controls <- function(
 #'
 #' @return A character string used as the Shiny module ID.
 get_model_predictor_controls_id <- function(.env, model_data, extra_tag = NULL) {
-  id <- paste0(model_data$model_id, "___", .env$predictor_controls_uuid)
+  id <- paste0(.env$predictor_controls_uuid, "___", model_data$model_id)
   if (!is.null(extra_tag)) {
     id <- paste0(id, "___", extra_tag)
   }
