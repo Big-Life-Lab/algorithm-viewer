@@ -107,7 +107,7 @@ server <- function(input, output, session) {
   # The envionment containing all variables associated with cached curve data
   cached_curve_env <- initialize_cached_curve_data_env()
   # The environment containing all model definitions
-  model_definitions_env <- rlang::env(model_definitions = list())
+  model_definitions_env <- rlang::env(model_definitions = NULL)
 
   #' Create Predictor Controls
   #'
