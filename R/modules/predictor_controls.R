@@ -42,7 +42,7 @@
 #' source("R/modules/predictor_controls.R")
 #'
 #' # In a Shiny app's server function, after loading model definitions:
-#' model_data <- session$userData$model_definitions$models[["female"]]
+#' model_data <- model_definitions$models[["female"]]
 #' redraw_trigger <- shiny::reactiveVal(0)
 #'
 #' # Create the UI (typically inserted via shiny::insertUI)
@@ -201,13 +201,16 @@ NULL
   )
   predictor_controls_input[[length(predictor_controls_input) + 1]] <- reset_button
 
-  # Add a colored left margin that matches the model color
+  # Ceate the style for the div containing the controls.
+  # If show_model_color is TRUE then we add a left margin with the model color.
   model_color <- unname(get_model_colors(list(model_data)))[[1]]
   style <- glue::glue(
     "width: 100%; ",
     if (show_model_color) "border-left: solid 6px {model_color}; " else "",
     "padding: 0 10px 0 10px;"
   )
+  
+  # Create the div containing the controls
   predictor_controls_input <- shiny::div(
     style = style,
     id = ns(.predictor_controls_container_id),
