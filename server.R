@@ -1,5 +1,6 @@
 source("R/model_definitions/model_definitions.R")
 source("R/modules/reference_group.R")
+source("R/modules/reference_group_manager.R")
 source("R/utils/cached_curve_data.R")
 source("R/utils/config.R")
 source("R/utils/url.R")
@@ -96,16 +97,9 @@ server <- function(input, output, session) {
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
-  # All reference group modules (one module per model). These allow us to
-  # retrieve the reference group values (from
-  # reference_groups[[model_id]]$rv_values()) and destroy the reference groups
-  # when no longer needed (with reference_groups[[model_id]]$destroy_module())
-  reference_groups <- list()
-  # Every time we create new reference groups, we increment and append this
-  # number to the reference group IDs. This ensures that we never reuse the
-  # same IDs, any avoids getting redundant change calls from destroying then
-  # creating the controls with the same IDs.
-  reference_groups_index <- 0
+  # The environment containing all variables associated with the reference group
+  # controls
+  refgroups_env <- initialize_reference_groups_env()
 
   #' Create Reference Group Controls
   #'
@@ -119,12 +113,7 @@ server <- function(input, output, session) {
   #' @keywords internal
   create_refgroup_controls <- function() {
     # Destroy existing reference groups
-    for (refgroup in reference_groups) {
-      if (!is.null(refgroup$destroy_module)) {
-        refgroup$destroy_module()
-      }
-    }
-    reference_groups <- list()
+    destroy_all_reference_groups(refgroups_env)
 
     # Empty the reference group container
     refgroups_container_id <- "#refgroups"
@@ -141,14 +130,15 @@ server <- function(input, output, session) {
     # or other reactive changes on creation when duplicate IDs are used.
     last_model_id <- tail(names(session$userData$model_definitions$models), 1)
     refgroup_ui <- tagList()
-    reference_groups_index <- reference_groups_index + 1
     for (model_data in session$userData$model_definitions$models) {
       model_id <- model_data$model_id
-      refgroup_id <- paste0(model_id, "__", reference_groups_index)
-      refgroup_ui[[length(refgroup_ui) + 1]] <-
-        referenceGroupUI(refgroup_id, model_data)
-      reference_groups[[model_id]] <<-
-        referenceGroupServer(refgroup_id, model_data, redraw_trigger)
+      refgroup <- create_reference_group(
+        refgroups_env,
+        model_data,
+        change_trigger = redraw_trigger
+      )
+
+      refgroup_ui[[length(refgroup_ui) + 1]] <- refgroup$ui
 
       if (model_id != last_model_id) {
         refgroup_ui[[length(refgroup_ui) + 1]] <- hr()
@@ -427,9 +417,7 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- isolate(
-            reference_groups[[model_data$model_id]]$rv_values()
-          )
+          reference_group <- get_reference_group_values(refgroups_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
@@ -490,7 +478,7 @@ server <- function(input, output, session) {
     )
   })
 
-  # Odss Ratios plots
+  # Odds Ratios plots
   output$or_plot <- plotly::renderPlotly({
     redraw_trigger()
 
@@ -509,8 +497,7 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <-
-            isolate(reference_groups[[model_data$model_id]]$rv_values())
+          reference_group <- get_reference_group_values(refgroups_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
@@ -601,8 +588,7 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <-
-            isolate(reference_groups[[model_data$model_id]]$rv_values())
+          reference_group <- get_reference_group_values(refgroups_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
