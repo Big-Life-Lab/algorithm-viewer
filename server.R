@@ -100,6 +100,8 @@ server <- function(input, output, session) {
   # The environment containing all variables associated with the predictor
   # controls
   predictor_controls_env <- initialize_predictor_controls_env()
+  # The envionment containing all variables associated with cached curve data
+  cached_curve_env <- initialize_cached_curve_data_env()
 
   #' Create Predictor Controls
   #'
@@ -476,14 +478,14 @@ server <- function(input, output, session) {
           )
           if (
             is_reusable_cached_curve_data(
-              session,
+              cached_curve_env,
               "pr",
               model_data$model_id, model_params
             )
           ) {
             # Reuse the old data
             all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(session, "pr", model_data$model_id)
+              get_cached_curve_data(cached_curve_env, "pr", model_data$model_id)
           } else {
             # Get predictor type (Categorical or Continuous)
             predictor_type <- model_data$variables |>
@@ -508,7 +510,7 @@ server <- function(input, output, session) {
 
             # Save the data to our cache
             set_cached_curve_data(
-              session,
+              cached_curve_env,
               "pr",
               model_data$model_id,
               model_params,
@@ -557,7 +559,7 @@ server <- function(input, output, session) {
           )
           if (
             is_reusable_cached_curve_data(
-              session,
+              cached_curve_env,
               "or",
               model_data$model_id,
               model_params
@@ -565,7 +567,7 @@ server <- function(input, output, session) {
           ) {
             # Reuse the old data
             all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(session, "or", model_data$model_id)
+              get_cached_curve_data(cached_curve_env, "or", model_data$model_id)
           } else {
             # Get predictor type (Categorical or Continuous)
             predictor_type <- model_data$variables |>
@@ -599,7 +601,7 @@ server <- function(input, output, session) {
 
             # Save the data to our cache
             set_cached_curve_data(
-              session,
+              cached_curve_env,
               "or",
               model_data$model_id,
               model_params,
@@ -648,7 +650,7 @@ server <- function(input, output, session) {
           )
           if (
             is_reusable_cached_curve_data(
-              session,
+              cached_curve_env,
               "rr",
               model_data$model_id,
               model_params
@@ -656,7 +658,7 @@ server <- function(input, output, session) {
           ) {
             # Reuse the old data
             all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(session, "rr", model_data$model_id)
+              get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
           } else {
             # Get predictor type (Categorical or Continuous)
             predictor_type <- model_data$variables |>
@@ -690,7 +692,7 @@ server <- function(input, output, session) {
 
             # Save the data to our cache
             set_cached_curve_data(
-              session,
+              cached_curve_env,
               "rr",
               model_data$model_id,
               model_params,
@@ -744,7 +746,7 @@ server <- function(input, output, session) {
   #' @keywords internal
   recreate_and_trigger_reload <- function() {
     session$userData$selected_model_ids <- NULL
-    clear_cached_curve_data(session)
+    clear_cached_curve_data(cached_curve_env)
     update_preloaded_algorithms()
     update_model_selections()
     update_predictor_choices()
