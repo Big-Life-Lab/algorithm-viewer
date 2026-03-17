@@ -19,6 +19,10 @@ lapply(file.path("R/curves", curve_files), source)
 # predictor)
 empty_selection <- "<empty>"
 
+# Tags to add to the exposed and unexposed predictor control IDs
+exposed_group_extra_tag <- "exposed"
+unexposed_group_extra_tag <- "unexposed"
+
 #' Create a Plot Consisting of a Single String Message
 #'
 #' Generates a minimal plotly plot displaying a centered text message.
@@ -151,6 +155,46 @@ server <- function(input, output, session) {
       ui = refgroup_controls_ui,
       immediate = TRUE
     )
+
+    # Ceate exposed and unexposed group predictor controls
+    exposed_container_id <- "#rr_plot_exposed_vs_unexposed_group"
+    shiny::removeUI(
+      selector = paste0(exposed_container_id, " > *"),
+      immediate = TRUE,
+      multiple = TRUE
+    )
+    # Use the first model's reference group data for the default
+    # predictor values
+    model_data <- head(session$userData$model_definitions$models, 1)
+    model_data <- model_data[[names(model_data)[1]]]
+
+    # Exposed group controls
+    exposed_predictor_ctrl <- create_predictor_controls(
+      predictor_controls_env,
+      model_data,
+      extra_tag = exposed_group_extra_tag,
+      change_trigger = redraw_trigger,
+      model_name = "Exposed Group",
+      show_model_color = FALSE
+    )
+    # Unexposed group controls
+    unexposed_predictor_ctrl <- create_predictor_controls(
+      predictor_controls_env,
+      model_data,
+      extra_tag = unexposed_group_extra_tag,
+      change_trigger = redraw_trigger,
+      model_name = "Unexposed Group",
+      show_model_color = FALSE
+    )
+
+    # Insert exposed/unexposed groups
+    shiny::insertUI(
+      selector = exposed_container_id,
+      where = "afterBegin",
+      ui = tagList(exposed_predictor_ctrl$ui, unexposed_predictor_ctrl$ui),
+      immediate = TRUE
+    )
+
   }
 
   #' Get Currently Selected Models
@@ -373,9 +417,9 @@ server <- function(input, output, session) {
           )
           p <- p +
             ggplot2::geom_point(
-              position = ggplot2::position_dodge(width = 0.1),
-              size = 5,
-              stroke = 0.25
+              position = ggplot2::position_dodge(width = 0.3),
+              size = 4,
+              stroke = 0.1
             ) +
             ggplot2::scale_fill_manual(
               values = model_colors,
@@ -611,6 +655,100 @@ server <- function(input, output, session) {
         }
 
         make_plot(all_curve_data)
+      },
+      error = function(e) {
+        .make_message_plot(
+          glue::glue("<b>Error</b>: {e$message}"),
+          color = "red"
+        )
+      }
+    )
+  })
+
+  output$rr_plot_exposed_vs_unexposed <- plotly::renderPlotly({
+    redraw_trigger()
+
+    req(session$userData$predictor)
+
+    if (is.null(session$userData$model_definitions)) {
+      return(make_plot(NULL))
+    }
+
+    tryCatch(
+      {
+        all_curve_data <- list()
+        predictor <- session$userData$predictor
+
+        # Go through all models and calculate the OR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          # Use the first model's reference group data for the default
+          # predictor values
+          exposed_model_data <- head(session$userData$model_definitions$models, 1)
+          exposed_model_data <- exposed_model_data[[names(exposed_model_data)[1]]]
+
+          exposed_group <- get_predictor_controls_values(
+            predictor_controls_env,
+            exposed_model_data,
+            extra_tag = exposed_group_extra_tag
+          )
+          unexposed_group <- get_predictor_controls_values(
+            predictor_controls_env,
+            exposed_model_data,
+            extra_tag = unexposed_group_extra_tag
+          )
+
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            exposed_group = exposed_group,
+            unexposed_group = unexposed_group
+          )
+          if (
+            is_reusable_cached_curve_data(
+              cached_curve_env,
+              "rr_exposed_vs_unexposed",
+              model_data$model_id,
+              model_params
+            )
+          ) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_curve_data(cached_curve_env, "rr_exposed_vs_unexposed", model_data$model_id)
+          } else {
+            # Get predictor type (Categorical or Continuous)
+            tic <- Sys.time()
+
+            # Calculate the RR curve for the model
+            curve_data <- calculate_rr_exposed_vs_unexposed_curve(
+              model_data = model_data,
+              exposed_group = exposed_group,
+              unexposed_group = unexposed_group
+            )
+
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for RR Multi curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+            # Save the data to our cache
+            set_cached_curve_data(
+              cached_curve_env,
+              "rr_exposed_vs_unexposed",
+              model_data$model_id,
+              model_params,
+              curve_data
+            )
+          }
+        }
+
+        make_plot(
+          all_curve_data,
+          flip_coords = TRUE,
+          theme_args = list(axis.title.y = ggplot2::element_blank()),
+          plot_type = "scatter"
+        )
       },
       error = function(e) {
         .make_message_plot(

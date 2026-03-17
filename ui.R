@@ -142,6 +142,16 @@ ui <- fluidPage(
           plotly::plotlyOutput("rr_plot", height = plot_height)
         ),
         tabPanel(
+          "Exposed vs Unexposed",
+          icon = icon("chart-line"),
+          br(),
+          fluidRow(
+            style = "width: 100%",
+            column(9, plotly::plotlyOutput("rr_plot_exposed_vs_unexposed", height = plot_height)),
+            column(3, div(id = "rr_plot_exposed_vs_unexposed_group", style = "height: calc(100vh - 160px); margin-bottom: 20px; overflow-y: scroll"))
+          )
+        ),
+        tabPanel(
           "Help",
           icon = icon("circle-question"),
           style = "max-width: 800px",
