@@ -24,10 +24,10 @@ on:
   # Manually trigger the workflow
   workflow_dispatch:
   # Trigger on push to `proto` branch
-  # push:
-  #   branches: ["proto"]
+  push:
+    branches: ["proto"]
   # Trigger on pull request to all branches (but do not deploy to gh-pages)
-  # pull_request:
+  pull_request:
 
 jobs:
   build:
