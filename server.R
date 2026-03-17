@@ -1,6 +1,6 @@
 source("R/model_definitions/model_definitions.R")
-source("R/modules/reference_group.R")
-source("R/modules/reference_group_manager.R")
+source("R/modules/predictor_controls.R")
+source("R/modules/predictor_controls_manager.R")
 source("R/utils/cached_curve_data.R")
 source("R/utils/config.R")
 source("R/utils/url.R")
@@ -97,59 +97,56 @@ server <- function(input, output, session) {
   # React to initial_load_trigger to respond to the very first load
   initial_load_trigger <- reactiveVal(0)
 
-  # The environment containing all variables associated with the reference group
+  # The environment containing all variables associated with the predictor
   # controls
-  refgroups_env <- initialize_reference_groups_env()
+  predictor_controls_env <- initialize_predictor_controls_env()
 
-  #' Create Reference Group Controls
+  #' Create Predictor Controls
   #'
-  #' Destroys any existing reference group modules and UI elements, then
-  #' recreates them from the current model definitions. Each model gets a
-  #' \code{\link{referenceGroupUI}}/\code{\link{referenceGroupServer}} pair
-  #' inserted into the \code{#refgroups} container.
+  #' Destroys any existing predictor controls modules and UI elements, then
+  #' recreates them from the current model definitions. This includes
+  #' the reference group controls and any other predictor controls
   #'
   #' @return NULL (called for side effects on UI and module state).
   #'
   #' @keywords internal
-  create_refgroup_controls <- function() {
-    # Destroy existing reference groups
-    destroy_all_reference_groups(refgroups_env)
+  create_all_predictor_controls <- function() {
+    # Destroy existing predictor controls
+    destroy_all_predictor_controls(predictor_controls_env)
 
-    # Empty the reference group container
-    refgroups_container_id <- "#refgroups"
+    # Empty the refeence group controls container
+    refgroup_controls_container_id <- "#refgroup_controls"
     shiny::removeUI(
-      selector = paste0(refgroups_container_id, " > *"),
+      selector = paste0(refgroup_controls_container_id, " > *"),
       immediate = TRUE,
       multiple = TRUE
     )
 
-    # Create the reference group UI (plus module servers)
-    # Incrementing and adding reference_groups_index to the ID ensures that
-    # when we create new reference group controls we always have a unique ID
-    # for the modules. This avoids receiving extra redraw_trigger calls
-    # or other reactive changes on creation when duplicate IDs are used.
+    # Create the reference group controls UI (plus module servers)
+    # refgroup_controls_ui is a list of the UI controls that we insert
+    # with shiny::insertUI
     last_model_id <- tail(names(session$userData$model_definitions$models), 1)
-    refgroup_ui <- tagList()
+    refgroup_controls_ui <- tagList()
     for (model_data in session$userData$model_definitions$models) {
       model_id <- model_data$model_id
-      refgroup <- create_reference_group(
-        refgroups_env,
+      predictor_ctrl <- create_predictor_controls(
+        predictor_controls_env,
         model_data,
         change_trigger = redraw_trigger
       )
 
-      refgroup_ui[[length(refgroup_ui) + 1]] <- refgroup$ui
+      refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- predictor_ctrl$ui
 
       if (model_id != last_model_id) {
-        refgroup_ui[[length(refgroup_ui) + 1]] <- hr()
+        refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- hr()
       }
     }
 
-    # Add the reference group UI
+    # Add the reference group controls UI
     shiny::insertUI(
-      selector = refgroups_container_id,
+      selector = refgroup_controls_container_id,
       where = "afterBegin",
-      ui = refgroup_ui,
+      ui = refgroup_controls_ui,
       immediate = TRUE
     )
   }
@@ -470,12 +467,12 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- get_reference_group_values(refgroups_env, model_data)
+          predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
             predictor = predictor,
-            reference_group = reference_group
+            reference_group = predictor_values
           )
           if (
             is_reusable_cached_curve_data(
@@ -499,7 +496,7 @@ server <- function(input, output, session) {
             curve_data <- calculate_pr_curve(
               predictor,
               model_data,
-              reference_group = reference_group
+              reference_group = predictor_values
             )
 
             elapsed <- Sys.time() - tic
@@ -550,13 +547,13 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- get_reference_group_values(refgroups_env, model_data)
+          predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
             predictor = predictor,
             interaction_predictor = interaction_predictor,
-            reference_group = reference_group
+            reference_group = predictor_values
           )
           if (
             is_reusable_cached_curve_data(
@@ -582,14 +579,14 @@ server <- function(input, output, session) {
               curve_data <- calculate_or_curve(
                 predictor,
                 model_data,
-                reference_group = reference_group
+                reference_group = predictor_values
               )
             } else {
               curve_data <- calculate_or_curve_interaction(
                 predictor,
                 interaction_predictor,
                 model_data,
-                reference_group = reference_group
+                reference_group = predictor_values
               )
             }
 
@@ -641,13 +638,13 @@ server <- function(input, output, session) {
         # Go through all models and calculate the OR curves
         # We concatenate them (with bind_rows) to show one curve per model
         for (model_data in selected_models()) {
-          reference_group <- get_reference_group_values(refgroups_env, model_data)
+          predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
             predictor = predictor,
             interaction_predictor = interaction_predictor,
-            reference_group = reference_group
+            reference_group = predictor_values
           )
           if (
             is_reusable_cached_curve_data(
@@ -673,14 +670,14 @@ server <- function(input, output, session) {
               curve_data <- calculate_rr_curve(
                 predictor,
                 model_data,
-                reference_group = reference_group
+                reference_group = predictor_values
               )
             } else {
               curve_data <- calculate_rr_curve_interaction(
                 predictor,
                 interaction_predictor,
                 model_data,
-                reference_group = reference_group
+                reference_group = predictor_values
               )
             }
 
@@ -752,7 +749,7 @@ server <- function(input, output, session) {
     update_model_selections()
     update_predictor_choices()
     update_interaction_predictor_choices()
-    create_refgroup_controls()
+    create_all_predictor_controls()
     reload_trigger(reload_trigger() + 1)
     redraw_trigger(redraw_trigger() + 1)
   }

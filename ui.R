@@ -101,7 +101,7 @@ ui <- fluidPage(
           )
         ),
 
-        # Controls for the reference groups get added as children to #refgroups
+        # Predictor controls get added as children to #refgroup_controls
         tabPanel(
           "Reference",
           icon = icon("angle-double-down"),
@@ -110,7 +110,7 @@ ui <- fluidPage(
               "height: calc(100vh - 140px); margin-bottom: 20px;",
               "overflow-y: scroll"
             ),
-            div(id = "refgroups")
+            div(id = "refgroup_controls")
           )
         )
       )
