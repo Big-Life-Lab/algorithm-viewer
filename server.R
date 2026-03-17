@@ -266,11 +266,15 @@ server <- function(input, output, session) {
   #' @param all_curve_data List of curve data objects from calculate_or_curve
   #'   or similar functions. Each object should contain df, aes_args,
   #'   x_axis_label, y_axis_label, and x_axis_type fields.
+  #' @param flip_coords If TRUE then flip the x and y axes. Defaults to FALSE.
+  #' @param theme_args If not NULL then a named list of arguments to pass to
+  #'   ggplot2::theme
+  #' @param plot_type The type of plot to create. Can be "bar", "line", "scatter"
   #'
   #' @return A plotly object for rendering in the UI.
   #'
   #' @keywords internal
-  make_plot <- function(all_curve_data) {
+  make_plot <- function(all_curve_data, flip_coords = FALSE, theme_args = NULL, plot_type = NULL) {
     # If no models are selected then tell the user to select one
     if (is.null(session$userData$model_definitions)) {
       msg <- "No algorithm loaded.<br />Please upload some data."
@@ -293,6 +297,9 @@ server <- function(input, output, session) {
     curve_data <- all_curve_data[[length(all_curve_data)]]
     logarithmic <- session$userData$logarithmic
 
+    # The hover mode, as passed to plotly::layout()
+    hovermode = "x unified"
+
     tryCatch(
       {
         # log10 vs identity transform
@@ -304,45 +311,79 @@ server <- function(input, output, session) {
           curve_data$y_axis_label
         )
 
+        y_limits <- NULL
+        if (!is.null(curve_data$ylim) && !logarithmic) {
+          y_limits <- curve_data$ylim
+        }
+
         # Create plot
         if (curve_data$x_axis_type == "Categorical") {
           # Maintain the order of the x-axis categories
+          levels <- unique(df[[curve_data$x_axis_label]])
+          if (flip_coords) {
+            # For vertical graphs (where the categories are on the y axis),
+            # we want the to reverse the order of the categories, so they
+            # are sorted from top to bottom (instead of bottom to top)
+            levels <- rev(levels)
+          }
           df[[curve_data$x_axis_label]] <-
             factor(
               df[[curve_data$x_axis_label]],
-              levels = unique(df[[curve_data$x_axis_label]])
+              levels = levels
             )
 
-          model_colors <- get_model_colors(
-            session$userData$model_definitions$models
-          )
+          if (is.null(plot_type)) {
+            plot_type <- "bar"
+          }
+        } else {
+          if (is.null(plot_type)) {
+            plot_type <- "line"
+          }
+        }
+
+        model_colors <- get_model_colors(
+          session$userData$model_definitions$models
+        )
+
+        if (plot_type == "bar") {
           p <- ggplot2::ggplot(
             data = df,
             .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
-          ) +
+          )
+          p <- p +
             ggplot2::geom_col(position = "dodge") +
             ggplot2::scale_fill_manual(
               values = model_colors,
               aesthetics = "fill"
             )
-        } else {
-          model_colors <- get_model_colors(
-            session$userData$model_definitions$models
-          )
+        } else if (plot_type == "line") {
           p <- ggplot2::ggplot(
             data = df,
             .make_aes(curve_data$aes_args, color = dplyr::sym("Model"))
-          ) +
+          )
+          p <- p +
             ggplot2::geom_line(linewidth = 1.2) +
             ggplot2::scale_color_manual(
               values = model_colors,
               aesthetics = "color"
             )
-        }
-
-        y_limits <- NULL
-        if (!is.null(curve_data$ylim) && !logarithmic) {
-          y_limits <- curve_data$ylim
+        } else if (plot_type == "scatter") {
+          p <- ggplot2::ggplot(
+            data = df,
+            .make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
+          )
+          p <- p +
+            ggplot2::geom_point(
+              position = ggplot2::position_dodge(width = 0.1),
+              size = 5,
+              stroke = 0.25
+            ) +
+            ggplot2::scale_fill_manual(
+              values = model_colors,
+              aesthetics = "fill"
+            )
+          # @TODO: REMOVE THIS!!!
+          y_limits <- c(0.001, 100)
         }
 
         p <- p +
@@ -369,8 +410,20 @@ server <- function(input, output, session) {
             axis.title = ggplot2::element_text(size = 11)
           )
 
+        if (!is.null(theme_args)) {
+          # Apply the addition theme arguments
+          p <- p +
+            do.call(ggplot2::theme, theme_args)
+        }
+        if (flip_coords) {
+          # Flip the x and y axes
+          p <- p +
+            ggplot2::coord_flip()
+          hovermode = "y unified"
+        }
+
         plotly::ggplotly(p) |>
-          plotly::layout(hovermode = "x unified")
+          plotly::layout(hovermode = hovermode)
       },
       error = function(e) {
         .make_message_plot(
