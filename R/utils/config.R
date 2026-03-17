@@ -9,7 +9,9 @@ NULL
 
 source("R/utils/path_utils.R")
 
-# Load the global configuration
+# Load the global configuration. .CONFIG should not be modified with
+# user-specific data, it is shared by ALL active sessions so changes
+# to the config will affect all users.
 if (!exists(".CONFIG")) {
   .CONFIG <- yaml::read_yaml(file.path("data", "config.yaml"))
 }
