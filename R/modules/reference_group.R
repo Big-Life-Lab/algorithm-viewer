@@ -83,7 +83,7 @@ NULL
 #' @return A [shiny::tagList()] containing the reference group input controls.
 #'
 #' @keywords internal
-.referenceGroupUI_internal <- function(id, model_data) {
+.referenceGroupUI_internal <- function(id, model_data, model_name = NULL, show_model_color = TRUE) {
   ns <- shiny::NS(id)
 
   # Create the UI by saving them in reference_group_input
@@ -92,14 +92,21 @@ NULL
   model_id <- model_data$model_id
 
   # Add heading
-  model_heading <- h4(
-    shiny::HTML(add_model_color(
+  if (is.null(model_name)) {
+    model_name <- model_data$title
+  }
+  model_heading <- cleanup_string(model_name)
+  if (show_model_color) {
+    model_heading <- shiny::HTML(add_model_color(
       model_data,
-      cleanup_string(model_data$title),
+      cleanup_string(model_name),
       "20px",
       "20px",
       after = FALSE
-    )),
+    ))
+  }
+  model_heading <- h4(
+    model_heading,
     style = paste(
       "position: sticky; top: 0; background-color: #fff;",
       "padding: 10px 0 8px 0; margin: 0; z-index: 10"
@@ -181,7 +188,7 @@ NULL
   # Create the reset button for the model
   reset_button <- shiny::actionButton(
     ns("reset_button"),
-    label = glue::glue("Reset {model_data$title}"),
+    label = glue::glue("Reset {model_name}"),
     icon = icon("arrow-rotate-left")
   )
   # Put the reset button in a sticky footer
@@ -198,7 +205,7 @@ NULL
   model_color <- unname(get_model_colors(list(model_data)))[[1]]
   style <- glue::glue(
     "width: 100%; ",
-    "border-left: solid 6px {model_color}; ",
+    if (show_model_color) "border-left: solid 6px {model_color}; " else "",
     "padding: 0 10px 0 10px;"
   )
   reference_group_input <- shiny::div(
