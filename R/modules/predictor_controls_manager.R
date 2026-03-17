@@ -74,17 +74,17 @@ source("R/modules/predictor_controls.R")
 #' @return An rlang environment with fields:
 #'   \describe{
 #'     \item{predictor_controls}{Named list of active predictor controls server modules.}
-#'     \item{predictor_controls_index}{Integer incremented each time all controls are destroyed.}
+#'     \item{predictor_controls_uuid}{UUID generated each time all controls are destroyed.}
 #'   }
 initialize_predictor_controls_env <- function() {
   rlang::env(
     # All predictor controls server modules. These allow us to retrieve the
     # predictor values
     predictor_controls = list(),
-    # Every time we call destroy_all_predictor_controls, we increment this number.
-    # The number gets appended to the predictor controls IDs, and ensures that
+    # Every time we call destroy_all_predictor_controls, we change this uuid.
+    # The uuid gets appended to the predictor controls IDs, and ensures that
     # we never use the same ID twice.
-    predictor_controls_index = 0
+    predictor_controls_uuid = uuid::UUIDgenerate()
   )
 }
 
@@ -142,7 +142,7 @@ create_predictor_controls <- function(
 #'
 #' @return A character string used as the Shiny module ID.
 get_model_predictor_controls_id <- function(.env, model_data, extra_tag = NULL) {
-  id <- paste0(model_data$model_id, "___", .env$predictor_controls_index)
+  id <- paste0(model_data$model_id, "___", .env$predictor_controls_uuid)
   if (!is.null(extra_tag)) {
     id <- paste0(id, "___", extra_tag)
   }
@@ -165,7 +165,7 @@ destroy_all_predictor_controls <- function(.env) {
     }
   }
   .env$predictor_controls <- list()
-  .env$predictor_controls_index <- .env$predictor_controls_index + 1
+  .env$predictor_controls_uuid <- uuid::UUIDgenerate()
 }
 
 #' Retrieve the current predictor values for a model
