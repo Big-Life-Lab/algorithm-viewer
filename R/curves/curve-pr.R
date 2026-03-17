@@ -5,14 +5,28 @@ source("R/model_definitions/model_definitions_utils.R")
 #' Computes predicted risk values for a predictor variable across its range.
 #'
 #' @param predictor Character string specifying the variable name.
-#' @param model_data List containing model data including model parameters,
-#'   predictor ranges, and reference group values.
+#' @param model_data A model definition named list as returned by the model
+#'   definitions utilities.
 #' @param predictor_range Numeric vector of predictor values to evaluate.
 #'   If NULL, uses the range from model_data.
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
-#' @return A list with the data frame of predicted risks and plot metadata.
+#' @return A named list with the following elements:
+#'   \describe{
+#'     \item{\code{df}}{A \code{data.frame} with one row per predictor value. Columns:
+#'       the predictor label column (x values), \code{PR} (predicted risk), \code{Model}
+#'       (cleaned model title), and \code{Comparison} (display label for the row, e.g.
+#'       \code{"Age 50"}).}
+#'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
+#'       used as the x-axis label.}
+#'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Predicted Risk"}).}
+#'     \item{\code{title}}{Character. Plot title (the predictor label).}
+#'     \item{\code{x_axis_type}}{Character. Either \code{"Categorical"} or \code{"Continuous"}.}
+#'     \item{\code{ylim}}{Numeric vector \code{c(0, 1)} fixing the y-axis range.}
+#'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects mapping
+#'       aesthetic names (\code{x}, \code{y}) to their respective columns in \code{df}.}
+#'   }
 #'
 #' @export
 calculate_pr_curve <- function(predictor,
