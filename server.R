@@ -106,6 +106,8 @@ server <- function(input, output, session) {
   predictor_controls_env <- initialize_predictor_controls_env()
   # The envionment containing all variables associated with cached curve data
   cached_curve_env <- initialize_cached_curve_data_env()
+  # The environment containing all model definitions
+  model_definitions_env <- rlang::env(model_definitions = list())
 
   #' Create Predictor Controls
   #'
@@ -131,9 +133,9 @@ server <- function(input, output, session) {
     # Create the reference group controls UI (plus module servers)
     # refgroup_controls_ui is a list of the UI controls that we insert
     # with shiny::insertUI
-    last_model_id <- tail(names(session$userData$model_definitions$models), 1)
+    last_model_id <- tail(names(model_definitions_env$model_definitions$models), 1)
     refgroup_controls_ui <- tagList()
-    for (model_data in session$userData$model_definitions$models) {
+    for (model_data in model_definitions_env$model_definitions$models) {
       model_id <- model_data$model_id
       predictor_ctrl <- create_predictor_controls(
         predictor_controls_env,
@@ -165,7 +167,7 @@ server <- function(input, output, session) {
     )
     # Use the first model's reference group data for the default
     # predictor values
-    model_data <- head(session$userData$model_definitions$models, 1)
+    model_data <- head(model_definitions_env$model_definitions$models, 1)
     model_data <- model_data[[names(model_data)[1]]]
 
     # Exposed group controls
@@ -204,10 +206,10 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   selected_models <- function() {
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       list()
     } else {
-      model_defs <- session$userData$model_definitions
+      model_defs <- model_definitions_env$model_definitions
       models <- model_defs$
         models[as.vector(session$userData$selected_model_ids)]
       models <- models[!is.na(names(models))]
@@ -224,7 +226,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_predictor_choices <- function() {
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       updateSelectInput(
         session,
         "predictor",
@@ -263,7 +265,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_interaction_predictor_choices <- function() {
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       updateSelectInput(
         session,
         "interaction_predictor",
@@ -319,7 +321,7 @@ server <- function(input, output, session) {
   #' @keywords internal
   make_plot <- function(all_curve_data, flip_coords = FALSE, theme_args = NULL, plot_type = NULL) {
     # If no models are selected then tell the user to select one
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       msg <- "No algorithm loaded.<br />Please upload some data."
       return(.make_message_plot(msg))
     } else if (is.null(all_curve_data) || length(all_curve_data) == 0) {
@@ -385,7 +387,7 @@ server <- function(input, output, session) {
         }
 
         model_colors <- get_model_colors(
-          session$userData$model_definitions$models
+          model_definitions_env$model_definitions$models
         )
 
         if (plot_type == "bar") {
@@ -501,7 +503,7 @@ server <- function(input, output, session) {
 
     req(session$userData$predictor)
 
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       return(make_plot(NULL))
     }
 
@@ -580,7 +582,7 @@ server <- function(input, output, session) {
 
     req(session$userData$predictor)
 
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       return(make_plot(NULL))
     }
 
@@ -670,7 +672,7 @@ server <- function(input, output, session) {
 
     req(session$userData$predictor)
 
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       return(make_plot(NULL))
     }
 
@@ -684,7 +686,7 @@ server <- function(input, output, session) {
         for (model_data in selected_models()) {
           # Use the first model's reference group data for the default
           # predictor values
-          exposed_model_data <- head(session$userData$model_definitions$models, 1)
+          exposed_model_data <- head(model_definitions_env$model_definitions$models, 1)
           exposed_model_data <- exposed_model_data[[names(exposed_model_data)[1]]]
 
           exposed_group <- get_predictor_controls_values(
@@ -765,7 +767,7 @@ server <- function(input, output, session) {
 
     req(session$userData$predictor)
 
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       return(make_plot(NULL))
     }
 
@@ -864,10 +866,10 @@ server <- function(input, output, session) {
     session$userData$selected_model_ids <- NULL
     tryCatch(
       {
-        session$userData$model_definitions <- read_model_definitions(file)
+        model_definitions_env$model_definitions <- read_model_definitions(file)
       },
       error = function(e) {
-        session$userData$model_definitions <- NULL
+        model_definitions_env$model_definitions <- NULL
         showModal(errorModal("Error Loading Model Definitions", e$message))
       }
     )
@@ -908,7 +910,7 @@ server <- function(input, output, session) {
   process_data_file <- function(file) {
     if (is.null(file)) {
       # Empty file
-      session$userData$model_definitions <- NULL
+      model_definitions_env$model_definitions <- NULL
     } else if (
       grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)
     ) {
@@ -918,7 +920,7 @@ server <- function(input, output, session) {
       # An archive
       temp_dir_path <- tempdir()
 
-      session$userData$model_definitions <- NULL
+      model_definitions_env$model_definitions <- NULL
       archive_success <- FALSE
       config_files <- c()
 
@@ -1012,7 +1014,7 @@ server <- function(input, output, session) {
   # Show a message to the user at the top of the "Models" tab
   output$model_message <- renderUI({
     reload_trigger()
-    if (is.null(session$userData$model_definitions)) {
+    if (is.null(model_definitions_env$model_definitions)) {
       has_algorithms <- config_has_algorithms()
       allow_file_uploads <- config_allow_file_uploads()
       if (has_algorithms && allow_file_uploads) {
@@ -1039,8 +1041,8 @@ server <- function(input, output, session) {
   output$ui_title <- renderUI({
     reload_trigger()
 
-    if (!is.null(session$userData$model_definitions)) {
-      meta <- session$userData$model_definitions$meta
+    if (!is.null(model_definitions_env$model_definitions)) {
+      meta <- model_definitions_env$model_definitions$meta
       glue::glue("{meta$algorithm} v{meta$version} Algorithm Viewer")
     } else {
       "Algorithm Viewer"
@@ -1098,7 +1100,7 @@ server <- function(input, output, session) {
 
       # A file is selected. If it is not the currently loaded file then
       # load it.
-      current_source_file <- session$userData$model_definitions$source_file
+      current_source_file <- model_definitions_env$model_definitions$source_file
       if (
         is.null(current_source_file) || selected_file != current_source_file
       ) {
@@ -1127,7 +1129,7 @@ server <- function(input, output, session) {
       # the currently loaded one. If the source file exists then we
       # need to select it, otherwise we select nothing
       selected <- config_get_algorithm_id_from_file(
-        session$userData$model_definitions$source_file
+        model_definitions_env$model_definitions$source_file
       )
       if (is.null(selected)) {
         selected <- character(0)
@@ -1176,7 +1178,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_model_selections <- function() {
-    model_defs <- session$userData$model_definitions
+    model_defs <- model_definitions_env$model_definitions
     if (!is.null(model_defs) && length(model_defs$models) > 0) {
       selected <- unname(get_model_choices(model_defs$models))
       choice_names <- get_model_titles(
