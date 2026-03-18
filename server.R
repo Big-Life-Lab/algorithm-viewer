@@ -15,15 +15,6 @@ options(shiny.maxRequestSize = 30 * 1024^2)
 curve_files <- list.files(path = "R/curves", pattern = "^curve-.*\\.R$")
 lapply(file.path("R/curves", curve_files), source)
 
-# ID and name for the empty value for UI selections (eg. in the
-# "Interaction Predictor" dropdown to specify that we want no interaction
-# predictor)
-empty_selection <- "<empty>"
-
-# Tags to add to the exposed and unexposed predictor control IDs
-exposed_group_extra_tag <- "exposed"
-unexposed_group_extra_tag <- "unexposed"
-
 #' Shiny Server Function
 #'
 #' Main server logic for the Algorithm Viewer Shiny application. Handles
@@ -102,45 +93,7 @@ server <- function(input, output, session) {
       immediate = TRUE
     )
 
-    # Ceate exposed and unexposed group predictor controls
-    exposed_container_id <- "#rr_plot_exposed_vs_unexposed_group"
-    shiny::removeUI(
-      selector = paste0(exposed_container_id, " > *"),
-      immediate = TRUE,
-      multiple = TRUE
-    )
-    # Use the first model's reference group data for the default
-    # predictor values
-    model_data <- head(model_definitions_env$model_definitions$models, 1)
-    model_data <- model_data[[names(model_data)[1]]]
-
-    # Exposed group controls
-    exposed_predictor_ctrl <- create_predictor_controls(
-      predictor_controls_env,
-      model_data,
-      extra_tag = exposed_group_extra_tag,
-      change_trigger = redraw_trigger,
-      model_name = "Exposed Group",
-      show_model_color = FALSE
-    )
-    # Unexposed group controls
-    unexposed_predictor_ctrl <- create_predictor_controls(
-      predictor_controls_env,
-      model_data,
-      extra_tag = unexposed_group_extra_tag,
-      change_trigger = redraw_trigger,
-      model_name = "Unexposed Group",
-      show_model_color = FALSE
-    )
-
-    # Insert exposed/unexposed groups
-    shiny::insertUI(
-      selector = exposed_container_id,
-      where = "afterBegin",
-      ui = tagList(exposed_predictor_ctrl$ui, unexposed_predictor_ctrl$ui),
-      immediate = TRUE
-    )
-
+    create_rr_exposed_vs_unexposed_ui(model_definitions_env$model_definitions, predictor_controls_env, redraw_trigger)
   }
 
   #' Get Currently Selected Models
@@ -227,12 +180,12 @@ server <- function(input, output, session) {
     # If at least one model is selected, then add the empty predictor
     if (length(models) > 0) {
       new_list <- list()
-      new_list[[empty_selection]] <- empty_selection
+      new_list[[config_get_empty_selection()]] <- config_get_empty_selection()
       predictor_choices <- c(new_list, predictor_choices)
     }
 
     if (length(models) > 0) {
-      selected <- empty_selection
+      selected <- config_get_empty_selection()
     } else {
       selected <- character(0)
     }
@@ -268,86 +221,12 @@ server <- function(input, output, session) {
   output$pr_plot <- plotly::renderPlotly({
     redraw_trigger()
 
-    req(session$userData$predictor)
-
-    if (is.null(model_definitions_env$model_definitions)) {
-      return(make_general_plot(
-        NULL,
-        model_definitions_env$model_definitions,
-        session$userData$logarithmic
-      ))
-    }
-
-    tryCatch(
-      {
-        predictor <- session$userData$predictor
-        all_curve_data <- list()
-
-        # Go through all models and calculate the OR curves
-        # We concatenate them (with bind_rows) to show one curve per model
-        for (model_data in selected_models()) {
-          predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
-
-          # Check if we can use the cached old data for the current model
-          model_params <- list(
-            predictor = predictor,
-            reference_group = predictor_values
-          )
-          if (
-            is_reusable_cached_curve_data(
-              cached_curve_env,
-              "pr",
-              model_data$model_id, model_params
-            )
-          ) {
-            # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(cached_curve_env, "pr", model_data$model_id)
-          } else {
-            # Get predictor type (Categorical or Continuous)
-            predictor_type <- model_data$variables |>
-              dplyr::filter(variable == predictor) |>
-              dplyr::pull(variableType)
-
-            tic <- Sys.time()
-
-            # Calculate the OR curve for the model
-            curve_data <- calculate_pr_curve(
-              predictor,
-              model_data,
-              reference_group = predictor_values
-            )
-
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-            ))
-
-            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-            # Save the data to our cache
-            set_cached_curve_data(
-              cached_curve_env,
-              "pr",
-              model_data$model_id,
-              model_params,
-              curve_data
-            )
-          }
-        }
-
-        make_general_plot(
-          all_curve_data,
-          model_definitions_env$model_definitions,
-          session$userData$logarithmic
-        )
-      },
-      error = function(e) {
-        make_message_plot(
-          glue::glue("<b>Error</b>: {e$message}"),
-          color = "red"
-        )
-      }
+    make_pr_plot(
+      session,
+      selected_models(),
+      model_definitions_env$model_definitions,
+      predictor_controls_env,
+      cached_curve_env
     )
   })
 
@@ -355,211 +234,24 @@ server <- function(input, output, session) {
   output$or_plot <- plotly::renderPlotly({
     redraw_trigger()
 
-    if (is.null(model_definitions_env$model_definitions)) {
-      return(make_general_plot(
-        NULL,
-        model_definitions_env$model_definitions,
-        session$userData$logarithmic
-      ))
-    }
-
-    req(session$userData$predictor)
-
-    if (is.null(model_definitions_env$model_definitions)) {
-      return(make_general_plot(
-        NULL,
-        model_definitions_env$model_definitions,
-        session$userData$logarithmic
-      ))
-    }
-
-    tryCatch(
-      {
-        all_curve_data <- list()
-        predictor <- session$userData$predictor
-        interaction_predictor <- session$userData$interaction_predictor
-
-        # Go through all models and calculate the OR curves
-        # We concatenate them (with bind_rows) to show one curve per model
-        for (model_data in selected_models()) {
-          predictor_values <- 
-            get_predictor_controls_values(predictor_controls_env, model_data)
-
-          # Check if we can use the cached old data for the current model
-          model_params <- list(
-            predictor = predictor,
-            interaction_predictor = interaction_predictor,
-            reference_group = predictor_values
-          )
-          if (
-            is_reusable_cached_curve_data(
-              cached_curve_env,
-              "or",
-              model_data$model_id,
-              model_params
-            )
-          ) {
-            # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(cached_curve_env, "or", model_data$model_id)
-          } else {
-            # Get predictor type (Categorical or Continuous)
-            predictor_type <- model_data$variables |>
-              dplyr::filter(variable == predictor) |>
-              dplyr::pull(variableType)
-
-            tic <- Sys.time()
-
-            # Calculate the OR curve for the model
-            if (interaction_predictor == empty_selection) {
-              curve_data <- calculate_or_curve(
-                predictor,
-                model_data,
-                reference_group = predictor_values
-              )
-            } else {
-              curve_data <- calculate_or_curve_interaction(
-                predictor,
-                interaction_predictor,
-                model_data,
-                reference_group = predictor_values
-              )
-            }
-
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-            ))
-
-            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-            # Save the data to our cache
-            set_cached_curve_data(
-              cached_curve_env,
-              "or",
-              model_data$model_id,
-              model_params,
-              curve_data
-            )
-          }
-        }
-
-        make_general_plot(
-          all_curve_data,
-          model_definitions_env$model_definitions,
-          session$userData$logarithmic
-        )
-      },
-      error = function(e) {
-        make_message_plot(
-          glue::glue("<b>Error</b>: {e$message}"),
-          color = "red"
-        )
-      }
+    make_or_plot(
+      session,
+      selected_models(),
+      model_definitions_env$model_definitions,
+      predictor_controls_env,
+      cached_curve_env
     )
   })
 
   output$rr_plot_exposed_vs_unexposed <- plotly::renderPlotly({
     redraw_trigger()
 
-    req(session$userData$predictor)
-
-    if (is.null(model_definitions_env$model_definitions)) {
-      return(make_general_plot(
-        NULL,
-        model_definitions_env$model_definitions,
-        session$userData$logarithmic
-      ))
-    }
-
-    tryCatch(
-      {
-        all_curve_data <- list()
-        predictor <- session$userData$predictor
-
-        # Go through all models and calculate the OR curves
-        # We concatenate them (with bind_rows) to show one curve per model
-        for (model_data in selected_models()) {
-          # Use the first model's reference group data for the default
-          # predictor values
-          exposed_model_data <- head(model_definitions_env$model_definitions$models, 1)
-          exposed_model_data <- exposed_model_data[[names(exposed_model_data)[1]]]
-
-          exposed_group <- get_predictor_controls_values(
-            predictor_controls_env,
-            exposed_model_data,
-            extra_tag = exposed_group_extra_tag
-          )
-          unexposed_group <- get_predictor_controls_values(
-            predictor_controls_env,
-            exposed_model_data,
-            extra_tag = unexposed_group_extra_tag
-          )
-
-          # Check if we can use the cached old data for the current model
-          model_params <- list(
-            exposed_group = exposed_group,
-            unexposed_group = unexposed_group
-          )
-          if (
-            is_reusable_cached_curve_data(
-              cached_curve_env,
-              "rr_exposed_vs_unexposed",
-              model_data$model_id,
-              model_params
-            )
-          ) {
-            # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(
-                cached_curve_env,
-                "rr_exposed_vs_unexposed",
-                model_data$model_id
-              )
-          } else {
-            # Get predictor type (Categorical or Continuous)
-            tic <- Sys.time()
-
-            # Calculate the RR curve for the model
-            curve_data <- calculate_rr_exposed_vs_unexposed_curve(
-              model_data = model_data,
-              exposed_group = exposed_group,
-              unexposed_group = unexposed_group
-            )
-
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for RR Multi curve ", model_data$model_id, ": ", elapsed
-            ))
-
-            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-            # Save the data to our cache
-            set_cached_curve_data(
-              cached_curve_env,
-              "rr_exposed_vs_unexposed",
-              model_data$model_id,
-              model_params,
-              curve_data
-            )
-          }
-        }
-
-        make_general_plot(
-          all_curve_data,
-          model_definitions_env$model_definitions,
-          session$userData$logarithmic,
-          flip_coords = TRUE,
-          theme_args = list(axis.title.y = ggplot2::element_blank()),
-          plot_type = "point"
-        )
-      },
-      error = function(e) {
-        make_message_plot(
-          glue::glue("<b>Error</b>: {e$message}"),
-          color = "red"
-        )
-      }
+    make_rr_exposed_vs_unexposed_plot(
+      session,
+      selected_models(),
+      model_definitions_env$model_definitions,
+      predictor_controls_env,
+      cached_curve_env
     )
   })
 
@@ -567,99 +259,12 @@ server <- function(input, output, session) {
   output$rr_plot <- plotly::renderPlotly({
     redraw_trigger()
 
-    req(session$userData$predictor)
-
-    if (is.null(model_definitions_env$model_definitions)) {
-      return(make_general_plot(
-        NULL,
-        model_definitions_env$model_definitions,
-        session$userData$logarithmic
-      ))
-    }
-
-    tryCatch(
-      {
-        all_curve_data <- list()
-        predictor <- session$userData$predictor
-        interaction_predictor <- session$userData$interaction_predictor
-
-        # Go through all models and calculate the OR curves
-        # We concatenate them (with bind_rows) to show one curve per model
-        for (model_data in selected_models()) {
-          predictor_values <-
-            get_predictor_controls_values(predictor_controls_env, model_data)
-
-          # Check if we can use the cached old data for the current model
-          model_params <- list(
-            predictor = predictor,
-            interaction_predictor = interaction_predictor,
-            reference_group = predictor_values
-          )
-          if (
-            is_reusable_cached_curve_data(
-              cached_curve_env,
-              "rr",
-              model_data$model_id,
-              model_params
-            )
-          ) {
-            # Reuse the old data
-            all_curve_data[[length(all_curve_data) + 1]] <-
-              get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
-          } else {
-            # Get predictor type (Categorical or Continuous)
-            predictor_type <- model_data$variables |>
-              dplyr::filter(variable == predictor) |>
-              dplyr::pull(variableType)
-
-            tic <- Sys.time()
-
-            # Calculate the RR curve for the model
-            if (interaction_predictor == empty_selection) {
-              curve_data <- calculate_rr_curve(
-                predictor,
-                model_data,
-                reference_group = predictor_values
-              )
-            } else {
-              curve_data <- calculate_rr_curve_interaction(
-                predictor,
-                interaction_predictor,
-                model_data,
-                reference_group = predictor_values
-              )
-            }
-
-            elapsed <- Sys.time() - tic
-            message(paste0(
-              "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed
-            ))
-
-            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-            # Save the data to our cache
-            set_cached_curve_data(
-              cached_curve_env,
-              "rr",
-              model_data$model_id,
-              model_params,
-              curve_data
-            )
-          }
-        }
-
-        make_general_plot(
-          all_curve_data,
-          model_definitions_env$model_definitions,
-          session$userData$logarithmic
-        )
-      },
-      error = function(e) {
-        make_message_plot(
-          glue::glue("<b>Error</b>: {e$message}"),
-          color = "red"
-        )
-      }
+    make_rr_plot(
+      session,
+      selected_models(),
+      model_definitions_env$model_definitions,
+      predictor_controls_env,
+      cached_curve_env
     )
   })
 

@@ -1,6 +1,207 @@
-library(model.parameters.pipeline)
-source("R/model_definitions/model_definitions_utils.R")
-source("R/model_definitions/model_definitions.R")
+#' Exposed vs Unexposed Curve
+#'
+#' Functions for computing and rendering Exposed vs Unexposed curves.
+#' 
+#' The main entry point called by the Shiny server is
+#' \code{make_rr_exposed_vs_unexposed_plot}.
+#' 
+#' \code{create_rr_exposed_vs_unexposed_ui} should be called to create the
+#' UI for specifying the exposed and unexposed predictor values.
+NULL
+
+# Tags to add to the exposed and unexposed predictor control IDs
+exposed_group_extra_tag <- "exposed"
+unexposed_group_extra_tag <- "unexposed"
+
+#' Build a Exposed vs Unexposed Plot
+#'
+#' @param session The Shiny \code{session} object.
+#' @param models A list of model data objects to plot curves for. This is a
+#'   subset of model_definitions$models.
+#' @param model_definitions The top-level model definitions object.
+#' @param predictor_controls_env An environment holding the all predictor
+#'   controls used to specify predictor values. This includes the controls
+#'   for specifying reference groups and other predictor values used for
+#'   plotting. Used the predictor controls manager utility functions.
+#' @param cached_curve_env An environment used to cache curve data between
+#'   renders so that unchanged models do not trigger redundant pipeline runs.
+#'   Used by the cached curve data utility functions.
+#'
+#' @return A \code{ggplot} object (or a message plot on error / missing data),
+#'   as returned by \code{\link{make_general_plot}} or
+#'   \code{\link{make_message_plot}}.
+make_rr_exposed_vs_unexposed_plot <- function(
+  session,
+  models,
+  model_definitions,
+  predictor_controls_env,
+  cached_curve_env
+) {
+  req(session$userData$predictor)
+
+  if (is.null(model_definitions)) {
+    return(make_general_plot(
+      NULL,
+      model_definitions,
+      session$userData$logarithmic
+    ))
+  }
+
+  tryCatch(
+    {
+      all_curve_data <- list()
+      predictor <- session$userData$predictor
+
+      # Go through all models and calculate the OR curves
+      # We concatenate them (with bind_rows) to show one curve per model
+      for (model_data in models) {
+        # Use the first model's reference group data for the default
+        # predictor values
+        exposed_model_data <- head(model_definitions$models, 1)
+        exposed_model_data <- exposed_model_data[[names(exposed_model_data)[1]]]
+
+        exposed_group <- get_predictor_controls_values(
+          predictor_controls_env,
+          exposed_model_data,
+          extra_tag = exposed_group_extra_tag
+        )
+        unexposed_group <- get_predictor_controls_values(
+          predictor_controls_env,
+          exposed_model_data,
+          extra_tag = unexposed_group_extra_tag
+        )
+
+        # Check if we can use the cached old data for the current model
+        model_params <- list(
+          exposed_group = exposed_group,
+          unexposed_group = unexposed_group
+        )
+        if (
+          is_reusable_cached_curve_data(
+            cached_curve_env,
+            "rr_exposed_vs_unexposed",
+            model_data$model_id,
+            model_params
+          )
+        ) {
+          # Reuse the old data
+          all_curve_data[[length(all_curve_data) + 1]] <-
+            get_cached_curve_data(
+              cached_curve_env,
+              "rr_exposed_vs_unexposed",
+              model_data$model_id
+            )
+        } else {
+          # Get predictor type (Categorical or Continuous)
+          tic <- Sys.time()
+
+          # Calculate the RR curve for the model
+          curve_data <- .calculate_rr_exposed_vs_unexposed_curve(
+            model_data = model_data,
+            exposed_group = exposed_group,
+            unexposed_group = unexposed_group
+          )
+
+          elapsed <- Sys.time() - tic
+          message(paste0(
+            "Elapsed time for RR Multi curve ", model_data$model_id, ": ", elapsed
+          ))
+
+          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+          # Save the data to our cache
+          set_cached_curve_data(
+            cached_curve_env,
+            "rr_exposed_vs_unexposed",
+            model_data$model_id,
+            model_params,
+            curve_data
+          )
+        }
+      }
+
+      make_general_plot(
+        all_curve_data,
+        model_definitions,
+        session$userData$logarithmic,
+        flip_coords = TRUE,
+        theme_args = list(axis.title.y = ggplot2::element_blank()),
+        plot_type = "point"
+      )
+    },
+    error = function(e) {
+      make_message_plot(
+        glue::glue("<b>Error</b>: {e$message}"),
+        color = "red"
+      )
+    }
+  )
+}
+
+#' Create the UI for the Exposed vs Unexposed Plot
+#'
+#' Clears and rebuilds the predictor controls for the exposed and unexposed
+#' groups inside the \code{#rr_plot_exposed_vs_unexposed_group} container.
+#' Controls are created from the first model's reference group data and
+#' inserted into the DOM immediately via \code{\link[shiny]{insertUI}}.
+#'
+#' @param model_definitions The top-level model definitions object.
+#' @param predictor_controls_env An environment holding the all predictor
+#'   controls used to specify predictor values. Used by the predictor controls
+#'   manager utility functions. The predictor controls are added to this
+#'   environment.
+#' @param redraw_trigger A reactive value passed as the \code{change_trigger}
+#'   to \code{\link{create_predictor_controls}}; any change to a predictor
+#'   control will invalidate this trigger. Callers should respond to this
+#'   trigger to redraw the plots.
+#'
+#' @return Called for its side effects (UI insertion); returns \code{NULL}
+#'   invisibly.
+create_rr_exposed_vs_unexposed_ui <- function(
+  model_definitions,
+  predictor_controls_env,
+  redraw_trigger
+) {
+  # Ceate exposed and unexposed group predictor controls
+  exposed_container_id <- "#rr_plot_exposed_vs_unexposed_group"
+  shiny::removeUI(
+    selector = paste0(exposed_container_id, " > *"),
+    immediate = TRUE,
+    multiple = TRUE
+  )
+  # Use the first model's reference group data for the default
+  # predictor values
+  model_data <- head(model_definitions$models, 1)
+  model_data <- model_data[[names(model_data)[1]]]
+
+  # Exposed group controls
+  exposed_predictor_ctrl <- create_predictor_controls(
+    predictor_controls_env,
+    model_data,
+    extra_tag = exposed_group_extra_tag,
+    change_trigger = redraw_trigger,
+    model_name = "Exposed Group",
+    show_model_color = FALSE
+  )
+  # Unexposed group controls
+  unexposed_predictor_ctrl <- create_predictor_controls(
+    predictor_controls_env,
+    model_data,
+    extra_tag = unexposed_group_extra_tag,
+    change_trigger = redraw_trigger,
+    model_name = "Unexposed Group",
+    show_model_color = FALSE
+  )
+
+  # Insert exposed/unexposed groups
+  shiny::insertUI(
+    selector = exposed_container_id,
+    where = "afterBegin",
+    ui = tagList(exposed_predictor_ctrl$ui, unexposed_predictor_ctrl$ui),
+    immediate = TRUE
+  )
+
+}
 
 #' Calculate Relative Risk Curve: Exposed vs Unexposed
 #'
@@ -37,7 +238,7 @@ source("R/model_definitions/model_definitions.R")
 #'       mapping aesthetic names (\code{x}, \code{y}, \code{Comparison}) to
 #'       their respective columns in \code{df}.}
 #'   }
-calculate_rr_exposed_vs_unexposed_curve <- function(model_data,
+.calculate_rr_exposed_vs_unexposed_curve <- function(model_data,
                                      exposed_group,
                                      unexposed_group) {
   rows <- list()
@@ -121,6 +322,9 @@ calculate_rr_exposed_vs_unexposed_curve <- function(model_data,
     y_axis_label = "Relative Risk",
     title = "Relative Risk",
     x_axis_type = "Categorical",
+    # @TODO: Fix this! We need to figure out a good way to specify
+    # the limits. We may want to add a UI control for it.
+    ylim_logarithmic = c(0.001, 100),
     aes_args = list(
       x = dplyr::sym("Label"),
       y = dplyr::sym("RR"),

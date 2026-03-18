@@ -1,4 +1,116 @@
-source("R/model_definitions/model_definitions_utils.R")
+#' Predicted Risk Curve
+#'
+#' Functions for computing and rendering predicted risk (PR) curves.
+#' 
+#' The main entry point called by the Shiny server is \code{make_pr_plot}.
+NULL
+
+#' Build a Predicted Risk Plot for the Current Predictor
+#'
+#' @param session The Shiny \code{session} object.
+#' @param models A list of model data objects to plot curves for. This is a
+#'   subset of model_definitions$models.
+#' @param model_definitions The top-level model definitions object.
+#' @param predictor_controls_env An environment holding the all predictor
+#'   controls used to specify predictor values. This includes the controls
+#'   for specifying reference groups and other predictor values used for
+#'   plotting. Used the predictor controls manager utility functions.
+#' @param cached_curve_env An environment used to cache curve data between
+#'   renders so that unchanged models do not trigger redundant pipeline runs.
+#'   Used by the cached curve data utility functions.
+#'
+#' @return A \code{ggplot} object (or a message plot on error / missing data),
+#'   as returned by \code{\link{make_general_plot}} or
+#'   \code{\link{make_message_plot}}.
+make_pr_plot <- function(
+  session,
+  models,
+  model_definitions,
+  predictor_controls_env,
+  cached_curve_env
+) {
+  req(session$userData$predictor)
+
+  if (is.null(model_definitions)) {
+    return(make_general_plot(
+      NULL,
+      model_definitions,
+      session$userData$logarithmic
+    ))
+  }
+
+  tryCatch(
+    {
+      predictor <- session$userData$predictor
+      all_curve_data <- list()
+
+      # Go through all models and calculate the OR curves
+      # We concatenate them (with bind_rows) to show one curve per model
+      for (model_data in models) {
+        predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
+
+        # Check if we can use the cached old data for the current model
+        model_params <- list(
+          predictor = predictor,
+          reference_group = predictor_values
+        )
+        if (
+          is_reusable_cached_curve_data(
+            cached_curve_env,
+            "pr",
+            model_data$model_id, model_params
+          )
+        ) {
+          # Reuse the old data
+          all_curve_data[[length(all_curve_data) + 1]] <-
+            get_cached_curve_data(cached_curve_env, "pr", model_data$model_id)
+        } else {
+          # Get predictor type (Categorical or Continuous)
+          predictor_type <- model_data$variables |>
+            dplyr::filter(variable == predictor) |>
+            dplyr::pull(variableType)
+
+          tic <- Sys.time()
+
+          # Calculate the OR curve for the model
+          curve_data <- .calculate_pr_curve(
+            predictor,
+            model_data,
+            reference_group = predictor_values
+          )
+
+          elapsed <- Sys.time() - tic
+          message(paste0(
+            "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+          ))
+
+          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+          # Save the data to our cache
+          set_cached_curve_data(
+            cached_curve_env,
+            "pr",
+            model_data$model_id,
+            model_params,
+            curve_data
+          )
+        }
+      }
+
+      make_general_plot(
+        all_curve_data,
+        model_definitions,
+        session$userData$logarithmic
+      )
+    },
+    error = function(e) {
+      make_message_plot(
+        glue::glue("<b>Error</b>: {e$message}"),
+        color = "red"
+      )
+    }
+  )
+}
 
 #' Calculate Predicted Risk Curve for a Predictor
 #'
@@ -27,9 +139,7 @@ source("R/model_definitions/model_definitions_utils.R")
 #'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects mapping
 #'       aesthetic names (\code{x}, \code{y}) to their respective columns in \code{df}.}
 #'   }
-#'
-#' @export
-calculate_pr_curve <- function(predictor,
+.calculate_pr_curve <- function(predictor,
                                model_data,
                                predictor_range = NULL,
                                reference_group = NULL) {
@@ -96,7 +206,7 @@ calculate_pr_curve <- function(predictor,
       "Categorical",
       "Continuous"
     ),
-    ylim = c(0, 1),
+    ylim_linear = c(0, 1),
     aes_args = list(
       x = dplyr::sym(predictor_label),
       y = dplyr::sym("PR")
