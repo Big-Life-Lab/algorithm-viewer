@@ -16,6 +16,17 @@ if (!exists(".CONFIG")) {
   .CONFIG <- yaml::read_yaml(file.path("data", "config.yaml"))
 }
 
+#' Get the string that represents an empty selection.
+#' 
+#' This is the ID and name for the empty value for UI selections (eg. in the
+#' "Interaction Predictor" dropdown to specify that we want no interaction
+#' predictor)
+#' 
+#' @return A character string used for the empty selection (eg. "<empty>")
+config_get_empty_selection <- function() {
+  "<empty>"
+}
+
 #' Get the file path of the initial algorithm to display on startup
 #'
 #' Resolves the initial algorithm file by checking, in order:
