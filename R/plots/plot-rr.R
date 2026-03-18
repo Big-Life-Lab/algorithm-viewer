@@ -137,23 +137,8 @@ make_rr_plot <- function(
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{\code{df}}{A \code{data.frame} with one row per predictor value. Columns:
-#'       the predictor label column (x values), \code{RR} (relative risk compared to the
-#'       reference value), \code{Model} (cleaned model title), and \code{Comparison}
-#'       (description of the comparison, e.g. \code{"Age (50 vs 40)"}).}
-#'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
-#'       used as the x-axis label.}
-#'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Relative Risk"}).}
-#'     \item{\code{title}}{Character. Plot title (the predictor label).}
-#'     \item{\code{x_axis_type}}{Character. Either \code{"Categorical"} or \code{"Continuous"}.}
-#'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects mapping
-#'       aesthetic names (\code{x}, \code{y}, \code{label}) to their respective columns
-#'       in \code{df}.}
-#'   }
-#'
-#' @export
+#' @return A named list of curve data that can be passed to
+#'   \code{\link{make_general_plot}}.
 .calculate_rr_curve <- function(predictor,
                                model_data,
                                predictor_range = NULL,
@@ -257,25 +242,8 @@ make_rr_plot <- function(
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{\code{df}}{A \code{data.frame} with one row per predictor value. Columns:
-#'       the predictor label column (x values), \code{RR} (relative risk for a one-unit
-#'       change in \code{interaction_predictor} at each value of \code{predictor}),
-#'       \code{Model} (cleaned model title), and \code{Comparison} (description of
-#'       the interaction comparison, e.g. \code{"Sex (Male vs Female)"}).}
-#'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
-#'       used as the x-axis label.}
-#'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Relative Risk"}).}
-#'     \item{\code{title}}{Character. Plot title combining the predictor label and
-#'       interaction predictor label.}
-#'     \item{\code{x_axis_type}}{Character. Either \code{"Categorical"} or \code{"Continuous"}.}
-#'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects mapping
-#'       aesthetic names (\code{x}, \code{y}, \code{label}) to their respective columns
-#'       in \code{df}.}
-#'   }
-#'
-#' @export
+#' @return A named list of curve data that can be passed to
+#'   \code{\link{make_general_plot}}.
 .calculate_rr_curve_interaction <- function(predictor,
                                            interaction_predictor,
                                            model_data,

@@ -123,21 +123,8 @@ make_pr_plot <- function(
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{\code{df}}{A \code{data.frame} with one row per predictor value. Columns:
-#'       the predictor label column (x values), \code{PR} (predicted risk), \code{Model}
-#'       (cleaned model title), and \code{Comparison} (display label for the row, e.g.
-#'       \code{"Age 50"}).}
-#'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
-#'       used as the x-axis label.}
-#'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Predicted Risk"}).}
-#'     \item{\code{title}}{Character. Plot title (the predictor label).}
-#'     \item{\code{x_axis_type}}{Character. Either \code{"Categorical"} or \code{"Continuous"}.}
-#'     \item{\code{ylim}}{Numeric vector \code{c(0, 1)} fixing the y-axis range.}
-#'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects mapping
-#'       aesthetic names (\code{x}, \code{y}) to their respective columns in \code{df}.}
-#'   }
+#' @return A named list of curve data that can be passed to
+#'   \code{\link{make_general_plot}}.
 .calculate_pr_curve <- function(predictor,
                                model_data,
                                predictor_range = NULL,

@@ -222,21 +222,8 @@ create_rr_exposed_vs_unexposed_ui <- function(
 #'   unexposed (reference) group profile. This group's predicted risk is used
 #'   as the denominator for all relative risk calculations.
 #'
-#' @return A named list with the following elements:
-#'   \describe{
-#'     \item{\code{df}}{A \code{data.frame} with one row per comparison. Columns:
-#'       \code{x} and \code{RR} (relative risk), \code{Model} (cleaned model title),
-#'       \code{Label} (display name for the row, e.g. \code{"Marital status (Married)"}),
-#'       and \code{Comparison} (description of the comparison, e.g.
-#'       \code{"Marital status (Married vs Single)"}).}
-#'     \item{\code{x_axis_label}}{Character. Name of the column to use for the x axis (\code{"Label"}).}
-#'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Relative Risk"}).}
-#'     \item{\code{title}}{Character. Plot title (\code{"Relative Risk"}).}
-#'     \item{\code{x_axis_type}}{Character. Axis type (\code{"Categorical"}).}
-#'     \item{\code{aes_args}}{A named list of \code{\link[dplyr]{sym}} objects
-#'       mapping aesthetic names (\code{x}, \code{y}, \code{Comparison}) to
-#'       their respective columns in \code{df}.}
-#'   }
+#' @return A named list of curve data that can be passed to
+#'   \code{\link{make_general_plot}}.
 .calculate_rr_exposed_vs_unexposed_curve <- function(model_data,
                                      exposed_group,
                                      unexposed_group) {
