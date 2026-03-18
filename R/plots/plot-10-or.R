@@ -1,8 +1,6 @@
 #' Odds Ratio Curve
 #'
 #' Functions for computing and rendering odds ratio (OR) curves.
-#'
-#' The main entry point called by the Shiny server is \code{make_or_plot}.
 NULL
 
 local({
@@ -372,6 +370,13 @@ make_or_plot <- function(
   )
 }
 
+#' Get the UI Elements to Insert Into the Plot's tabPanel
+#'
+#' @param plot_height Character or numeric specifying the size of a full-height
+#'   plot. This can be passed to \code{\link[plotly]{plotlyOutput}} as the
+#'   \code{height} argument.
+#'
+#' @return A \code{\link[shiny]{tagList}} containing the panel UI elements.
 panel_ui <- function(plot_height) {
   tagList(
     br(),
@@ -379,6 +384,14 @@ panel_ui <- function(plot_height) {
   )
 }
 
+#' Register the Plot with the Plot Manager
+#'
+#' This function calls \code{\link{plot_man_add_plot}} with the plot's
+#' infomation.
+#'
+#' @param .env The plot manager environment to register this plot into.
+#'
+#' @return Called for its side effect of registering the plot.
 plot_register <- function(.env) {
   plot_man_add_plot(
     .env,
@@ -390,5 +403,6 @@ plot_register <- function(.env) {
   )
 }
 
+# Always have the registration function returned as the last line
 plot_register
 })
