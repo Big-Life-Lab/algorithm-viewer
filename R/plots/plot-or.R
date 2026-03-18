@@ -111,7 +111,8 @@ make_or_plot <- function(
 
       make_general_plot(
         all_curve_data,
-        model_definitions
+        model_definitions,
+        session$userData$logarithmic
       )
     },
     error = function(e) {

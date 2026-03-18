@@ -42,8 +42,7 @@ make_rr_exposed_vs_unexposed_plot <- function(
   if (is.null(model_definitions)) {
     return(make_general_plot(
       NULL,
-      model_definitions,
-      session$userData$logarithmic
+      model_definitions
     ))
   }
 
