@@ -18,7 +18,7 @@ source("R/model_definitions/model_definitions_utils.R")
 #'     \item{\code{df}}{A \code{data.frame} with one row per predictor value. Columns:
 #'       the predictor label column (x values), \code{RR} (relative risk compared to the
 #'       reference value), \code{Model} (cleaned model title), and \code{Comparison}
-#'       (description of the comparison, e.g. \code{"Age 50 vs 40"}).}
+#'       (description of the comparison, e.g. \code{"Age (50 vs 40)"}).}
 #'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
 #'       used as the x-axis label.}
 #'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Relative Risk"}).}
@@ -87,7 +87,7 @@ calculate_rr_curve <- function(predictor,
     RR = rr[1:output_rows],
     Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
-      "{predictor_label_no_units} {labels} vs {ref_label}"
+      "{predictor_label_no_units} ({labels} vs {ref_label})"
     )
   )
   names(output_df)[1] <- predictor_label

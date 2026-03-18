@@ -24,7 +24,7 @@ source("R/model_definitions/model_definitions_utils.R")
 #'       the predictor label column (x values), \code{OR} (odds ratio for a one-unit
 #'       change in \code{interaction_predictor} at each value of \code{predictor}),
 #'       \code{Model} (cleaned model title), and \code{Comparison} (description of
-#'       the interaction comparison, e.g. \code{"Sex Male vs Female"}).}
+#'       the interaction comparison, e.g. \code{"Sex (Male vs Female)"}).}
 #'     \item{\code{x_axis_label}}{Character. Name of the predictor column in \code{df},
 #'       used as the x-axis label.}
 #'     \item{\code{y_axis_label}}{Character. Label for the y axis (\code{"Odds Ratio"}).}
@@ -125,7 +125,7 @@ calculate_or_curve_interaction <- function(predictor,
     OR = or[1:output_rows],
     Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
-      "{interaction_predictor_label} {labels1} vs {labels2}"
+      "{interaction_predictor_label} ({labels1} vs {labels2})"
     )
   )
   names(output_df)[1] <- predictor_label
