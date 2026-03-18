@@ -96,7 +96,7 @@ make_general_plot <- function(
   curve_data <- all_curve_data[[length(all_curve_data)]]
 
   # The hover mode, as passed to plotly::layout()
-  hovermode = "x unified"
+  hovermode <- "x unified"
 
   tryCatch(
     {

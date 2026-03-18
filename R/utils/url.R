@@ -33,7 +33,7 @@ algorithm_query_param <- "algorithm"
 #'
 #' This does not verify if the algorithm ID is valid and found in the config,
 #' instead it just checks for the presence of the algorithm in the URL.
-#' 
+#'
 #' Returns `FALSE` immediately if URL-based algorithm selection is disabled.
 #' Otherwise inspects the Shiny session's query string for the given parameter.
 #'
@@ -109,5 +109,5 @@ url_update_query_string <- function(
   mode = "replace",
   session = getDefaultReactiveDomain()
 ) {
-    shiny::updateQueryString(query_string, mode = mode, session = session)
+  shiny::updateQueryString(query_string, mode = mode, session = session)
 }

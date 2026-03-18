@@ -119,7 +119,12 @@ create_predictor_controls <- function(
   show_model_color = TRUE
 ) {
   id <- get_model_predictor_controls_id(.env, model_data, extra_tag = extra_tag)
-  ui <- predictorControlsUI(id, model_data, model_name = model_name, show_model_color = show_model_color)
+  ui <- predictorControlsUI(
+    id,
+    model_data,
+    model_name = model_name,
+    show_model_color = show_model_color
+  )
   server <- predictorControlsServer(id, model_data, change_trigger)
 
   .env$predictor_controls[[id]] <- server
@@ -141,7 +146,11 @@ create_predictor_controls <- function(
 #'   the ID when multiple controls exist for the same model.
 #'
 #' @return A character string used as the Shiny module ID.
-get_model_predictor_controls_id <- function(.env, model_data, extra_tag = NULL) {
+get_model_predictor_controls_id <- function(
+  .env,
+  model_data,
+  extra_tag = NULL
+) {
   id <- paste0(.env$predictor_controls_uuid, "___", model_data$model_id)
   if (!is.null(extra_tag)) {
     id <- paste0(id, "___", extra_tag)

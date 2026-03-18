@@ -17,11 +17,11 @@ if (!exists(".CONFIG")) {
 }
 
 #' Get the string that represents an empty selection.
-#' 
+#'
 #' This is the ID and name for the empty value for UI selections (eg. in the
 #' "Interaction Predictor" dropdown to specify that we want no interaction
 #' predictor)
-#' 
+#'
 #' @return A character string used for the empty selection (eg. "<empty>")
 config_get_empty_selection <- function() {
   "<empty>"
@@ -72,7 +72,7 @@ config_get_bool <- function(key, default) {
   if (!is.logical(.CONFIG[[key]])) {
     return(default)
   }
-  return(.CONFIG[[key]])
+  .CONFIG[[key]]
 }
 
 #' Check whether algorithm selection is permitted (ie. we can display a list of
@@ -84,7 +84,8 @@ config_get_bool <- function(key, default) {
 #' @return `TRUE` if algorithm selection is enabled, `FALSE` otherwise.
 config_allow_algorithms_selection <- function() {
   # Users can select from a dropdown of algorithms if the config has a list of
-  # algorithms to choose from and allow_algorithms_selection has been set to TRUE
+  # algorithms to choose from and allow_algorithms_selection has been set to
+  # TRUE
   config_has_algorithms() && config_get_bool("allow_algorithms_selection", TRUE)
 }
 
@@ -93,7 +94,8 @@ config_allow_algorithms_selection <- function() {
 #' Reads `.CONFIG$allow_algorithm_in_url`. Defaults to `TRUE` when the value is
 #' absent or not a logical.
 #'
-#' @return `TRUE` if URL-based algorithm selection is enabled, `FALSE` otherwise.
+#' @return `TRUE` if URL-based algorithm selection is enabled, `FALSE`
+#'   otherwise.
 config_allow_algorithm_in_url <- function() {
   config_get_bool("allow_algorithm_in_url", TRUE)
 }

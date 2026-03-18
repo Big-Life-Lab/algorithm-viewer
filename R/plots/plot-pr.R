@@ -1,7 +1,7 @@
 #' Predicted Risk Curve
 #'
 #' Functions for computing and rendering predicted risk (PR) curves.
-#' 
+#'
 #' The main entry point called by the Shiny server is \code{make_pr_plot}.
 NULL
 
@@ -46,7 +46,8 @@ make_pr_plot <- function(
       # Go through all models and calculate the OR curves
       # We concatenate them (with bind_rows) to show one curve per model
       for (model_data in models) {
-        predictor_values <- get_predictor_controls_values(predictor_controls_env, model_data)
+        predictor_values <-
+          get_predictor_controls_values(predictor_controls_env, model_data)
 
         # Check if we can use the cached old data for the current model
         model_params <- list(
@@ -64,11 +65,6 @@ make_pr_plot <- function(
           all_curve_data[[length(all_curve_data) + 1]] <-
             get_cached_curve_data(cached_curve_env, "pr", model_data$model_id)
         } else {
-          # Get predictor type (Categorical or Continuous)
-          predictor_type <- model_data$variables |>
-            dplyr::filter(variable == predictor) |>
-            dplyr::pull(variableType)
-
           tic <- Sys.time()
 
           # Calculate the OR curve for the model
@@ -125,10 +121,12 @@ make_pr_plot <- function(
 #'
 #' @return A named list of curve data that can be passed to
 #'   \code{\link{make_general_plot}}.
-.calculate_pr_curve <- function(predictor,
-                               model_data,
-                               predictor_range = NULL,
-                               reference_group = NULL) {
+.calculate_pr_curve <- function(
+  predictor,
+  model_data,
+  predictor_range = NULL,
+  reference_group = NULL
+) {
   predictor_range <- predictor_range %||%
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group

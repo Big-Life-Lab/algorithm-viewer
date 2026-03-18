@@ -1,7 +1,7 @@
 #' Relative Risk Curve
 #'
 #' Functions for computing and rendering relative risk (PR) curves.
-#' 
+#'
 #' The main entry point called by the Shiny server is \code{make_rr_plot}.
 NULL
 
@@ -68,11 +68,6 @@ make_rr_plot <- function(
           all_curve_data[[length(all_curve_data) + 1]] <-
             get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
         } else {
-          # Get predictor type (Categorical or Continuous)
-          predictor_type <- model_data$variables |>
-            dplyr::filter(variable == predictor) |>
-            dplyr::pull(variableType)
-
           tic <- Sys.time()
 
           # Calculate the RR curve for the model
@@ -139,10 +134,12 @@ make_rr_plot <- function(
 #'
 #' @return A named list of curve data that can be passed to
 #'   \code{\link{make_general_plot}}.
-.calculate_rr_curve <- function(predictor,
-                               model_data,
-                               predictor_range = NULL,
-                               reference_group = NULL) {
+.calculate_rr_curve <- function(
+  predictor,
+  model_data,
+  predictor_range = NULL,
+  reference_group = NULL
+) {
   predictor_range <- predictor_range %||%
     model_data$predictor_ranges[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
@@ -244,12 +241,14 @@ make_rr_plot <- function(
 #'
 #' @return A named list of curve data that can be passed to
 #'   \code{\link{make_general_plot}}.
-.calculate_rr_curve_interaction <- function(predictor,
-                                           interaction_predictor,
-                                           model_data,
-                                           predictor_range = NULL,
-                                           interaction_predictor_range = NULL,
-                                           reference_group = NULL) {
+.calculate_rr_curve_interaction <- function(
+  predictor,
+  interaction_predictor,
+  model_data,
+  predictor_range = NULL,
+  interaction_predictor_range = NULL,
+  reference_group = NULL
+) {
   interaction_predictor_range <- interaction_predictor_range %||%
     model_data$predictor_ranges[[interaction_predictor]]
   predictor_range <- predictor_range %||%

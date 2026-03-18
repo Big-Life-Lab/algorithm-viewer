@@ -80,16 +80,20 @@ NULL
 #' @param model_data List. Model data containing reference group values,
 #'   variable metadata, and model display properties.
 #'
-#' @return A [shiny::tagList()] containing the predictor controls input controls.
+#' @return A [shiny::tagList()] containing the predictor controls input
+#'   controls.
 #'
 #' @keywords internal
-.predictorControlsUI_internal <- function(id, model_data, model_name = NULL, show_model_color = TRUE) {
+.predictorControlsUI_internal <- function(
+  id,
+  model_data,
+  model_name = NULL,
+  show_model_color = TRUE
+) {
   ns <- shiny::NS(id)
 
   # Create the UI by saving them in predictor_controls_input
   predictor_controls_input <- tagList()
-
-  model_id <- model_data$model_id
 
   # Add heading
   if (is.null(model_name)) {
@@ -112,7 +116,8 @@ NULL
       "padding: 10px 0 8px 0; margin: 0; z-index: 10"
     )
   )
-  predictor_controls_input[[length(predictor_controls_input) + 1]] <- model_heading
+  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
+    model_heading
 
   # Create a UI control for each variable in the reference group
   for (variable in names(model_data$reference_group)) {
@@ -182,7 +187,8 @@ NULL
       )
     }
 
-    predictor_controls_input[[length(predictor_controls_input) + 1]] <- input_control
+    predictor_controls_input[[length(predictor_controls_input) + 1]] <-
+      input_control
   }
 
   # Create the reset button for the model
@@ -199,17 +205,21 @@ NULL
     ),
     reset_button
   )
-  predictor_controls_input[[length(predictor_controls_input) + 1]] <- reset_button
+  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
+    reset_button
 
   # Ceate the style for the div containing the controls.
   # If show_model_color is TRUE then we add a left margin with the model color.
   model_color <- unname(get_model_colors(list(model_data)))[[1]]
-  style <- glue::glue(
-    "width: 100%; ",
-    if (show_model_color) "border-left: solid 6px {model_color}; " else "",
+  style <- paste(
+    "width: 100%;",
+    ifelse(show_model_color,
+      glue::glue("border-left: solid 6px {model_color}; "),
+      ""
+    ),
     "padding: 0 10px 0 10px;"
   )
-  
+
   # Create the div containing the controls
   predictor_controls_input <- shiny::div(
     style = style,
@@ -267,7 +277,7 @@ NULL
     # The current predictor values (matching what we see in the UI)
     predictor_values_internal <-
       shiny::reactiveVal(default_predictor_values)
-    
+
     # Create all observers for the predictor controls
     for (variable in names(default_predictor_values)) {
       input_id <- variable

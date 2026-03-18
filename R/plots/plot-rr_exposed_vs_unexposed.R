@@ -1,10 +1,10 @@
 #' Exposed vs Unexposed Curve
 #'
 #' Functions for computing and rendering Exposed vs Unexposed curves.
-#' 
+#'
 #' The main entry point called by the Shiny server is
 #' \code{make_rr_exposed_vs_unexposed_plot}.
-#' 
+#'
 #' \code{create_rr_exposed_vs_unexposed_ui} should be called to create the
 #' UI for specifying the exposed and unexposed predictor values.
 NULL
@@ -103,7 +103,10 @@ make_rr_exposed_vs_unexposed_plot <- function(
 
           elapsed <- Sys.time() - tic
           message(paste0(
-            "Elapsed time for RR Multi curve ", model_data$model_id, ": ", elapsed
+            "Elapsed time for Exposed vs Unexposed curve ",
+            model_data$model_id,
+            ": ",
+            elapsed
           ))
 
           all_curve_data[[length(all_curve_data) + 1]] <- curve_data
@@ -216,17 +219,19 @@ create_rr_exposed_vs_unexposed_ui <- function(
 #'
 #' @param model_data A model definition named list as returned by the model
 #'   definitions utilities.
-#' @param exposed_group A named list of predictor values representing the exposed
-#'   group profile.
+#' @param exposed_group A named list of predictor values representing the
+#'   exposed group profile.
 #' @param unexposed_group A named list of predictor values representing the
 #'   unexposed (reference) group profile. This group's predicted risk is used
 #'   as the denominator for all relative risk calculations.
 #'
 #' @return A named list of curve data that can be passed to
 #'   \code{\link{make_general_plot}}.
-.calculate_rr_exposed_vs_unexposed_curve <- function(model_data,
-                                     exposed_group,
-                                     unexposed_group) {
+.calculate_rr_exposed_vs_unexposed_curve <- function(
+  model_data,
+  exposed_group,
+  unexposed_group
+) {
   rows <- list()
   row_names <- list()
   row_comparisons <- list()
@@ -238,14 +243,19 @@ create_rr_exposed_vs_unexposed_ui <- function(
 
   for (idx in seq_along(names(exposed_group))) {
     predictor <- names(exposed_group)[[idx]]
-    predictor_label <- get_variable_label(model_data, predictor, escape_html = TRUE)
+    predictor_label <- get_variable_label(
+      model_data,
+      predictor,
+      escape_html = TRUE
+    )
     unexposed_value <- unexposed_group[[predictor]]
 
     if (is_variable_categorical(model_data, predictor)) {
       # Add a row for each value in the predictor range. The exposure will be
       # exposed_group but with each possible value of the current predictor set
       # in the exposed group (eg. for marital status, we could have one row
-      # for "Married", one for "Single", and one for "Widowed/separated/divorced")
+      # for "Married", one for "Single", and one for
+      # "Widowed/separated/divorced")
       predictor_range <- get_predictor_range(model_data, predictor)
       for (cur_exposed_value in predictor_range) {
         # Add the exposed row, with the predictor set to cur_exposed_value
@@ -255,11 +265,24 @@ create_rr_exposed_vs_unexposed_ui <- function(
 
         # Calculate the name (eg. "Marital status (Married)") of the new row and
         # the comparison label (eg. "Marital status (Married vs Single)")
-        cur_exposed_label <- get_variable_label_from_value(model_data, predictor, cur_exposed_value, escape_html = TRUE)
-        exposed_label <- get_variable_label_from_value(model_data, predictor, exposed_group[[predictor]], escape_html = TRUE)
-        row_name <- as.character(glue::glue("{predictor_label} ({cur_exposed_label})"))
+        cur_exposed_label <- get_variable_label_from_value(
+          model_data,
+          predictor,
+          cur_exposed_value,
+          escape_html = TRUE
+        )
+        exposed_label <- get_variable_label_from_value(
+          model_data,
+          predictor,
+          exposed_group[[predictor]],
+          escape_html = TRUE
+        )
+        row_name <-
+          as.character(glue::glue("{predictor_label} ({cur_exposed_label})"))
         row_names[[length(row_names) + 1]] <- row_name
-        row_comparison <- as.character(glue::glue("{predictor_label} ({cur_exposed_label} vs {exposed_label})"))
+        row_comparison <- as.character(glue::glue(
+          "{predictor_label} ({cur_exposed_label} vs {exposed_label})"
+        ))
         row_comparisons[[length(row_comparisons) + 1]] <- row_comparison
       }
     } else {
@@ -292,14 +315,14 @@ create_rr_exposed_vs_unexposed_ui <- function(
 
   # Calcualte the relative risk. The risks are relative to the
   # risk in the last row.
-  rr <- dat[1:nrow(dat) - 1, ] / dat[nrow(dat), ]
+  rr <- dat[seq_len(nrow(dat) - 1), ] / dat[nrow(dat), ]
 
   output_df <- data.frame(
     x = rr,
     RR = rr,
     Model = cleanup_string(model_data$title),
-    Label = unlist(row_names[1:nrow(dat) - 1]),
-    Comparison = unlist(row_comparisons[1:nrow(dat) - 1])
+    Label = unlist(row_names[seq_len(nrow(dat) - 1)]),
+    Comparison = unlist(row_comparisons[seq_len(nrow(dat) - 1)])
   )
 
   list(
