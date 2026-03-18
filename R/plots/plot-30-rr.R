@@ -5,6 +5,9 @@
 #' The main entry point called by the Shiny server is \code{make_rr_plot}.
 NULL
 
+local({
+plot_id <- "rr_plot"
+
 #' Build a Relative Risk Plot for the Current Predictor
 #'
 #' @param session The Shiny \code{session} object.
@@ -363,3 +366,24 @@ make_rr_plot <- function(
     )
   )
 }
+
+panel_ui <- function(plot_height) {
+  tagList(
+    br(),
+    plotly::plotlyOutput(plot_id, height = plot_height)
+  )
+}
+
+plot_register <- function(.env) {
+  plot_man_add_plot(
+    .env,
+    plot_id = plot_id,
+    title = "Relative Risk",
+    make_plot_fn = make_rr_plot,
+    panel_ui_fn = panel_ui,
+    model_ui_fn = NULL
+  )
+}
+
+plot_register
+})

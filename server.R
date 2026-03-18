@@ -5,15 +5,12 @@ source("R/utils/cached_curve_data.R")
 source("R/utils/config.R")
 source("R/utils/url.R")
 source("R/utils/general_plot.R")
+source("R/plots/plot_manager.R")
 
 # Remove scientific notation from plots
 options(scipen = 8)
 # Maximum upload size in bytes
 options(shiny.maxRequestSize = 30 * 1024^2)
-
-# Load all curve calculation source files
-plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
-lapply(file.path("R/plots", plot_files), source)
 
 #' Shiny Server Function
 #'
@@ -43,6 +40,17 @@ server <- function(input, output, session) {
   cached_curve_env <- initialize_cached_curve_data_env()
   # The environment containing all model definitions
   model_definitions_env <- rlang::env(model_definitions = NULL)
+  # The environment for the plot manager
+  plot_man_env <- initialize_plot_manager_env()
+
+  # Load all the plots and register them with the plot manager
+  plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
+  plot_files <- file.path("R", "plots", plot_files)
+  for (plot_file in plot_files) {
+    fn <- source(plot_file)
+    # Call the registration function
+    fn$value(plot_man_env)
+  }
 
   #' Check Whether Model Definitions Are Loaded
   #'
@@ -105,8 +113,6 @@ server <- function(input, output, session) {
       ui = refgroup_controls_ui,
       immediate = TRUE
     )
-
-    create_rr_exposed_vs_unexposed_ui(model_definitions_env$model_definitions, predictor_controls_env, redraw_trigger)
   }
 
   #' Get Currently Selected Models
@@ -230,56 +236,96 @@ server <- function(input, output, session) {
     redraw_trigger(redraw_trigger() + 1)
   })
 
-  # Predicted Risk plot
-  output$pr_plot <- plotly::renderPlotly({
-    redraw_trigger()
+  #' Add Plot Tabs to Main UI
+  #'
+  #' Iterates over all registered plot IDs and insert a \code{tabPanel} for
+  #' each into \code{main_tabs}, selecting the first plot's tab on
+  #' completion. Each tab contains the plot's panel UI and a
+  #' \code{plotly::renderPlotly} output bound to the plot ID.
+  #' 
+  #' This is called once when the page is first loaded.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  add_plot_tabs_to_ui <- function() {
+    get_panel_id <- function(id) {
+      as.character(glue::glue("plot_panel_{id}"))
+    }
 
-    make_pr_plot(
-      session,
-      selected_models(),
-      model_definitions_env$model_definitions,
-      predictor_controls_env,
-      cached_curve_env
-    )
-  })
+    all_plot_ids <- plot_man_all_plot_ids(plot_man_env)
 
-  # Odds Ratios plots
-  output$or_plot <- plotly::renderPlotly({
-    redraw_trigger()
+    prev_tab_id <- NULL
+    for (id in plot_man_all_plot_ids(plot_man_env)) {
+      panel_id <- get_panel_id(id)
+      
+      # Create the tab panel containing the plot's panel UI
+      new_tab <- tabPanel(
+        icon = icon("chart-line"),
+        title = plot_man_get_title(plot_man_env, id),
+        value = panel_id,
+        plot_man_call_panel_ui_fn(
+          plot_man_env,
+          id,
+          plot_height = "calc(100vh - 170px)"
+        )
+      )
 
-    make_or_plot(
-      session,
-      selected_models(),
-      model_definitions_env$model_definitions,
-      predictor_controls_env,
-      cached_curve_env
-    )
-  })
+      # Insert the tab. They are all inserted at the start of the tabsetPanel (before any
+      # pre-existing tab, such as the "Help" tab)
+      insertTab(
+        inputId = "main_tabs",
+        tab = new_tab,
+        select = is.null(prev_tab_id),
+        target = prev_tab_id,
+        position = ifelse(is.null(prev_tab_id), "before", "after")
+      )
 
-  output$rr_plot_exposed_vs_unexposed <- plotly::renderPlotly({
-    redraw_trigger()
+      # Save the ID of the last added tab
+      prev_tab_id <- panel_id
 
-    make_rr_exposed_vs_unexposed_plot(
-      session,
-      selected_models(),
-      model_definitions_env$model_definitions,
-      predictor_controls_env,
-      cached_curve_env
-    )
-  })
+      # Add the renderPlotly function to render the plot
+      cur_env <- rlang::env(
+        id = id
+      )
+      output[[id]] <- plotly::renderPlotly({
+        redraw_trigger()
 
-  # Relative Risk plots
-  output$rr_plot <- plotly::renderPlotly({
-    redraw_trigger()
+        plot_man_call_make_plot_fn(
+          plot_man_env,
+          id,
+          session,
+          selected_models(),
+          model_definitions_env$model_definitions,
+          predictor_controls_env,
+          cached_curve_env
+        )
+      }, env = cur_env)
+    }
+  }
 
-    make_rr_plot(
-      session,
-      selected_models(),
-      model_definitions_env$model_definitions,
-      predictor_controls_env,
-      cached_curve_env
-    )
-  })
+  #' Create UI Controls for All Plots
+  #'
+  #' Iterates over all registered plot IDs and invokes each plot's model UI
+  #' function, inserting predictor controls and wiring up the redraw trigger.
+  #' 
+  #' This is called once when an algorithm file is loaded. The UI controls
+  #' might be specific to the loaded models.
+  #'
+  #' @return NULL (called for side effects on UI).
+  #'
+  #' @keywords internal
+  create_all_plot_ui <- function() {
+    for (id in plot_man_all_plot_ids(plot_man_env)) {
+      plot_man_call_model_ui_fn(
+        plot_man_env,
+        id,
+        model_definitions_env$model_definitions,
+        predictor_controls_env,
+        redraw_trigger
+      )
+    }
+  }
 
   #' Load Model Definitions from File
   #'
@@ -321,6 +367,7 @@ server <- function(input, output, session) {
     update_predictor_choices()
     update_interaction_predictor_choices()
     create_all_predictor_controls()
+    create_all_plot_ui()
     reload_trigger(reload_trigger() + 1)
     redraw_trigger(redraw_trigger() + 1)
   }
@@ -484,6 +531,10 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
+
+    # Add all the plot tabs
+    add_plot_tabs_to_ui()
+
     if (url_has_algorithm_id(session)) {
       # The URL has an algorithm specified (eg
       # "example.com/?algorithm=htnport-reduced"), so try to load the

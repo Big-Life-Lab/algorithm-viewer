@@ -9,6 +9,9 @@
 #' UI for specifying the exposed and unexposed predictor values.
 NULL
 
+local({
+plot_id <- "rr_exposed_vs_unexposed_plot"
+
 # Tags to add to the exposed and unexposed predictor control IDs
 exposed_group_extra_tag <- "exposed"
 unexposed_group_extra_tag <- "unexposed"
@@ -199,10 +202,8 @@ create_rr_exposed_vs_unexposed_ui <- function(
   shiny::insertUI(
     selector = exposed_container_id,
     where = "afterBegin",
-    ui = tagList(exposed_predictor_ctrl$ui, unexposed_predictor_ctrl$ui),
-    immediate = TRUE
+    ui = tagList(exposed_predictor_ctrl$ui, unexposed_predictor_ctrl$ui)
   )
-
 }
 
 #' Calculate Relative Risk Curve: Exposed vs Unexposed
@@ -341,3 +342,28 @@ create_rr_exposed_vs_unexposed_ui <- function(
     )
   )
 }
+
+panel_ui <- function(plot_height) {
+  tagList(
+    br(),
+    fluidRow(
+      style = "width: 100%",
+      column(9, plotly::plotlyOutput(plot_id, height = plot_height)),
+      column(3, div(id = "rr_plot_exposed_vs_unexposed_group", style = "height: calc(100vh - 160px); margin-bottom: 20px; overflow-y: scroll"))
+    )
+  )
+}
+
+plot_register <- function(.env) {
+  plot_man_add_plot(
+    .env,
+    plot_id = plot_id,
+    title = "Exposed vs Unexposed",
+    make_plot_fn = make_rr_exposed_vs_unexposed_plot,
+    panel_ui_fn = panel_ui,
+    model_ui_fn = create_rr_exposed_vs_unexposed_ui
+  )
+}
+
+plot_register
+})

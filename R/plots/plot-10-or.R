@@ -5,6 +5,9 @@
 #' The main entry point called by the Shiny server is \code{make_or_plot}.
 NULL
 
+local({
+plot_id <- "or_plot"
+
 #' Build an Odds Ratio Plot for the Current Predictor
 #'
 #' @param session The Shiny \code{session} object.
@@ -368,3 +371,24 @@ make_or_plot <- function(
     )
   )
 }
+
+or_panel_ui <- function(plot_height) {
+  tagList(
+    br(),
+    plotly::plotlyOutput(plot_id, height = plot_height)
+  )
+}
+
+plot_register <- function(.env) {
+  plot_man_add_plot(
+    .env,
+    plot_id = plot_id,
+    title = "Odds Ratio",
+    make_plot_fn = make_or_plot,
+    panel_ui_fn = or_panel_ui,
+    model_ui_fn = NULL
+  )
+}
+
+plot_register
+})

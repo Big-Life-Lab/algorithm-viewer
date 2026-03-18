@@ -5,6 +5,9 @@
 #' The main entry point called by the Shiny server is \code{make_pr_plot}.
 NULL
 
+local({
+plot_id <- "pr_plot"
+
 #' Build a Predicted Risk Plot for the Current Predictor
 #'
 #' @param session The Shiny \code{session} object.
@@ -197,3 +200,24 @@ make_pr_plot <- function(
     )
   )
 }
+
+pr_panel_ui <- function(plot_height) {
+  tagList(
+    br(),
+    plotly::plotlyOutput(plot_id, height = plot_height)
+  )
+}
+
+plot_register <- function(.env) {
+  plot_man_add_plot(
+    .env,
+    plot_id = plot_id,
+    title = "Predicted Risk",
+    make_plot_fn = make_pr_plot,
+    panel_ui_fn = pr_panel_ui,
+    model_ui_fn = NULL
+  )
+}
+
+plot_register
+})
