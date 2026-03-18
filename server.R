@@ -12,8 +12,8 @@ options(scipen = 8)
 options(shiny.maxRequestSize = 30 * 1024^2)
 
 # Load all curve calculation source files
-curve_files <- list.files(path = "R/curves", pattern = "^curve-.*\\.R$")
-lapply(file.path("R/curves", curve_files), source)
+plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
+lapply(file.path("R/plots", plot_files), source)
 
 #' Shiny Server Function
 #'
