@@ -110,11 +110,14 @@ make_general_plot <- function(
         curve_data$y_axis_label
       )
 
-      # Set y limits for non-logarithmic plots, if specified in
-      # the curve data
+      # Set y limits, if specified in the curve data
       y_limits <- NULL
-      if (!is.null(curve_data$ylim) && !logarithmic) {
-        y_limits <- curve_data$ylim
+      if (!is.null(curve_data[["ylim_logarithmic"]]) && logarithmic) {
+        y_limits <- curve_data[["ylim_logarithmic"]]
+      } else if (!is.null(curve_data[["ylim_linear"]]) && !logarithmic) {
+        y_limits <- curve_data[["ylim_linear"]]
+      } else if (!is.null(curve_data[["ylim"]])) {
+        y_limits <- curve_data[["ylim"]]
       }
 
       # Factor the x axis categorical variables
@@ -188,8 +191,6 @@ make_general_plot <- function(
             values = model_colors,
             aesthetics = "fill"
           )
-        # @TODO: REMOVE THIS!!!
-        y_limits <- c(0.001, 100)
       }
 
       # Add general options to the plot
