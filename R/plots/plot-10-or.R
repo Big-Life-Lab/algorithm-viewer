@@ -372,7 +372,7 @@ make_or_plot <- function(
   )
 }
 
-or_panel_ui <- function(plot_height) {
+panel_ui <- function(plot_height) {
   tagList(
     br(),
     plotly::plotlyOutput(plot_id, height = plot_height)
@@ -385,7 +385,7 @@ plot_register <- function(.env) {
     plot_id = plot_id,
     title = "Odds Ratio",
     make_plot_fn = make_or_plot,
-    panel_ui_fn = or_panel_ui,
+    panel_ui_fn = panel_ui,
     model_ui_fn = NULL
   )
 }
