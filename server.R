@@ -43,13 +43,29 @@ server <- function(input, output, session) {
   # The environment for the plot manager
   plot_man_env <- initialize_plot_manager_env()
 
-  # Load all the plots and register them with the plot manager
-  plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
-  plot_files <- file.path("R", "plots", plot_files)
-  for (plot_file in plot_files) {
-    fn <- source(plot_file)
-    # Call the registration function
-    fn$value(plot_man_env)
+  #' Load and Register Plot Modules
+  #'
+  #' Discovers all plot definition files matching \code{plot-*.R} under
+  #' \code{R/plots/}, sources each file, and calls the returned registration
+  #' function with the shared plot manager environment. After this call,
+  #' every plot module is available to the plot manager for rendering.
+  #'
+  #' Plot files must follow the naming convention \code{plot-<name>.R} and must
+  #' return a single-argument function from \code{source()} that accepts the
+  #' plot manager environment and performs registration as a side effect.
+  #'
+  #' @return NULL (called for side effects; modifies \code{plot_man_env}).
+  #'
+  #' @keywords internal
+  load_and_register_plots <- function() {
+    # Load all the plots and register them with the plot manager
+    plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
+    plot_files <- file.path("R", "plots", plot_files)
+    for (plot_file in plot_files) {
+      fn <- source(plot_file)
+      # Call the registration function
+      fn$value(plot_man_env)
+    }
   }
 
   #' Check Whether Model Definitions Are Loaded
@@ -531,6 +547,9 @@ server <- function(input, output, session) {
     if (initial_load_trigger() > 0) {
       return()
     }
+
+    # Load and register the plots
+    load_and_register_plots()
 
     # Add all the plot tabs
     add_plot_tabs_to_ui()
