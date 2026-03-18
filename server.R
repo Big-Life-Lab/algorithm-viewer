@@ -44,6 +44,19 @@ server <- function(input, output, session) {
   # The environment containing all model definitions
   model_definitions_env <- rlang::env(model_definitions = NULL)
 
+  #' Check Whether Model Definitions Are Loaded
+  #'
+  #' Returns TRUE if model definitions have been loaded into the session
+  #' environment and the definitions list is non-empty.
+  #'
+  #' @return Logical scalar; TRUE if model definitions are available, FALSE
+  #'   otherwise.
+  #'
+  #' @keywords internal
+  has_model_definitions <- function() {
+    !is.null(model_definitions_env$model_definitions) && length(model_definitions_env$model_definitions) > 0
+  }
+
   #' Create Predictor Controls
   #'
   #' Destroys any existing predictor controls modules and UI elements, then
@@ -103,14 +116,14 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   selected_models <- function() {
-    if (is.null(model_definitions_env$model_definitions)) {
-      list()
-    } else {
+    if (has_model_definitions()) {
       model_defs <- model_definitions_env$model_definitions
       models <- model_defs$
         models[as.vector(session$userData$selected_model_ids)]
       models <- models[!is.na(names(models))]
       models
+    } else {
+      list()
     }
   }
 
@@ -123,7 +136,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_predictor_choices <- function() {
-    if (is.null(model_definitions_env$model_definitions)) {
+    if (!has_model_definitions()) {
       updateSelectInput(
         session,
         "predictor",
@@ -162,7 +175,7 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   update_interaction_predictor_choices <- function() {
-    if (is.null(model_definitions_env$model_definitions)) {
+    if (!has_model_definitions()) {
       updateSelectInput(
         session,
         "interaction_predictor",
@@ -430,7 +443,7 @@ server <- function(input, output, session) {
   # Show a message to the user at the top of the "Models" tab
   output$model_message <- renderUI({
     reload_trigger()
-    if (is.null(model_definitions_env$model_definitions)) {
+    if (!has_model_definitions()) {
       has_algorithms <- config_has_algorithms()
       allow_file_uploads <- config_allow_file_uploads()
       if (has_algorithms && allow_file_uploads) {
@@ -457,7 +470,7 @@ server <- function(input, output, session) {
   output$ui_title <- renderUI({
     reload_trigger()
 
-    if (!is.null(model_definitions_env$model_definitions)) {
+    if (has_model_definitions()) {
       meta <- model_definitions_env$model_definitions$meta
       glue::glue("{meta$algorithm} v{meta$version} Algorithm Viewer")
     } else {
