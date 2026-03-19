@@ -104,7 +104,7 @@ ui <- fluidPage(
         # Predictor controls get added as children to #refgroup_controls
         tabPanel(
           "Reference",
-          icon = icon("angle-double-down"),
+          icon = icon("cog"),
           div(
             style = paste(
               "height: calc(100vh - 140px); margin-bottom: 20px;",
