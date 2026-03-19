@@ -302,7 +302,14 @@ server <- function(input, output, session) {
 
       # Add the renderPlotly function to render the plot
       cur_env <- rlang::env(
-        id = id
+        redraw_trigger = redraw_trigger,
+        plot_man_env = plot_man_env,
+        id = id,
+        session = session,
+        selected_models = selected_models,
+        model_definitions_env = model_definitions_env,
+        predictor_controls_env = predictor_controls_env,
+        cached_curve_env = cached_curve_env
       )
       output[[id]] <- plotly::renderPlotly({
         redraw_trigger()
