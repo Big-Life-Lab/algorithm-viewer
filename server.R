@@ -168,12 +168,12 @@ server <- function(input, output, session) {
       return()
     }
 
-    models <- selected_models()
+    models <- model_definitions_env$model_definitions$models
 
     # Create list of all possible choices (from all models)
     predictor_choices <- gather_predictor_choices(models)
 
-    if (length(models) > 0) {
+    if (length(predictor_choices) > 0) {
       selected <- predictor_choices[[names(predictor_choices)[[1]]]]
     } else {
       selected <- character(0)
@@ -207,12 +207,12 @@ server <- function(input, output, session) {
       return()
     }
 
-    models <- selected_models()
+    models <- model_definitions_env$model_definitions$models
 
     # Create list of all possible choices (from all models)
     predictor_choices <- gather_predictor_choices(models)
 
-    # If at least one model is selected, then add the empty predictor
+    # If at least one model is available, then add the empty predictor
     if (length(models) > 0) {
       new_list <- list()
       new_list[[config_get_empty_selection()]] <- config_get_empty_selection()
