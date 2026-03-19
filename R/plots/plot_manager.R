@@ -62,8 +62,10 @@ NULL
 #' \describe{
 #'   \item{plot_id_key}{Key for the plot's unique identifier string.}
 #'   \item{make_plot_fn_key}{Key for the plot-rendering function.}
-#'   \item{model_ui_fn_key}{Key for the per-model UI function (may be \code{NULL}).}
-#'   \item{panel_ui_fn_key}{Key for the panel UI function (may be \code{NULL}).}
+#'   \item{model_ui_fn_key}{Key for the per-model UI function
+#'      (may be \code{NULL}).}
+#'   \item{panel_ui_fn_key}{Key for the panel UI function
+#'      (may be \code{NULL}).}
 #'   \item{title_key}{Key for the human-readable plot title.}
 #' }
 plot_man_keys <- list(
@@ -98,7 +100,8 @@ initialize_plot_manager_env <- function() {
 #'   \code{\link{initialize_plot_manager_env}}.
 #' @param plot_id A unique character string identifying the plot
 #'   (e.g. \code{"or_plot"}).
-#' @param title A human-readable title shown in the UI (e.g. \code{"Odds Ratio"}).
+#' @param title A human-readable title shown in the UI
+#'   (e.g. \code{"Odds Ratio"}).
 #' @param make_plot_fn A function that renders the plot and returns a
 #'   \code{ggplot} (or equivalent) object.  It will be called with whatever
 #'   arguments are forwarded by \code{\link{plot_man_call_make_plot_fn}}.
@@ -111,7 +114,14 @@ initialize_plot_manager_env <- function() {
 #'
 #' @seealso \code{\link{plot_man_call_make_plot_fn}},
 #'   \code{\link{plot_man_call_panel_ui_fn}}
-plot_man_add_plot <- function(.env, plot_id, title, make_plot_fn, model_ui_fn = NULL, panel_ui_fn = NULL) {
+plot_man_add_plot <- function(
+  .env,
+  plot_id,
+  title,
+  make_plot_fn,
+  model_ui_fn = NULL,
+  panel_ui_fn = NULL
+) {
   if (plot_id %in% names(.env$plots)) {
     stop(glue::glue(
       "A plot with ID '{plot_id}' already exists in the plot manager. ",

@@ -73,8 +73,10 @@ source("R/modules/predictor_controls.R")
 #'
 #' @return An rlang environment with fields:
 #'   \describe{
-#'     \item{predictor_controls}{Named list of active predictor controls server modules.}
-#'     \item{predictor_controls_uuid}{UUID generated each time all controls are destroyed.}
+#'     \item{predictor_controls}{Named list of active predictor controls
+#'        server modules.}
+#'     \item{predictor_controls_uuid}{UUID generated each time all controls
+#'        are destroyed.}
 #'   }
 initialize_predictor_controls_env <- function() {
   rlang::env(
@@ -108,7 +110,8 @@ initialize_predictor_controls_env <- function() {
 #' @return A named list with elements:
 #'   \describe{
 #'     \item{ui}{The UI element returned by \code{predictorControlsUI()}.}
-#'     \item{server}{The server module returned by \code{predictorControlsServer()}.}
+#'     \item{server}{The server module returned by
+#'        \code{predictorControlsServer()}.}
 #'   }
 create_predictor_controls <- function(
   .env,
