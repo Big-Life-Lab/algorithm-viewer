@@ -349,8 +349,11 @@ panel_ui <- function(plot_height) {
     br(),
     fluidRow(
       style = "width: 100%",
-      column(9, plotly::plotlyOutput(plot_id, height = plot_height)),
-      column(3, div(id = "rr_plot_exposed_vs_unexposed_group", style = "height: calc(100vh - 160px); margin-bottom: 20px; overflow-y: scroll"))
+      column(9, plotly::plotlyOutput(plot_id, height = plot_height), style = "z-index: 20"),
+      column(3, div(
+        id = "rr_plot_exposed_vs_unexposed_group",
+        style = "height: calc(100vh - 160px); margin-bottom: 20px; overflow-y: scroll"
+      ))
     )
   )
 }
