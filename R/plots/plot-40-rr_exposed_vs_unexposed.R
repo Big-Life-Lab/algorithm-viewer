@@ -3,7 +3,6 @@
 #' Functions for computing and rendering Exposed vs Unexposed curves.
 NULL
 
-local({
 plot_id <- "rr_exposed_vs_unexposed_plot"
 
 # Tags to add to the exposed and unexposed predictor control IDs
@@ -389,4 +388,3 @@ plot_register <- function(.env) {
 
 # Always have the registration function returned as the last line
 plot_register
-})

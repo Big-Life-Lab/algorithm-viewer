@@ -3,7 +3,6 @@
 #' Functions for computing and rendering predicted risk (PR) curves.
 NULL
 
-local({
 plot_id <- "pr_plot"
 
 #' Build a Predicted Risk Plot for the Current Predictor
@@ -234,4 +233,3 @@ plot_register <- function(.env) {
 
 # Always have the registration function returned as the last line
 plot_register
-})

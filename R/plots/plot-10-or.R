@@ -3,7 +3,6 @@
 #' Functions for computing and rendering odds ratio (OR) curves.
 NULL
 
-local({
 plot_id <- "or_plot"
 
 #' Build an Odds Ratio Plot for the Current Predictor
@@ -405,4 +404,3 @@ plot_register <- function(.env) {
 
 # Always have the registration function returned as the last line
 plot_register
-})

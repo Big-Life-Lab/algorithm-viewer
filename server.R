@@ -62,7 +62,7 @@ server <- function(input, output, session) {
     plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
     plot_files <- file.path("R", "plots", plot_files)
     for (plot_file in plot_files) {
-      fn <- source(plot_file)
+      fn <- source(plot_file, local = new.env())
       # Call the registration function
       fn$value(plot_man_env)
     }

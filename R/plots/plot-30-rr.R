@@ -3,7 +3,6 @@
 #' Functions for computing and rendering relative risk (PR) curves.
 NULL
 
-local({
 plot_id <- "rr_plot"
 
 #' Build a Relative Risk Plot for the Current Predictor
@@ -400,4 +399,3 @@ plot_register <- function(.env) {
 
 # Always have the registration function returned as the last line
 plot_register
-})
