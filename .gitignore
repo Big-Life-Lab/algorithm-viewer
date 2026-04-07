@@ -52,7 +52,6 @@ Thumbs.db
 .\#*
 
 # Quarto / documentation output
-docs/
 _site/
 
 # Local configuration

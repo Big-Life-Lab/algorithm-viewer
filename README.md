@@ -81,8 +81,9 @@ models:
       predictor2: default_value
 ```
 
-See the [Algorithm Viewer Configuration Specification](CONFIG_SPECIFICATION.md)
-for details on configuration files.
+See the [Algorithm Viewer Configuration
+Specification](docs/specs/CONFIG_SPECIFICATION.md) for details on configuration
+files.
 
 ## Running the App
 
@@ -121,10 +122,11 @@ command to use the new algorithm files.
 
 ## Deployment
 
-The [Deployment Specification](DEPLOYMENT.md) is a planning document that
-discusses various deployment options we may want to implement in the future,
-including a public web application, a hosted algorithm showcase for sharing
-models via URL, and a local development tool for scientists building algorithms.
+The [Deployment Specification](docs/specs/DEPLOYMENT.md) is a planning document
+that discusses various deployment options we may want to implement in the
+future, including a public web application, a hosted algorithm showcase for
+sharing models via URL, and a local development tool for scientists building
+algorithms.
 
 ## Requirements
 
