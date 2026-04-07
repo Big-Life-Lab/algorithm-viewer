@@ -169,8 +169,8 @@ make_rr_plot <- function(
   # Note that the reference group is located at row output_rows + 1
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
-    dat = df
-  ) |> model.parameters.pipeline::get_pipeline_output()
+    x = df
+  )
 
   predicted_col <- colnames(dat)[[1]]
   rr <- dat[[predicted_col]] / dat[[predicted_col]][output_rows + 1]
@@ -302,12 +302,12 @@ make_rr_plot <- function(
   # The relative risk is predicted_risk / ref_predicted_risk
   dat1 <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
-    dat = df1
-  ) |> model.parameters.pipeline::get_pipeline_output()
+    x = df1
+  )
   dat2 <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
-    dat = df2
-  ) |> model.parameters.pipeline::get_pipeline_output()
+    x = df2
+  )
 
   predicted_col_1 <- colnames(dat1)[[1]]
   predicted_col_2 <- colnames(dat2)[[1]]

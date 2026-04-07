@@ -155,8 +155,8 @@ make_pr_plot <- function(
   # The odds ratio is predicted_risk / ref_predicted_risk
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
-    dat = df
-  ) |> model.parameters.pipeline::get_pipeline_output()
+    x = df
+  )
   predicted_col <- colnames(dat)[[1]]
   pr <- dat[[predicted_col]]
 

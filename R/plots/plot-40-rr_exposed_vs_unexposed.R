@@ -305,8 +305,8 @@ create_rr_exposed_vs_unexposed_ui <- function(
   # Run the piupeline with the input matrix and calculate the relative risk
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
-    dat = df
-  ) |> model.parameters.pipeline::get_pipeline_output()
+    x = df
+  )
 
   # Calcualte the relative risk. The risks are relative to the
   # risk in the last row.
