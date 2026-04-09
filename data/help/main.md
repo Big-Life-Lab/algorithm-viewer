@@ -142,7 +142,7 @@ the files the Algorithm Viewer needs to load and run a prediction algorithm.
 
 1. **Configuration file** &mdash; A single `.yaml` or `.yml` file that
    defines the algorithm metadata, models, reference groups, and predictor
-   ranges. See *Configuration file format* below.
+   allowable values. See *Configuration file format* below.
 2. **Model parameter files** &mdash; The CSV files referenced by the
    configuration. Their format is defined by the <a
    href="https://big-life-lab.github.io/model-parameters/2-model-parameter-files.html"
@@ -168,12 +168,12 @@ models:
       <variable>: <default value>
       ...
     model_color: <color>          # optional, e.g. "#ff0000" or "red"
-    predictor_ranges:             # optional
-      <variable>: <range>
+    predictor_allowable_values:   # optional
+      <variable>: <value_expression>
       ...
   _all_:                          # optional shared settings
-    predictor_ranges:
-      <variable>: <range>
+    predictor_allowable_values:
+      <variable>: <value_expression>
       ...
 ```
 
@@ -190,11 +190,11 @@ models:
   `variables.csv`.
 - **`model_color`** &mdash; Optional color for this model's plot
   lines/bars.
-- **`predictor_ranges`** &mdash; Optional predictor value ranges for
-  the x-axis and reference sliders. Supported formats: R sequence
-  expressions (e.g. `seq(20, 80, by = 1)`), integer ranges
+- **`predictor_allowable_values`** &mdash; Optional allowable values for
+  predictors, used for the x-axis and reference sliders. Supported formats:
+  R sequence expressions (e.g. `seq(20, 80, by = 1)`), integer ranges
   (e.g. `20:80`), or YAML arrays (e.g. `[1, 2, 3]`). If omitted,
-  ranges are derived from `variable-details.csv`.
+  allowable values are derived from `variable-details.csv`.
 - **`_all_`** &mdash; A special entry that provides shared settings
   inherited by all models. Model-specific values take precedence over
   `_all_` values.

@@ -245,13 +245,13 @@ create_rr_exposed_vs_unexposed_ui <- function(
     unexposed_value <- unexposed_group[[predictor]]
 
     if (is_variable_categorical(model_data, predictor)) {
-      # Add a row for each value in the predictor range. The exposure will be
-      # exposed_group but with each possible value of the current predictor set
-      # in the exposed group (eg. for marital status, we could have one row
+      # Add a row for each allowable value of the predictor. The exposure will
+      # be exposed_group but with each allowable value of the current predictor
+      # set in the exposed group (eg. for marital status, we could have one row
       # for "Married", one for "Single", and one for
       # "Widowed/separated/divorced")
-      predictor_range <- get_predictor_range(model_data, predictor)
-      for (cur_exposed_value in predictor_range) {
+      predictor_allowable_values <- get_predictor_allowable_values(model_data, predictor)
+      for (cur_exposed_value in predictor_allowable_values) {
         # Add the exposed row, with the predictor set to cur_exposed_value
         cur_group <- exposed_group
         cur_group[[predictor]] <- cur_exposed_value

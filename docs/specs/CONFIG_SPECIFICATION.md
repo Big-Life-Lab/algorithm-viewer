@@ -11,7 +11,7 @@ The YAML configuration file is the central configuration that defines:
 - Available models and their display names
 - Data files to load for each model
 - Default reference group values for odds ratio calculations
-- Predictor value ranges for visualization
+- Predictor allowable values for visualization
 
 ## File Structure
 
@@ -27,12 +27,12 @@ models:
     reference_group:
       <variable>: <value>
       ...
-    predictor_ranges:
-      <variable>: <range_expression>
+    predictor_allowable_values:
+      <variable>: <value_expression>
       ...
   _all_:
-    predictor_ranges:
-      <variable>: <range_expression>
+    predictor_allowable_values:
+      <variable>: <value_expression>
       ...
 ```
 
@@ -66,13 +66,13 @@ is a model identifier. As many models as necessary can be specified.
 
 #### Model Definition
 
-| Field              | Type   | Required | Description                                         |
-|--------------------|--------|----------|-----------------------------------------------------|
-| `title`            | string | Yes      | Display name shown in UI (radio buttons, headings)  |
-| `model_export`     | path   | Yes      | Relative path to the model export CSV file          |
-| `reference_group`  | object | Yes      | Default baseline values for odds ratio calculations |
-| `model_color`      | string | No       | Color to use for plots representing this model (eg. "#ff0000" or "red"). If not specified then one is chosen automatically. |
-| `predictor_ranges` | object | No       | Override/specify ranges for specific predictors     |
+| Field                        | Type   | Required | Description                                                                                                                 |
+|------------------------------|--------|----------|-----------------------------------------------------------------------------------------------------------------------------|
+| `title`                      | string | Yes      | Display name shown in UI (radio buttons, headings)                                                                          |
+| `model_export`               | path   | Yes      | Relative path to the model export CSV file                                                                                  |
+| `reference_group`            | object | Yes      | Default baseline values for odds ratio calculations                                                                         |
+| `model_color`                | string | No       | Color to use for plots representing this model (eg. "#ff0000" or "red"). If not specified then one is chosen automatically. |
+| `predictor_allowable_values` | object | No       | Override/specify allowable values for specific predictors                                                                   |
 
 **Example:**
 
@@ -109,7 +109,7 @@ default values.
 - **Purpose:** Sets initial slider values in the "Reference" tab
 - **Variable names:** Must match variable names in the model's variables CSV file
 - **Values:**
-  - For continuous variables: numeric value within the valid range
+  - For continuous variables: numeric value within the allowable values
   - For categorical variables: numeric code or string representing the
     category. These should correspond to the untransformed inputs to the
     pipeline, so if an integer is used to represent a category in the input,
@@ -126,17 +126,18 @@ reference_group:
   diabx: 2           # Diabetes category 2
 ```
 
-#### `predictor_ranges`
+#### `predictor_allowable_values`
 
-Defines the range of values displayed on the x-axis of plots, as well as the
-range displayed in UI sliders to allow the user to modify the reference groups.
-If not specified, ranges are derived from the `variable-details.csv` file. If
-the ranges can be calculated based on `variable-details.csv` then the values
-under `predictor_ranges` will take precedence. If a range for a predictor can
-not be determined based on `variable-details.csv`, then the range must be
-specified in this section. The ranges for categorical variables should be of
-the same type (eg. a string or integer) as what is expected as the
-untransformed input to the pipeline.
+Defines the allowable values displayed on the x-axis of plots, as well as the
+values displayed in UI sliders to allow the user to modify the reference groups.
+If not specified, allowable values are derived from the `variable-details.csv`
+file. If the allowable values can be calculated based on `variable-details.csv`
+then the values under `predictor_allowable_values` will take precedence. If the
+allowable values for a predictor cannot be determined based on
+`variable-details.csv`, then they must be specified in this section. The
+allowable values for categorical variables should be of the same type (eg. a
+string or integer) as what is expected as the untransformed input to the
+pipeline.
 
 **Supported formats:**
 
@@ -167,6 +168,7 @@ The `_all_` key defines shared configuration applied to all models that don't
 override these settings.
 
 **Example:**
+
 ```yaml
 models:
   male:
@@ -176,12 +178,12 @@ models:
     title: Female
     model_export: ./HTNPoRT-female-model-export.csv
   _all_:
-    predictor_ranges:
+    predictor_allowable_values:
       hwmdbmi: seq(13, 49, by = 0.01)
 ```
 
 In this example, both `male` and `female` models inherit the `hwmdbmi`
-predictor range unless they explicitly override it. Any key/value found in the
+allowable values unless they explicitly override it. Any key/value found in the
 `_all_` model will be copied over to the other models (in this case the `male`
 and `female` models) if that key/value is not found in the other models. The
 `_all_` model does not correspond to an actual model that will be displayed in
@@ -220,6 +222,6 @@ models:
       hwmdbmi: 14.9
       diabx: 2
   _all_:
-    predictor_ranges:
+    predictor_allowable_values:
       hwmdbmi: seq(13, 49, by = 0.01)
 ```

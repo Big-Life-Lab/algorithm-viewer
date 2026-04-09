@@ -73,7 +73,8 @@ Models are defined using YAML configuration files that specify:
 - Algorithm metadata (name, version)
 - Model definitions with titles and data file paths
 - Reference group default values
-- Predictor ranges for visualization
+- Predictor allowable values (eg. ranges for continuous variables, categories
+  for categorical variables)
 
 Example configuration structure:
 

@@ -123,17 +123,17 @@ NULL
   for (variable in names(model_data$reference_group)) {
     reference_value <- model_data$reference_group[[variable]]
     label <- get_variable_info(model_data, variable, "label")
-    variable_range <- get_predictor_range(model_data, variable)
+    variable_allowable_values <- get_predictor_allowable_values(model_data, variable)
     input_id <- ns(variable)
 
     if (is_variable_categorical(model_data, variable)) {
       # For categorical variables, add a radioButtons
 
-      # Get the labels for the full variable range
+      # Get the labels for all allowable values of the variable
       labels <- get_variable_label_from_value(
         model_data,
         variable,
-        as.vector(variable_range)
+        as.vector(variable_allowable_values)
       )
 
       # Get the selected label (corresponding to reference_value)
@@ -160,21 +160,23 @@ NULL
     } else {
       # For continuous variables, add a sliderInput
 
-      # Calculate the range and step information
-      min_range <- min(variable_range)
-      max_range <- max(variable_range)
+      # Calculate the min, max and step information
+      min_range <- min(variable_allowable_values)
+      max_range <- max(variable_allowable_values)
 
       is_integer_range <- is.integer(min_range) &&
         is.integer(max_range) &&
-        all(min_range:max_range == sort(variable_range))
+        all(min_range:max_range == sort(variable_allowable_values))
 
       # For integer ranges, the step is 1, otherwise the
       # step is the difference between the first two values
-      # in the range
       if (is_integer_range) {
         step <- 1
       } else {
-        step <- signif(variable_range[2] - variable_range[1], 5)
+        step <- signif(
+          variable_allowable_values[2] - variable_allowable_values[1],
+          5
+        )
       }
 
       input_control <- shiny::sliderInput(

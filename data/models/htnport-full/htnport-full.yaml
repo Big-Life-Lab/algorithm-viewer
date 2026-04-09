@@ -10,7 +10,7 @@ models:
     title: Male
     model_export: ./male-full/HTNPoRT-full-male-model-export.csv
   _all_:
-    predictor_ranges:
+    predictor_allowable_values:
       hwmdbmi: seq(13, 49, by = 0.01)
     reference_group:
       clc_age: 24

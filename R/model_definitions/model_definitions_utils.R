@@ -62,18 +62,18 @@ cleanup_string <- function(s) {
   s
 }
 
-#' Get Predictor Range
+#' Get Predictor Allowable Values
 #'
-#' Retrieves the range of valid values for a predictor variable.
+#' Retrieves the allowable values for a predictor variable.
 #'
-#' @param model_data List containing model data with predictor_ranges.
+#' @param model_data List containing model data with predictor_allowable_values.
 #' @param variable Character string specifying the variable name.
 #'
-#' @return Numeric vector of valid predictor values.
+#' @return Numeric vector of allowable predictor values.
 #'
 #' @export
-get_predictor_range <- function(model_data, variable) {
-  model_data$predictor_ranges[[variable]]
+get_predictor_allowable_values <- function(model_data, variable) {
+  model_data$predictor_allowable_values[[variable]]
 }
 
 #' Map Variable Values to Labels
@@ -284,7 +284,7 @@ convert_df_variable_to_label <- function(df,
                                          df_column,
                                          escape_html = FALSE) {
   if (is_variable_categorical(model_data, variable)) {
-    allowable_values <- get_predictor_range(model_data, variable)
+    allowable_values <- get_predictor_allowable_values(model_data, variable)
     labels <- get_variable_label_from_value(model_data, variable,
       allowable_values,
       escape_html = escape_html

@@ -121,14 +121,14 @@ make_or_plot <- function(
 
 #' Calculate Odds Ratio Curve for a Predictor
 #'
-#' Computes odds ratios for a predictor variable across its range, relative
-#' to a reference value.
+#' Computes odds ratios for a predictor variable across its allowable values,
+#' relative to a reference value.
 #'
 #' @param predictor Character string specifying the variable name.
 #' @param model_data A model definition named list as returned by the model
 #'   definitions utilities.
-#' @param predictor_range Numeric vector of predictor values to evaluate.
-#'   If NULL, uses the range from model_data.
+#' @param predictor_allowable_values Numeric vector of predictor values to evaluate.
+#'   If NULL, uses the allowable values from model_data.
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
@@ -137,11 +137,11 @@ make_or_plot <- function(
 .calculate_or_curve <- function(
   predictor,
   model_data,
-  predictor_range = NULL,
+  predictor_allowable_values = NULL,
   reference_group = NULL
 ) {
-  predictor_range <- predictor_range %||%
-    model_data$predictor_ranges[[predictor]]
+  predictor_allowable_values <- predictor_allowable_values %||%
+    model_data$predictor_allowable_values[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
   predictor_label <- get_variable_label_and_units(
@@ -153,14 +153,15 @@ make_or_plot <- function(
     escape_html = TRUE
   )
   predictor_reference_value <- reference_group[[predictor]]
-  output_rows <- length(predictor_range)
+  output_rows <- length(predictor_allowable_values)
 
   # Create the input matrix (duplicate reference_group for each
-  # value in predictor_range, set the predictor to the predictor_range, then
-  # add an extra unmodified reference group to the end, at index output_rows+1)
+  # value in predictor_allowable_values, set the predictor to the
+  # predictor_allowable_values, then add an extra unmodified reference group
+  # to the end, at index output_rows+1)
   df <- data.frame(reference_group)
   df <- df[rep(1, output_rows + 1), ]
-  df[predictor] <- append(predictor_range, predictor_reference_value)
+  df[predictor] <- append(predictor_allowable_values, predictor_reference_value)
   rownames(df) <- seq_len(nrow(df))
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
@@ -192,7 +193,7 @@ make_or_plot <- function(
 
   # Create the DataFrame of odds ratios
   output_df <- data.frame(
-    x = predictor_range[1:output_rows],
+    x = predictor_allowable_values[1:output_rows],
     OR = or[1:output_rows],
     Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
@@ -227,7 +228,7 @@ make_or_plot <- function(
 #' Calculate Odds Ratio Curve with Interaction
 #'
 #' Computes odds ratios showing the effect of a one-unit change in
-#' interaction_predictor across the range of another predictor.
+#' interaction_predictor across the allowable values of another predictor.
 #'
 #' @param predictor Character string specifying the primary variable name
 #'   for the x-axis.
@@ -235,10 +236,10 @@ make_or_plot <- function(
 #'   effect (one-unit change) is being measured.
 #' @param model_data A model definition named list as returned by the model
 #'   definitions utilities.
-#' @param predictor_range Numeric vector of predictor values to evaluate.
-#'   If NULL, uses the range from model_data.
-#' @param interaction_predictor_range Numeric vector of interaction predictor
-#'   values. If NULL, uses the range from model_data.
+#' @param predictor_allowable_values Numeric vector of predictor values to evaluate.
+#'   If NULL, uses the allowable values from model_data.
+#' @param interaction_predictor_allowable_values Numeric vector of interaction predictor
+#'   values. If NULL, uses the allowable values from model_data.
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
@@ -248,14 +249,14 @@ make_or_plot <- function(
   predictor,
   interaction_predictor,
   model_data,
-  predictor_range = NULL,
-  interaction_predictor_range = NULL,
+  predictor_allowable_values = NULL,
+  interaction_predictor_allowable_values = NULL,
   reference_group = NULL
 ) {
-  interaction_predictor_range <- interaction_predictor_range %||%
-    model_data$predictor_ranges[[interaction_predictor]]
-  predictor_range <- predictor_range %||%
-    model_data$predictor_ranges[[predictor]]
+  interaction_predictor_allowable_values <- interaction_predictor_allowable_values %||%
+    model_data$predictor_allowable_values[[interaction_predictor]]
+  predictor_allowable_values <- predictor_allowable_values %||%
+    model_data$predictor_allowable_values[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
 
   predictor_label <- get_variable_label_and_units(
@@ -267,14 +268,15 @@ make_or_plot <- function(
     escape_html = TRUE
   )
 
-  output_rows <- length(predictor_range)
+  output_rows <- length(predictor_allowable_values)
 
   # Create the input matrix (duplicate reference_group for each
-  # value in predictor_range, set the predictor to the predictor_range, then
-  # add an extra unmodified reference group to the end)
+  # value in predictor_allowable_values, set the predictor to the
+  # predictor_allowable_values, then add an extra unmodified reference group
+  # to the end)
   df1 <- data.frame(reference_group)
   df1 <- df1[rep(1, output_rows), ]
-  df1[[predictor]] <- predictor_range
+  df1[[predictor]] <- predictor_allowable_values
   rownames(df1) <- seq_len(nrow(df1))
   df2 <- data.frame(df1)
 
@@ -284,7 +286,7 @@ make_or_plot <- function(
     cat_val <- reference_group[[interaction_predictor]]
 
     # Advance cat_val to the next category
-    allowable_values <- get_predictor_range(
+    allowable_values <- get_predictor_allowable_values(
       model_data, interaction_predictor
     )
     indices <- unlist(df2[[interaction_predictor]])
@@ -330,7 +332,7 @@ make_or_plot <- function(
 
   # Create the DataFrame of odds ratios
   output_df <- data.frame(
-    x = predictor_range,
+    x = predictor_allowable_values,
     OR = or[1:output_rows],
     Model = cleanup_string(model_data$title),
     Comparison = glue::glue(

@@ -2,7 +2,7 @@
 #'
 #' @description
 #' Model definitions reads a YAML configuration file containing information
-#' about various models (eg. model titles, predictor ranges, reference
+#' about various models (eg. model titles, predictor allowable values, reference
 #' groups, model export files, etc.). It parses all information about
 #' the models and allows the user to extract information from them.
 #'
@@ -30,7 +30,7 @@ all_tag <- "_all_"
 #' Read Model Definitions from YAML File
 #'
 #' Loads and processes a YAML model definitions file, including loading
-#' referenced data files, parsing predictor ranges, and applying shared
+#' referenced data files, parsing predictor allowable values, and applying shared
 #' configuration. The returned named list has a $meta field containing
 #' meta information about the algorithm that all models represent (eg.
 #' the algorithm name and version), and has a $models field containing
@@ -53,7 +53,7 @@ all_tag <- "_all_"
 #'           hwmdbmi = 14.9,
 #'           diabx = 2
 #'        ),
-#'        predictor_ranges = list(
+#'        predictor_allowable_values = list(
 #'           hwmdbmi = <value>,
 #'           clc_age = <value>,
 #'           fmh_15 = <value>,
@@ -100,7 +100,7 @@ read_model_definitions <- function(file) {
   info <- .assign_root_dir(info, root_dir)
   info <- .load_model_pipelines(info, root_dir)
   info <- .load_model_export_files(info, root_dir)
-  info <- .parse_predictor_ranges(info)
+  info <- .parse_predictor_allowable_values(info)
   info <- .add_model_indices_and_ids(info)
   info <- .add_model_colors(info)
   info <- .add_empty_pipelines(info)
@@ -159,30 +159,30 @@ read_model_definitions <- function(file) {
   info
 }
 
-#' Create Predictor Range from Various Formats
+#' Create Predictor Allowable Values from Various Formats
 #'
-#' Converts range specifications (string expressions, vectors, or list
+#' Converts allowable value specifications (string expressions, vectors, or list
 #' definitions) into numeric vectors.
 #'
-#' @param range_info Range specification as string (e.g., "1:10",
+#' @param info Allowable values specification as string (e.g., "1:10",
 #'   "seq(1,10,2)"), vector, or list with seq parameters.
 #'
-#' @return Numeric vector representing the range, or NULL if parsing fails.
+#' @return Numeric vector representing the allowable values, or NULL if parsing fails.
 #'
 #' @keywords internal
-.create_predictor_range <- function(range_info) {
-  if (is.character(range_info) && length(range_info) == 1) {
-    func_info <- get_function_and_params(range_info)
+.create_predictor_allowable_values <- function(info) {
+  if (is.character(info) && length(info) == 1) {
+    func_info <- get_function_and_params(info)
     if (!is.null(func_info)) {
       if (func_info$func == "seq" && length(func_info$params) >= 2) {
         return(do.call(seq, func_info$params))
       }
-    } else if (stringr::str_count(range_info, ":") == 1) {
-      lower_upper <- as.integer(unlist(strsplit(range_info, ":")))
+    } else if (stringr::str_count(info, ":") == 1) {
+      lower_upper <- as.integer(unlist(strsplit(info, ":")))
       return(lower_upper[[1]]:lower_upper[[2]])
     }
-  } else if (is.vector(range_info) && is.null(names(range_info))) {
-    return(range_info)
+  } else if (is.vector(info) && is.null(names(info))) {
+    return(info)
   }
 
   NULL
@@ -241,51 +241,52 @@ read_model_definitions <- function(file) {
   info
 }
 
-#' Get Range from Variable Details
+#' Get Allowable Values from Variable Details
 #'
-#' Extracts the valid range of values for a variable from the variable_details
+#' Extracts the allowable values for a variable from the variable_details
 #' table in model data.
 #'
 #' @param model_data List containing model data with variable_details.
 #' @param variable Character string specifying the variable name.
 #'
-#' @return Numeric vector of valid values for the variable.
+#' @return Numeric vector of allowable values for the variable.
 #'
 #' @keywords internal
-.get_range_from_variable_details <- function(model_data, variable) {
+.get_allowable_values_from_variable_details <- function(model_data, variable) {
   info <- model_data$variable_details |>
     dplyr::filter(variable == !!variable) |>
     dplyr::select(recStart, recEnd)
 
-  full_range <- c()
+  allowable_values <- c()
 
   for (idx in seq_len(nrow(info))) {
     rec_start <- info$recStart[[idx]]
     rec_end <- info$recEnd[[idx]]
-    rng <- rec_end
-    if (rng == "copy") {
-      rng <- rec_start
+    val <- rec_end
+    if (val == "copy") {
+      val <- rec_start
     }
-    if (rng == "else" || is_data_missing(rng)) {
+    if (val == "else" || is_data_missing(val)) {
       next
     }
-    rng_yaml <- yaml::read_yaml(text = rng)
-    if (is.null(rng_yaml)) {
+    val_yaml <- yaml::read_yaml(text = val)
+    if (is.null(val_yaml)) {
       next
     }
-    if (is.vector(rng_yaml) && length(rng_yaml) == 2) {
-      full_range <- append(full_range, rng_yaml[1]:rng_yaml[2])
+    if (is.vector(val_yaml) && length(val_yaml) == 2) {
+      allowable_values <- append(allowable_values, val_yaml[1]:val_yaml[2])
     } else {
       # Note that read_yaml above will do some automatic conversion, such as
       # converting the string "Y" to the boolean TRUE. We do not want this,
-      # so we stick with adding the range rng before calling read_yaml,
-      # provided that it was not loaded as another valid format (eg. an array
-      # of size 2, which represents a range from rng[1] to rng[2])
-      full_range <- append(full_range, rng)
+      # so we stick with adding the allowable value val before calling
+      # read_yaml, provided that it was not loaded as another valid format
+      # (eg. an array of size 2, which represents a range from val[1] to
+      # val[2])
+      allowable_values <- append(allowable_values, val)
     }
   }
 
-  full_range
+  allowable_values
 }
 
 #' Get Model Predictors
@@ -303,23 +304,23 @@ read_model_definitions <- function(file) {
     dplyr::pull(variable)
 }
 
-#' Parse Predictor Ranges
+#' Parse Predictor Allowable Values
 #'
-#' Converts predictor range specifications in model definitions to numeric
-#' vectors and fills in missing ranges from variable details.
+#' Converts predictor allowable value specifications in model definitions to
+#' numeric vectors and fills in missing allowable values from variable details.
 #'
-#' @param info Model definitions list containing models with predictor_ranges.
+#' @param info Model definitions list containing models with predictor_allowable_values.
 #'
-#' @return Updated model definitions with parsed predictor ranges.
+#' @return Updated model definitions with parsed predictor allowable values.
 #'
 #' @keywords internal
-.parse_predictor_ranges <- function(info) {
+.parse_predictor_allowable_values <- function(info) {
   for (model_id in names(info$models)) {
-    if ("predictor_ranges" %in% names(info$models[[model_id]])) {
-      for (variable in names(info$models[[model_id]][["predictor_ranges"]])) {
-        info$models[[model_id]]$predictor_ranges[[variable]] <-
-          .create_predictor_range(
-            info$models[[model_id]]$predictor_ranges[[variable]]
+    if ("predictor_allowable_values" %in% names(info$models[[model_id]])) {
+      for (variable in names(info$models[[model_id]][["predictor_allowable_values"]])) {
+        info$models[[model_id]]$predictor_allowable_values[[variable]] <-
+          .create_predictor_allowable_values(
+            info$models[[model_id]]$predictor_allowable_values[[variable]]
           )
       }
     }
@@ -331,9 +332,9 @@ read_model_definitions <- function(file) {
     }
     predictors <- .get_model_predictors(info$models[[model_id]])
     for (predictor in predictors) {
-      if (!(predictor %in% names(info$models[[model_id]]$predictor_ranges))) {
-        info$models[[model_id]]$predictor_ranges[[predictor]] <-
-          .get_range_from_variable_details(info$models[[model_id]], predictor)
+      if (!(predictor %in% names(info$models[[model_id]]$predictor_allowable_values))) {
+        info$models[[model_id]]$predictor_allowable_values[[predictor]] <-
+          .get_allowable_values_from_variable_details(info$models[[model_id]], predictor)
       }
     }
   }
