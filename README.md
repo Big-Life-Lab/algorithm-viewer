@@ -14,6 +14,16 @@ The Algorithm Viewer enables users to examine the relationship between
 predictor variables and risk outcomes through interactive visualizations,
 making complex statistical models more accessible and interpretable.
 
+## Algorithm vs Model
+
+In the context of the Algorithm Viewer, an algorithm is a family of models that
+each perform a similar prediction, using the same set of inputs. A model is an
+instance of the algorithm that can be evaluated. For example, the Hypertension
+Population Risk Tool (HTNPoRT) is an algorithm for predicting risk of
+hypertension. Within HTNPoRT there are two models: one model to perform
+predictions for female individuals, and one for performing predictions for male
+individuals.
+
 ## Features
 
 ### Odds Ratio Visualization
