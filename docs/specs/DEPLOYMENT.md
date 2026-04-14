@@ -156,15 +156,6 @@ should accept a GET query parameter specifying which algorithm to display.
 https://viewer.biglifelab.ca/?algorithm=htnport-full
 ```
 
-**Implementation approach:**
-
-The application reads the `algorithm` query parameter at startup using
-`shiny::parseQueryString()`. If the parameter is present and maps to a known
-algorithm identifier, that algorithm is loaded. If the parameter is absent or
-invalid, a default algorithm or a selection menu is shown.
-
-A registry of available algorithms is maintained in `config.yaml`.
-
 ### 3.6 Sub-Option A: Centralized Hosting on Big Life Lab Server
 
 A single deployment on Big Life Lab infrastructure hosts algorithms for
