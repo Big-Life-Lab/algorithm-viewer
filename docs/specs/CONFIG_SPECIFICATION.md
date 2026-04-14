@@ -129,14 +129,14 @@ reference_group:
 #### `predictor_allowable_values`
 
 Defines the allowable values displayed on the x-axis of plots, as well as the
-values displayed in UI sliders to allow the user to modify the reference groups.
-If not specified, allowable values are derived from the `variable-details.csv`
-file. If the allowable values can be calculated based on `variable-details.csv`
-then the values under `predictor_allowable_values` will take precedence. If the
-allowable values for a predictor cannot be determined based on
-`variable-details.csv`, then they must be specified in this section. The
-allowable values for categorical variables should be of the same type (eg. a
-string or integer) as what is expected as the untransformed input to the
+values displayed in UI sliders/radio buttons to allow the user to modify the
+reference groups. If not specified, allowable values are derived from the
+`variable-details.csv` file. If the allowable values can be calculated based on
+`variable-details.csv` then the values under `predictor_allowable_values` will
+take precedence. If the allowable values for a predictor cannot be determined
+based on `variable-details.csv`, then they must be specified in this section.
+The allowable values for categorical variables should be of the same type (eg.
+a string or integer) as what is expected as the untransformed input to the
 pipeline.
 
 **Supported formats:**
@@ -174,21 +174,46 @@ models:
   male:
     title: Male
     model_export: ./HTNPoRT-male-model-export.csv
+    predictor_allowable_values:
+      hwmdbmi: seq(13, 49, by = 0.01)
   female:
     title: Female
     model_export: ./HTNPoRT-female-model-export.csv
-  _all_:
     predictor_allowable_values:
       hwmdbmi: seq(13, 49, by = 0.01)
+      clc_age: 15:85
+  _all_:
+    predictor_allowable_values:
+      clc_age: 20:80
 ```
 
-In this example, both `male` and `female` models inherit the `hwmdbmi`
-allowable values unless they explicitly override it. Any key/value found in the
-`_all_` model will be copied over to the other models (in this case the `male`
-and `female` models) if that key/value is not found in the other models. The
-`_all_` model does not correspond to an actual model that will be displayed in
-the Algorithm Viewer, it simply provides additional configuration options to
-apply to the other models.
+In this example, `_all_` defines `clc_age: 20:80` as a shared default under the
+`predictor_allowable_values` key. The `male` model does not have `clc_age`
+defined under `predictor_allowable_values`, so inherits the values from
+`_all_`. The `female` model already has `clc_age` defined, so it does not
+inherit the values from `_all_`. The above example is equivalent to:
+
+```yaml
+models:
+  male:
+    title: Male
+    model_export: ./HTNPoRT-male-model-export.csv
+    predictor_allowable_values:
+      hwmdbmi: seq(13, 49, by = 0.01)
+      clc_age: 20:80
+  female:
+    title: Female
+    model_export: ./HTNPoRT-female-model-export.csv
+    predictor_allowable_values:
+      hwmdbmi: seq(13, 49, by = 0.01)
+      clc_age: 15:85
+```
+
+This inheritance pattern applies to all keys and values specified under
+`_all_`, not just those specified under `predictor_allowable_values`. The
+`_all_` key does not correspond to an actual model displayed in the Algorithm
+Viewer; it exists solely to supply default configuration values to the other
+models.
 
 **Inheritance behavior:**
 
