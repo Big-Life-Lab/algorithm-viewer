@@ -152,8 +152,11 @@ should accept a GET query parameter specifying which algorithm to display.
 
 **Proposed URL format:**
 
+There are two options for the proposed URL format:
+
 ```
 https://viewer.biglifelab.ca/?algorithm=htnport-full
+https://viewer.biglifelab.ca/htnport-full
 ```
 
 ### 3.6 Sub-Option A: Centralized Hosting on Big Life Lab Server
