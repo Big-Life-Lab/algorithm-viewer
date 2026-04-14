@@ -1,4 +1,4 @@
-Package: algorithmviewer
+Package: algorithm.viewer
 Title: Algorithm Viewer - Shiny Application for Visualizing Prediction Algorithms
 Version: 0.1.0
 Authors@R: c(
