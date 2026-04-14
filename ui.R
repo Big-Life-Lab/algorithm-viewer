@@ -41,6 +41,7 @@ ui <- fluidPage(
   # Sidebar layout
   sidebarLayout(
     # Sidebar panel for inputs
+    # Using mainPanel instead of the usual sidebarPanel because it looks better
     mainPanel(
       width = 3,
       tabsetPanel(
