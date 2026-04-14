@@ -58,7 +58,7 @@ algorithm-viewer/
 ├── ui.R                  # User interface definition
 ├── server.R              # Server-side logic and reactive elements
 ├── R/                    # R source files
-│   ├── curves/           # Curve calculation functions
+│   ├── plots/            # Curve calculation functions
 │   ├── model_definitions/# Model definitions/config file parser
 │   ├── modules/          # R Shiny modules
 │   └── utils/            # Utility functions
