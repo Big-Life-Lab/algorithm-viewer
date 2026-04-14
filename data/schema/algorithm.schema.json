@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "algorithm.schema.json",
+  "title": "Algorithm Definition",
+  "description": "Schema for an algorithm definition YAML file, which specifies meta information and one or more statistical models.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "models"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Meta information about the algorithm.",
+      "additionalProperties": false,
+      "required": ["algorithm", "version"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "description": "Human-readable name of the algorithm.",
+          "examples": ["HTNPoRT Full", "HTNPoRT Reduced"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the algorithm definition.",
+          "examples": ["1.0.0"]
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "description": "Map of model entries. Keys are arbitrary model identifiers. The special key '_all_' defines shared configuration that is merged into every other model (without overwriting values already set on the model).",
+      "minProperties": 1,
+      "properties": {
+        "_all_": {
+          "$ref": "#/$defs/shared_model_config",
+          "description": "Shared configuration applied to all models. Values here are copied to each named model unless that model already defines them."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/model_entry"
+      }
+    }
+  },
+  "$defs": {
+    "predictor_allowable_values": {
+      "type": "object",
+      "description": "Map of predictor variable names to their allowable input values. Each value is either a string expression (e.g. 'seq(13, 49, by = 0.01)' or '1:10') or an explicit array of numbers.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "string",
+            "description": "An R-style range or seq() expression defining allowable values.",
+            "examples": ["seq(13, 49, by = 0.01)", "1:10"]
+          },
+          {
+            "type": "array",
+            "description": "An explicit list of allowable numeric values.",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 1
+          }
+        ]
+      }
+    },
+    "reference_group": {
+      "type": "object",
+      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs.",
+      "additionalProperties": {
+        "type": "number",
+        "description": "Reference value for this predictor variable."
+      }
+    },
+    "shared_model_config": {
+      "type": "object",
+      "description": "Configuration fields that can appear on an individual model or in the '_all_' shared block.",
+      "additionalProperties": false,
+      "properties": {
+        "predictor_allowable_values": {
+          "$ref": "#/$defs/predictor_allowable_values"
+        },
+        "reference_group": {
+          "$ref": "#/$defs/reference_group"
+        }
+      }
+    },
+    "model_entry": {
+      "type": "object",
+      "description": "A named model within the algorithm. Defines the display title, the path to the model export CSV, and optional predictor configuration.",
+      "additionalProperties": false,
+      "required": ["title", "model_export"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable display name for this model.",
+          "examples": ["Female", "Male"]
+        },
+        "model_export": {
+          "type": "string",
+          "description": "Relative path (from this YAML file's directory) to the model export CSV file.",
+          "examples": ["./female-full/HTNPoRT-full-female-model-export.csv"]
+        },
+        "model_color": {
+          "type": "string",
+          "description": "Optional hex color used when displaying this model. If omitted, a color is assigned automatically from the viridis palette.",
+          "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
+          "examples": ["#440154FF", "#21908C"]
+        },
+        "predictor_allowable_values": {
+          "$ref": "#/$defs/predictor_allowable_values"
+        },
+        "reference_group": {
+          "$ref": "#/$defs/reference_group"
+        }
+      }
+    }
+  }
+}
