@@ -50,19 +50,10 @@ feature set of the Algorithm Viewer to any user.
    Algorithm Definition file format.
 6. An example algorithm may optionally be pre-loaded so that new users can
    explore the interface immediately without needing to upload a file.
-
-### 2.4 Configuration
-
-This option uses the current default configuration:
-
-```yaml
-allow_file_uploads: TRUE
-initial_algorithm_file: data/models/htnport-reduced/htnport-reduced.yaml  # optional
-```
-
-Setting `initial_algorithm_file` to a bundled example algorithm gives
-first-time users an immediate demonstration of the application's capabilities.
-Setting it to `NULL` presents users with a blank state and an upload prompt.
+7. The configuration file should have a flag to specify that users can upload
+   their own Algorithm Definitions. An additional configuration option can
+   specify which pre-loaded Algorithm should be displayed by default (before a
+   user uploads their own algorithm).
 
 ### 2.5 Deployment Methods
 
@@ -90,6 +81,9 @@ Additional server-based hosting platforms include:
 
 ### 2.6 Security Considerations
 
+These security considerations apply to when the app is running on a server,
+rather than locally on the user's own computer/browser.
+
 - Uploaded files should be processed in an isolated temporary directory and
   cleaned up after the session ends.
 - Maximum upload size should be enforced (currently 30 MB via
@@ -100,6 +94,9 @@ Additional server-based hosting platforms include:
   public-facing deployment.
 
 ### 2.7 Scalability
+
+These scalability considerations apply to when the app is running on a server,
+rather than locally on the user's own computer/browser.
 
 For moderate traffic, a single Shiny Server instance is sufficient. If usage
 grows, consider:
@@ -144,17 +141,9 @@ without needing to install software or obtain the Algorithm Definition files.
 6. The interface may optionally include metadata about the algorithm (e.g.,
    citation information, a link to the associated publication, or author
    contact details).
-
-### 3.4 Configuration
-
-```yaml
-allow_file_uploads: FALSE
-initial_algorithm_file: data/models/htnport-full/htnport-full.yaml
-```
-
-When a single algorithm is to be showcased, `initial_algorithm_file` points to
-that algorithm and no selection UI is needed. When multiple algorithms are
-available, a selection mechanism replaces the file upload control.
+7. The configuration file should set a flag to indicate that users cannot
+   upload their own algorithms. There should also be configuration options to
+   specify which algorithms the users can view.
 
 ### 3.5 URL-Based Algorithm Selection
 
@@ -174,23 +163,7 @@ The application reads the `algorithm` query parameter at startup using
 algorithm identifier, that algorithm is loaded. If the parameter is absent or
 invalid, a default algorithm or a selection menu is shown.
 
-A registry of available algorithms is maintained in `config.yaml`:
-
-```yaml
-allow_file_uploads: FALSE
-
-algorithms:
-  htnport-full:
-    title: "HTNPoRT Full Model"
-    file: data/models/htnport-full/htnport-full.yaml
-    description: "10-year hypertension risk prediction"
-    citation: "Author et al. (2025). Journal Name."
-  htnport-reduced:
-    title: "HTNPoRT Reduced Model"
-    file: data/models/htnport-reduced/htnport-reduced.yaml
-    description: "Simplified hypertension risk prediction"
-    citation: "Author et al. (2025). Journal Name."
-```
+A registry of available algorithms is maintained in `config.yaml`.
 
 ### 3.6 Sub-Option A: Centralized Hosting on Big Life Lab Server
 
@@ -288,19 +261,8 @@ algorithm with minimal or no coding effort.
 
 The most direct approach for scientists who already have R installed. A wrapper
 function in the `algorithm-viewer` package (or a standalone script) launches
-the application with a single call:
-
-```r
-# Install once
-# install.packages("remotes")
-# remotes::install_github("Big-Life-Lab/algorithm-viewer")
-
-# Launch the viewer, optionally pointing to a local algorithm file
-algorithm_viewer::run(algorithm = "path/to/my-algorithm.yaml")
-
-# Or launch with upload enabled (no pre-loaded algorithm)
-algorithm_viewer::run()
-```
+the application with a single call. Either an Algorithm Viewer configuration
+file or an Algorithm Definition file can be specified as a parameter.
 
 **Advantages:**
 
@@ -318,17 +280,9 @@ algorithm_viewer::run()
 #### 4.4.2 Docker Container
 
 A pre-built Docker image provides a fully self-contained environment that does
-not require the scientist to install R or manage package dependencies.
-
-```bash
-# Pull the image once
-docker pull biglifelab/algorithm-viewer
-
-# Run the viewer, mounting a local directory containing algorithm files
-docker run -p 3838:3838 -v /path/to/my/algorithms:/data/models biglifelab/algorithm-viewer
-```
-
-The scientist then opens `http://localhost:3838` in their browser.
+not require the scientist to install R or manage package dependencies. The
+Docker image can be run, allowing the user to view the Algorithm Viewer in a
+web browser.
 
 **Advantages:**
 
@@ -388,39 +342,10 @@ The image should be published to a container registry (e.g., Docker Hub, GitHub
 Container Registry) and tagged with version numbers corresponding to Algorithm
 Viewer releases.
 
-A working [Dockerfile](Dockerfile) is already available in the Algorithm Viewer repository.
+A working [Dockerfile](Dockerfile) is already available in the Algorithm Viewer
+repository.
 
-### 5.2 Configuration System
-
-The existing `config.yaml` mechanism supports all three deployment options
-through a small number of configuration parameters. The following extensions
-are proposed:
-
-```yaml
-# --- Core settings (existing) ---
-allow_file_uploads: TRUE
-initial_algorithm_file: NULL
-
-# --- Proposed additions ---
-
-# Registry of available algorithms (for Option 2)
-algorithms: NULL  # or a map of algorithm identifiers to metadata
-
-# Application metadata
-app_title: "Algorithm Viewer"  # Customizable page title
-```
-
-The `allow_file_uploads` and `initial_algorithm_file` settings, together with
-the optional `algorithms` registry, are sufficient to configure the application
-for all three deployment options:
-
-| Setting | Public Web Application | Hosted Algorithm Showcase (single) | Hosted Algorithm Showcase (multi) | Local Development Tool |
-|---------|----------|--------------------|-------------------|----------|
-| `allow_file_uploads` | `TRUE` | `FALSE` | `FALSE` | `TRUE` |
-| `initial_algorithm_file` | optional | set | set (default) | optional |
-| `algorithms` | `NULL` | `NULL` | populated | optional |
-
-### 5.3 CI/CD Pipeline
+### 5.2 CI/CD Pipeline
 
 The existing GitHub Actions workflow (`.github/workflows/deploy-app.yaml`)
 handles Shinylive deployment to GitHub Pages. Additional workflows should be
