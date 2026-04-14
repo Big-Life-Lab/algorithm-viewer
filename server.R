@@ -7,11 +7,6 @@ source("R/utils/url.R")
 source("R/utils/general_plot.R")
 source("R/plots/plot_manager.R")
 
-# Remove scientific notation from plots
-options(scipen = 8)
-# Maximum upload size in bytes
-options(shiny.maxRequestSize = 30 * 1024^2)
-
 #' Shiny Server Function
 #'
 #' Main server logic for the Algorithm Viewer Shiny application. Handles
