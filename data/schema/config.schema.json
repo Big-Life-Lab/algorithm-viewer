@@ -1,0 +1,65 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "config.schema.json",
+  "title": "Algorithm Viewer Configuration",
+  "description": "Configuration schema for the Algorithm Viewer Shiny application",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "allow_file_uploads": {
+      "type": "boolean",
+      "description": "If true, allow the user to upload their own algorithm files to view.",
+      "default": false
+    },
+    "initial_algorithm_file": {
+      "type": "string",
+      "description": "Path to an algorithm file to load automatically on startup. If set, initial_algorithm_id is ignored.",
+      "examples": [
+        "data/models/htnport-reduced/htnport-reduced.yaml"
+      ]
+    },
+    "initial_algorithm_id": {
+      "type": "string",
+      "description": "Key of an algorithm in the 'algorithms' map to load on startup. Ignored if initial_algorithm_file is set.",
+      "examples": [
+        "htnport-reduced"
+      ]
+    },
+    "algorithms": {
+      "type": "object",
+      "description": "Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.",
+      "additionalProperties": {
+        "type": "object",
+        "description": "A preloaded algorithm entry.",
+        "required": ["title", "file"],
+        "additionalProperties": false,
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Human-readable display name for the algorithm.",
+            "examples": [
+              "HTNPoRT Full Model"
+            ]
+          },
+          "file": {
+            "type": "string",
+            "description": "Path to the algorithm's YAML file.",
+            "examples": [
+              "data/models/htnport-full/htnport-full.yaml"
+            ]
+          }
+        }
+      }
+    },
+    "allow_algorithms_selection": {
+      "type": "boolean",
+      "description": "If true, and at least one algorithm is defined in 'algorithms', display a dropdown for the user to select a preloaded algorithm.",
+      "default": true
+    },
+    "allow_algorithm_in_url": {
+      "type": "boolean",
+      "description": "If true, and algorithms are defined, allow the algorithm to be specified via the URL 'algorithm' query parameter (e.g. ?algorithm=htnport-reduced).",
+      "default": true
+    }
+  }
+}
