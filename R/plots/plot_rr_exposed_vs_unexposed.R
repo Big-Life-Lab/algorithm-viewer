@@ -48,13 +48,13 @@ plotRRExposedUnexposedServer <- function(
 
     # Cached curve data, to avoid unncessary recalculation of curves that have
     # already been calculated
-    cached_curve_env <- initialize_cached_data_env()
+    cached_curves <- initialize_cached_data()
 
     observe({
       # React whenever new model definitions are loaded
       model_definitions()
       # Clear the cached curve data, since they are no longer valid.
-      clear_cached_data(cached_curve_env)
+      clear_cached_data(cached_curves)
     }, priority = 10000)
 
     # Create the exposed/unexposed group controls
@@ -132,14 +132,14 @@ plotRRExposedUnexposedServer <- function(
             cache_key <- list("rr_exposed_vs_unexposed", model_data$model_id)
             if (
               is_reusable_cached_data(
-                cached_curve_env,
+                cached_curves,
                 cache_key,
                 model_params
               )
             ) {
               # Reuse the old data
               all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_data(cached_curve_env, cache_key)
+                get_cached_data(cached_curves, cache_key)
             } else {
               # Get predictor type (Categorical or Continuous)
               tic <- Sys.time()
@@ -163,7 +163,7 @@ plotRRExposedUnexposedServer <- function(
 
               # Save the data to our cache
               set_cached_data(
-                cached_curve_env,
+                cached_curves,
                 cache_key,
                 model_params,
                 curve_data
