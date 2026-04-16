@@ -39,13 +39,13 @@ plotPRServer <- function(
   shiny::moduleServer(id, function(input, output, session) {
     # Cached curve data, to avoid unncessary recalculation of curves that have
     # already been calculated
-    cached_curve_env <- initialize_cached_curve_data_env()
+    cached_curve_env <- initialize_cached_data_env()
 
     observe({
       # React whenever new model definitions are loaded
       model_definitions()
       # Clear the cached curve data, since they are no longer valid.
-      clear_cached_curve_data(cached_curve_env)
+      clear_cached_data(cached_curve_env)
     }, priority = 10000)
 
     output$plot <- plotly::renderPlotly({
@@ -72,7 +72,7 @@ plotPRServer <- function(
             )
             cache_key <- list("pr", model_data$model_id, predictor())
             if (
-              is_reusable_cached_curve_data(
+              is_reusable_cached_data(
                 cached_curve_env,
                 cache_key,
                 model_params
@@ -80,7 +80,7 @@ plotPRServer <- function(
             ) {
               # Reuse the old data
               all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_curve_data(cached_curve_env, cache_key)
+                get_cached_data(cached_curve_env, cache_key)
             } else {
               tic <- Sys.time()
 
@@ -99,7 +99,7 @@ plotPRServer <- function(
               all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
               # Save the data to our cache
-              set_cached_curve_data(
+              set_cached_data(
                 cached_curve_env,
                 cache_key,
                 model_params,

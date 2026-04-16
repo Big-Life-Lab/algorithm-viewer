@@ -1,7 +1,7 @@
 source("R/model_definitions/model_definitions.R")
 source("R/modules/predictor_controls.R")
 source("R/modules/predictor_controls_manager.R")
-source("R/utils/cached_curve_data.R")
+source("R/utils/cached_data.R")
 source("R/utils/config.R")
 source("R/utils/url.R")
 source("R/utils/general_plot.R")
