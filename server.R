@@ -29,9 +29,7 @@ server <- function(input, output, session) {
   # The environment containing all variables associated with the predictor
   # controls
   predictor_controls_env <- initialize_predictor_controls_env()
-  # The envionment containing all variables associated with cached curve data
-  cached_curve_env <- initialize_cached_curve_data_env()
-
+  
   # Stores the currently loaded model definitions (NULL when no algorithm is loaded).
   # model_definitions()$models contains all the models (keyed by model ID).
   # Once loaded with load_model_definitions, the values in model_definitions
@@ -312,8 +310,7 @@ server <- function(input, output, session) {
       reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
-      model_definitions,
-      cached_curve_env
+      model_definitions
     )
     plotRRServer(
       "rr_plot",
@@ -322,8 +319,7 @@ server <- function(input, output, session) {
       reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
-      model_definitions,
-      cached_curve_env
+      model_definitions
     )
     plotORServer(
       "or_plot",
@@ -332,8 +328,7 @@ server <- function(input, output, session) {
       reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
-      model_definitions,
-      cached_curve_env
+      model_definitions
     )
     plotPRServer(
       "pr_plot",
@@ -342,8 +337,7 @@ server <- function(input, output, session) {
       reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
-      model_definitions,
-      cached_curve_env
+      model_definitions
     )
   }
 
@@ -363,10 +357,7 @@ server <- function(input, output, session) {
         # Destroy all predictor controls
         destroy_all_predictor_controls(predictor_controls_env)
 
-        # Clear all cached curve data, since they will no longer apply after
-        # loading the new definitions
-        clear_cached_curve_data(cached_curve_env)
-
+        # Load the file
         model_definitions(read_model_definitions(file))
 
         # Initialize the reference group values. These values will be automatically

@@ -26,9 +26,6 @@ NULL
 #' @param model_definitions A reactive expression (or \code{reactiveVal})
 #'   returning the top-level model definitions object, or \code{NULL} if no
 #'   algorithm is loaded.
-#' @param cached_curve_env An environment used to cache curve data between
-#'   renders so that unchanged models do not trigger redundant pipeline runs.
-#'   Created by \code{\link{initialize_cached_curve_data_env}}.
 #'
 #' @return \code{NULL}, called for side effects.
 plotORServer <- function(
@@ -38,17 +35,19 @@ plotORServer <- function(
   logarithmic,
   selected_models,
   selected_reference_groups,
-  model_definitions,
-  cached_curve_env
+  model_definitions
 ) {
   shiny::moduleServer(id, function(input, output, session) {
-    # cached_curve_env <- initialize_cached_curve_data_env()
+    # Cached curve data, to avoid unncessary recalculation of curves that have
+    # already been calculated
+    cached_curve_env <- initialize_cached_curve_data_env()
 
-    # observe({
-    #   print("RESETTING")
-    #   model_definitions()
-    #   clear_cached_curve_data(cached_curve_env)
-    # }, priority = 100)
+    observe({
+      # React whenever new model definitions are loaded
+      model_definitions()
+      # Clear the cached curve data, since they are no longer valid.
+      clear_cached_curve_data(cached_curve_env)
+    }, priority = 10000)
 
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
@@ -128,6 +127,7 @@ plotORServer <- function(
         },
         error = function(e) {
           traceback()
+          message(e$message)
           make_message_plot(
             glue::glue("<b>Error</b>: {e$message}"),
             color = "red"
