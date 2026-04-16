@@ -30,10 +30,10 @@ all_tag <- "_all_"
 #' Read Model Definitions from YAML File
 #'
 #' Loads and processes a YAML model definitions file, including loading
-#' referenced data files, parsing predictor allowable values, and applying shared
-#' configuration. The returned named list has a $meta field containing
-#' meta information about the algorithm that all models represent (eg.
-#' the algorithm name and version), and has a $models field containing
+#' referenced data files, parsing predictor allowable values, and applying
+#' shared configuration. The returned named list has a $meta field
+#' containing meta information about the algorithm that all models represent
+#' (eg. the algorithm name and version), and has a $models field containing
 #' all models that can be used.
 #'
 #' The following is an example of a full model definitions list returned
@@ -101,6 +101,7 @@ read_model_definitions <- function(file) {
   info <- .load_model_pipelines(info, root_dir)
   info <- .load_model_export_files(info, root_dir)
   info <- .parse_predictor_allowable_values(info)
+  info <- .cleanup_reference_groups(info)
   info <- .add_model_indices_and_ids(info)
   info <- .add_model_colors(info)
   info <- .add_empty_pipelines(info)
@@ -167,7 +168,8 @@ read_model_definitions <- function(file) {
 #' @param info Allowable values specification as string (e.g., "1:10",
 #'   "seq(1,10,2)"), vector, or list with seq parameters.
 #'
-#' @return Numeric vector representing the allowable values, or NULL if parsing fails.
+#' @return Numeric vector representing the allowable values, or NULL if parsing
+#'   fails.
 #'
 #' @keywords internal
 .create_predictor_allowable_values <- function(info) {
@@ -309,7 +311,8 @@ read_model_definitions <- function(file) {
 #' Converts predictor allowable value specifications in model definitions to
 #' numeric vectors and fills in missing allowable values from variable details.
 #'
-#' @param info Model definitions list containing models with predictor_allowable_values.
+#' @param info Model definitions list containing models with
+#'   predictor_allowable_values.
 #'
 #' @return Updated model definitions with parsed predictor allowable values.
 #'
@@ -444,6 +447,34 @@ read_model_definitions <- function(file) {
     info$models[[model_id]]$model_index <- idx
     info$models[[model_id]]$model_id <- model_id
     idx <- idx + 1
+  }
+
+  info
+}
+
+#' Convert Categorical Reference Group Values to Strings
+#'
+#' Ensures all categorical predictor values in each model's reference group
+#' are stored as character strings. This prevents type mismatches when
+#' comparing reference group values against the character values used by
+#' the UI controls (radio buttons).
+#'
+#' @param info Model definitions list containing models with reference_group
+#'   and variable metadata.
+#'
+#' @return Updated model definitions with categorical reference group values
+#'   converted to character strings.
+#'
+#' @keywords internal
+.cleanup_reference_groups <- function(info) {
+  for (model_id in names(info$models)) {
+    reference_group <- info$models[[model_id]]$reference_group
+    for (variable in names(reference_group)) {
+      if (is_variable_categorical(info$models[[model_id]], variable)) {
+        reference_group[[variable]] <- as.character(reference_group[[variable]])
+      }
+    }
+    info$models[[model_id]]$reference_group <- reference_group
   }
 
   info

@@ -38,7 +38,7 @@
 #' if (is_reusable_cached_curve_data(cache, "or", "model_1", params)) {
 #'   curve_df <- get_cached_curve_data(cache, "or", "model_1")
 #' } else {
-#'   curve_df <- calculate_curve(...)          # expensive step
+#'   curve_df <- calculate_curve(...) # expensive step
 #'   set_cached_curve_data(cache, "or", "model_1", params, curve_df)
 #' }
 #'

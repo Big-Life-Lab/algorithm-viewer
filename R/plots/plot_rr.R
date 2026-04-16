@@ -1,122 +1,134 @@
 #' Relative Risk Curve
 #'
-#' Functions for computing and rendering relative risk (PR) curves.
+#' Functions for computing and rendering relative risk (RR) curves.
 NULL
 
-plot_id <- "rr_plot"
-
-#' Build a Relative Risk Plot for the Current Predictor
+#' Build a Relative Risk Plot Module Server
 #'
-#' @param session The Shiny \code{session} object.
-#' @param models A list of model data objects to plot curves for. This is a
-#'   subset of model_definitions$models.
-#' @param model_definitions The top-level model definitions object.
-#' @param predictor_controls_env An environment holding the all predictor
-#'   controls used to specify predictor values. This includes the controls
-#'   for specifying reference groups and other predictor values used for
-#'   plotting. Used the predictor controls manager utility functions.
+#' Shiny module server that renders an interactive relative risk (RR) curve for
+#' the currently selected predictor, across all selected models.
+#'
+#' @param id Character string. The Shiny module namespace ID (must match the
+#'   ID used in \code{\link{plotRRUI}}).
+#' @param predictor A reactive expression returning the currently selected
+#'   predictor variable name (character string).
+#' @param interaction_predictor A reactive expression returning the currently
+#'   selected interaction predictor variable name. Returns
+#'   \code{config_get_empty_selection()} when no interaction predictor is
+#'   selected.
+#' @param logarithmic A reactive expression returning a logical indicating
+#'   whether to use a logarithmic y-axis scale.
+#' @param selected_models A reactive expression returning the list of model
+#'   data objects to plot curves for. This is a subset of
+#'   \code{model_definitions()$models}.
+#' @param selected_reference_groups A reactive expression returning a named
+#'   list of reference group predictor values, keyed by model ID.
+#' @param model_definitions A reactive expression (or \code{reactiveVal})
+#'   returning the top-level model definitions object, or \code{NULL} if no
+#'   algorithm is loaded.
 #' @param cached_curve_env An environment used to cache curve data between
 #'   renders so that unchanged models do not trigger redundant pipeline runs.
-#'   Used by the cached curve data utility functions.
+#'   Created by \code{\link{initialize_cached_curve_data_env}}.
 #'
-#' @return A \code{ggplot} object (or a message plot on error / missing data),
-#'   as returned by \code{\link{make_general_plot}} or
-#'   \code{\link{make_message_plot}}.
-make_rr_plot <- function(
-  session,
-  models,
+#' @return \code{NULL}, called for side effects.
+plotRRServer <- function(
+  id,
+  predictor,
+  interaction_predictor,
+  logarithmic,
+  selected_models,
+  selected_reference_groups,
   model_definitions,
-  predictor_controls_env,
   cached_curve_env
 ) {
-  req(session$userData$predictor)
-
-  if (is.null(model_definitions)) {
-    return(make_general_plot(
-      NULL,
-      model_definitions
-    ))
-  }
-
-  tryCatch(
-    {
-      all_curve_data <- list()
-      predictor <- session$userData$predictor
-      interaction_predictor <- session$userData$interaction_predictor
-
-      # Go through all models and calculate the OR curves
-      # We concatenate them (with bind_rows) to show one curve per model
-      for (model_data in models) {
-        predictor_values <-
-          get_predictor_controls_values(predictor_controls_env, model_data)
-
-        # Check if we can use the cached old data for the current model
-        model_params <- list(
-          predictor = predictor,
-          interaction_predictor = interaction_predictor,
-          reference_group = predictor_values
-        )
-        if (
-          is_reusable_cached_curve_data(
-            cached_curve_env,
-            "rr",
-            model_data$model_id,
-            model_params
-          )
-        ) {
-          # Reuse the old data
-          all_curve_data[[length(all_curve_data) + 1]] <-
-            get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
-        } else {
-          tic <- Sys.time()
-
-          # Calculate the RR curve for the model
-          if (interaction_predictor == config_get_empty_selection()) {
-            curve_data <- .calculate_rr_curve(
-              predictor,
-              model_data,
-              reference_group = predictor_values
-            )
-          } else {
-            curve_data <- .calculate_rr_curve_interaction(
-              predictor,
-              interaction_predictor,
-              model_data,
-              reference_group = predictor_values
-            )
-          }
-
-          elapsed <- Sys.time() - tic
-          message(paste0(
-            "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed
-          ))
-
-          all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-          # Save the data to our cache
-          set_cached_curve_data(
-            cached_curve_env,
-            "rr",
-            model_data$model_id,
-            model_params,
-            curve_data
-          )
-        }
+  shiny::moduleServer(id, function(input, output, session) {
+    output$plot <- plotly::renderPlotly({
+      if (is.null(model_definitions())) {
+        return(make_general_plot(
+          NULL,
+          model_definitions()
+        ))
       }
 
-      make_general_plot(
-        all_curve_data,
-        model_definitions,
-        session$userData$logarithmic
+      tryCatch(
+        {
+          all_curve_data <- list()
+
+          # Go through all selected_models and calculate the RR curves
+          # We concatenate them (with bind_rows) to show one curve per model
+          for (model_data in selected_models()) {
+            predictor_values <- selected_reference_groups()[[model_data$model_id]]
+
+            # Check if we can use the cached old data for the current model
+            model_params <- list(
+              predictor = predictor(),
+              interaction_predictor = interaction_predictor(),
+              reference_group = predictor_values
+            )
+            if (
+              is_reusable_cached_curve_data(
+                cached_curve_env,
+                "rr",
+                model_data$model_id,
+                model_params
+              )
+            ) {
+              # Reuse the old data
+              all_curve_data[[length(all_curve_data) + 1]] <-
+                get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
+            } else {
+              tic <- Sys.time()
+
+              # Calculate the RR curve for the model
+              if (interaction_predictor() == config_get_empty_selection()) {
+                curve_data <- .calculate_rr_curve(
+                  predictor(),
+                  model_data,
+                  reference_group = predictor_values
+                )
+              } else {
+                curve_data <- .calculate_rr_curve_interaction(
+                  predictor(),
+                  interaction_predictor(),
+                  model_data,
+                  reference_group = predictor_values
+                )
+              }
+
+              elapsed <- Sys.time() - tic
+              message(paste0(
+                "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed
+              ))
+
+              all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+              # Save the data to our cache
+              set_cached_curve_data(
+                cached_curve_env,
+                "rr",
+                model_data$model_id,
+                model_params,
+                curve_data
+              )
+            }
+          }
+
+          make_general_plot(
+            all_curve_data,
+            model_definitions(),
+            logarithmic()
+          )
+        },
+        error = function(e) {
+          traceback()
+          make_message_plot(
+            glue::glue("<b>Error</b>: {e$message}"),
+            color = "red"
+          )
+        }
       )
-    },
-    error = function(e) {
-      make_message_plot(
-        glue::glue("<b>Error</b>: {e$message}"),
-        color = "red"
-      )
-    }
-  )
+    })
+  })
 }
 
 #' Calculate Relative Risk Curve for a Predictor
@@ -366,38 +378,26 @@ make_rr_plot <- function(
   )
 }
 
-#' Get the UI Elements to Insert Into the Plot's tabPanel
+#' Build the Relative Risk Plot UI
 #'
-#' @param plot_height Character or numeric specifying the size of a full-height
-#'   plot. This can be passed to \code{\link[plotly]{plotlyOutput}} as the
-#'   \code{height} argument.
+#' Returns the UI elements to insert into the Relative Risk tab panel.
+#'
+#' @param id Character string. The Shiny module namespace ID (must match the
+#'   ID used in \code{\link{plotRRServer}}).
+#' @param plot_height Character or numeric specifying the height of the plot
+#'   area. Passed to \code{\link[plotly]{plotlyOutput}} as the \code{height}
+#'   argument.
+#' @param model_definitions A reactive expression (or \code{reactiveVal})
+#'   returning the top-level model definitions object.
 #'
 #' @return A \code{\link[shiny]{tagList}} containing the panel UI elements.
-panel_ui <- function(plot_height) {
+plotRRUI <- function(
+  id,
+  plot_height,
+  model_definitions
+) {
   tagList(
     br(),
-    plotly::plotlyOutput(plot_id, height = plot_height)
+    plotly::plotlyOutput(shiny::NS(id, "plot"), height = plot_height)
   )
 }
-
-#' Register the Plot with the Plot Manager
-#'
-#' This function calls \code{\link{plot_man_add_plot}} with the plot's
-#' infomation.
-#'
-#' @param .env The plot manager environment to register this plot into.
-#'
-#' @return Called for its side effect of registering the plot.
-plot_register <- function(.env) {
-  plot_man_add_plot(
-    .env,
-    plot_id = plot_id,
-    title = "Relative Risk",
-    make_plot_fn = make_rr_plot,
-    panel_ui_fn = panel_ui,
-    model_ui_fn = NULL
-  )
-}
-
-# Always have the registration function returned as the last line
-plot_register

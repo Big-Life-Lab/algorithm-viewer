@@ -10,7 +10,7 @@
 #' # In a Shiny server function, activate an algorithm specified in the URL:
 #' observe({
 #'   if (url_has_algorithm_id(session)) {
-#'     id <- url_get_algorithm_id(session)   # e.g. "htnport-full"
+#'     id <- url_get_algorithm_id(session) # e.g. "htnport-full"
 #'     # … activate the matching algorithm
 #'   }
 #' })

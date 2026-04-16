@@ -74,11 +74,11 @@ make_general_plot <- function(
   theme_args = NULL,
   plot_type = NULL
 ) {
-  # If no models are selected then tell the user to select one
   if (is.null(model_definitions)) {
-    msg <- "No algorithm loaded.<br />Please upload some data."
-    return(make_message_plot(msg))
+    # No algorithm file has been loaded
+    return(make_message_plot("Please upload an algorithm to view this plot."))
   } else if (is.null(all_curve_data) || length(all_curve_data) == 0) {
+    # No models have been selected
     return(make_message_plot("Please select at least one model."))
   }
 
@@ -206,7 +206,6 @@ make_general_plot <- function(
         ) +
         ggplot2::labs(
           title = curve_data$title,
-          subtitle = curve_data$title,
           x = curve_data$x_axis_label,
           y = ylabel
         ) +
@@ -227,7 +226,7 @@ make_general_plot <- function(
         # Flip the x and y axes
         p <- p +
           ggplot2::coord_flip()
-        hovermode = "y unified"
+        hovermode <- "y unified"
       }
 
       # Generate and return the Plotly plot from the ggplot2

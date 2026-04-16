@@ -26,16 +26,11 @@ individuals.
 
 ## Features
 
-### Odds Ratio Visualization
+### Multiple Plot Types
 
-- Interactive plots showing how odds ratios change across predictor values
+- Interactive plots for odds ratio, relative risk, and predicted risk.
 - Support for both continuous and categorical predictors
 - Visualization of predictor interactions to understand combined effects
-
-### Predicted Risk Curves
-
-- View predicted risk as a function of predictor variables
-- Compare risk curves across multiple models simultaneously
 
 ### Model Comparison
 
@@ -51,14 +46,14 @@ individuals.
 
 ## Project Structure
 
-```
+```text
 algorithm-viewer/
 ├── app.R                 # Main application entry point
 ├── global.R              # Global configuration and model loading
 ├── ui.R                  # User interface definition
 ├── server.R              # Server-side logic and reactive elements
 ├── R/                    # R source files
-│   ├── plots/            # Curve calculation functions
+│   ├── plots/            # Plot R Shiny modules (eg. Odds Ratio plot)
 │   ├── model_definitions/# Model definitions/config file parser
 │   ├── modules/          # R Shiny modules
 │   └── utils/            # Utility functions
@@ -90,6 +85,9 @@ models:
     reference_group:
       predictor1: default_value
       predictor2: default_value
+    predictor_allowable_values:
+      predictor1: allowable_values
+      predictor2: allowable_values
 ```
 
 See the [Algorithm Viewer Configuration

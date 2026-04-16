@@ -20,15 +20,8 @@
 #'     module to avoid orphaned observers.}
 #' }
 #'
-#' There are two ways to reactively respond to changes in the predictor
-#' values:
-#' \itemize{
-#'   \item Pass in a reactiveVal as the change_trigger parameter to
-#'         `predictorControlsServer()`. This integer reactive value will be
-#'         incremented whenever the predictor values change.
-#'   \item React to `$rv_values()` in the named list returned by
-#'         `predictorControlsServer()`
-#' }
+#' To reactively respond to changes in the predictor react to `$rv_values()`
+#' in the named list returned by `predictorControlsServer()`
 #'
 #' It is best to always use a unique ID whenever destroying and creating
 #' predictor controls. While duplicate IDs will work (as long as the
@@ -43,17 +36,16 @@
 #'
 #' # In a Shiny app's server function, after loading model definitions:
 #' model_data <- model_definitions$models[["female"]]
-#' redraw_trigger <- shiny::reactiveVal(0)
 #'
-#' # Create the UI (typically inserted via shiny::insertUI)
+#' # Create the UI (can be returned for a renderUI call or inserted via
+#' # shiny::insertUI)
 #' ui <- predictorControlsUI("predictor_ctrl_female", model_data)
 #'
 #' # Create the server and get back a list with rv_values and
 #' # destroy_module
 #' predictor_ctrl <- predictorControlsServer(
 #'   "predictor_ctrl_female",
-#'   model_data,
-#'   change_trigger = redraw_trigger
+#'   model_data
 #' )
 #'
 #' # Access the current predictor values reactively
@@ -68,25 +60,34 @@ NULL
 # The ID of the generated HTML element that contains the predictor controls
 .predictor_controls_container_id <- "predictor_controls_container"
 
-#' Create Predictor Controls UI (Internal)
+#' Create Predictor Controls UI
 #'
 #' Builds the UI for a single model's predictor controls. Generates
 #' radio buttons for categorical variables and sliders for continuous
 #' variables, along with a sticky header showing the model title and a
-#' sticky footer with a reset button. The entire panel is styled with a
-#' colored left border matching the model color.
+#' sticky footer with a reset button.
 #'
 #' @param id Character string. The module namespace ID.
-#' @param model_data List. Model data containing reference group values,
-#'   variable metadata, and model display properties.
+#' @param model_data Named list of model data containing reference group
+#'   values, variable metadata, and model display properties.
+#' @param initial_predictor_values Named list of initial predictor values keyed by
+#'   variable name. If \code{NULL}, the reference group from
+#'   \code{model_data$reference_group} is used.
+#' @param model_name Character string. Display name shown in the sticky
+#'   header and reset button label. If \code{NULL}, the model's title from
+#'   \code{model_data$title} is used.
+#' @param show_model_color Logical. If \code{TRUE} (the default), a colored
+#'   left border and color swatch are added to the panel using the model's
+#'   assigned color.
 #'
 #' @return A [shiny::tagList()] containing the predictor controls input
 #'   controls.
 #'
 #' @keywords internal
-.predictorControlsUI_internal <- function(
+predictorControlsUI <- function(
   id,
   model_data,
+  initial_predictor_values = NULL,
   model_name = NULL,
   show_model_color = TRUE
 ) {
@@ -94,6 +95,9 @@ NULL
 
   # Create the UI by saving them in predictor_controls_input
   predictor_controls_input <- tagList()
+
+  left_pad <- ifelse(show_model_color, "10px", "0")
+  right_pad <- "10px"
 
   # Add heading
   if (is.null(model_name)) {
@@ -113,15 +117,21 @@ NULL
     model_heading,
     style = paste(
       "position: sticky; top: 0; background-color: #fff;",
-      "padding: 10px 0 8px 0; margin: 0; z-index: 10"
+      "margin: 0; z-index: 10;",
+      glue::glue("padding: 10px 0 8px {left_pad};")
     )
   )
   predictor_controls_input[[length(predictor_controls_input) + 1]] <-
     model_heading
 
-  # Create a UI control for each variable in the reference group
-  for (variable in names(model_data$reference_group)) {
-    reference_value <- model_data$reference_group[[variable]]
+  if (is.null(initial_predictor_values)) {
+    initial_predictor_values <- model_data$reference_group
+  }
+  # Create a UI control for each variable in initial_predictor_values
+  # The controls are added to the items list
+  items <- list()
+  for (variable in names(initial_predictor_values)) {
+    predictor_value <- initial_predictor_values[[variable]]
     label <- get_variable_info(model_data, variable, "label")
     variable_allowable_values <- get_predictor_allowable_values(model_data, variable)
     input_id <- ns(variable)
@@ -136,16 +146,16 @@ NULL
         as.vector(variable_allowable_values)
       )
 
-      # Get the selected label (corresponding to reference_value)
+      # Get the selected label (corresponding to predictor_value)
       selected <- get_variable_label_from_value(
         model_data,
         variable,
-        reference_value
+        predictor_value
       )
       if (!(selected %in% labels)) {
         labels_str <- paste0("'", labels, "'", collapse = ", ")
         warning(glue::glue(
-          "Reference group value '{selected}' is not a valid value for ",
+          "Initial value '{selected}' is not a valid value for ",
           "variable {variable}. Must be one of {labels_str}."
         ))
         selected <- labels[[1]]
@@ -184,14 +194,24 @@ NULL
         label = label,
         min = min_range,
         max = max_range,
-        value = reference_value,
+        value = predictor_value,
         step = step
       )
     }
 
-    predictor_controls_input[[length(predictor_controls_input) + 1]] <-
+    items[[length(items) + 1]] <-
       input_control
   }
+
+  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
+    shiny::div(
+      style = paste(
+        "width: 100%;",
+        "overflow-x: hidden;",
+        glue::glue("padding: 0 12px 0 {left_pad};")
+      ),
+      items
+    )
 
   # Create the reset button for the model
   reset_button <- shiny::actionButton(
@@ -203,7 +223,8 @@ NULL
   reset_button <- shiny::div(
     style = paste(
       "position: sticky; bottom: 0; background-color: #fff;",
-      "padding: 10px 0 7px 0; margin: 0; z-index: 9"
+      "margin: 0; z-index: 9; overflow-x: hidden; width: 100%;",
+      glue::glue("padding: 10px 0 7px {left_pad};")
     ),
     reset_button
   )
@@ -218,8 +239,7 @@ NULL
     ifelse(show_model_color,
       glue::glue("border-left: solid 6px {model_color}; "),
       ""
-    ),
-    "padding: 0 10px 0 10px;"
+    )
   )
 
   # Create the div containing the controls
@@ -240,12 +260,9 @@ NULL
 #' for clean teardown.
 #'
 #' @param id Character string. The module namespace ID (must match the ID
-#'   used in [.predictorControlsUI_internal()]).
-#' @param model_data List. Model data containing reference group values,
-#'   variable metadata, and model display properties.
-#' @param change_trigger A [shiny::reactiveVal()] that is incremented
-#'   whenever any predictor value changes. This allows external code
-#'   to react to changes. Default is `NULL` (no external trigger).
+#'   used in [predictorControlsUI()]).
+#' @param model_data Named list of model data containing reference group
+#'   values, variable metadata, and model display properties.
 #'
 #' @return A named list with the following elements:
 #'   \describe{
@@ -256,10 +273,9 @@ NULL
 #'   }
 #'
 #' @keywords internal
-.predictorControlsServer_internal <- function(
+predictorControlsServer <- function(
   id,
-  model_data,
-  change_trigger = NULL
+  model_data
 ) {
   shiny::moduleServer(id, function(input, output, session) {
     # List of all observers for the predictor controls
@@ -287,6 +303,7 @@ NULL
         input_id = input_id,
         variable = variable
       )
+      # Saves the updated value to internal state whenever this predictor's input changes.
       observers[[length(observers) + 1]] <- observeEvent(input[[input_id]],
         {
           save_values_from_ui(c(variable))
@@ -308,7 +325,8 @@ NULL
         set_ui_from_values()
       },
       event.env = cur_env,
-      handler.env = cur_env
+      handler.env = cur_env,
+      ignoreInit = TRUE
     )
 
     #' Save the Values in the UI to the Internal Predictor Values.
@@ -377,18 +395,11 @@ NULL
       }
     }
 
-    observe({
-      predictor_values_internal()
-      if (!is.null(change_trigger)) {
-        shiny::isolate(change_trigger(change_trigger() + 1))
-      }
-    })
-
     #' Destroy the Module, its UI Elements, and its Observers.
     #'
     #' This should be called whenever the module is no longer required.
     #' This function is returned in the server's returned named list
-    #' (under the name "rv_values"), so that users can call this function.
+    #' under the name \code{"destroy_module"}.
     #'
     #' @return NULL
     #'
@@ -418,6 +429,3 @@ NULL
     )
   })
 }
-
-predictorControlsServer <- .predictorControlsServer_internal
-predictorControlsUI <- .predictorControlsUI_internal

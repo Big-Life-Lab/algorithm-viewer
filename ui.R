@@ -1,7 +1,8 @@
 source("R/utils/config.R")
-
-# Standard height of the plots
-plot_height <- "calc(100vh - 170px)"
+source("R/plots/plot_or.R")
+source("R/plots/plot_pr.R")
+source("R/plots/plot_rr.R")
+source("R/plots/plot_rr_exposed_vs_unexposed.R")
 
 ui <- fluidPage(
   title = "Algorithm Viewer",
@@ -70,13 +71,13 @@ ui <- fluidPage(
               ),
               hr(),
               checkboxGroupInput(
-                inputId = "model_id",
+                inputId = "selected_model_ids",
                 label = "Models:"
               ),
             ),
             hr(
               style = ifelse(
-                config_has_algorithms() || config_allow_file_uploads(),
+                config_allow_algorithms_selection() || config_allow_file_uploads(),
                 "",
                 "display: none"
               )
@@ -111,7 +112,8 @@ ui <- fluidPage(
               "height: calc(100vh - 140px); margin-bottom: 20px;",
               "overflow-y: scroll"
             ),
-            div(id = "refgroup_controls")
+            # div(id = "refgroup_controls")
+            uiOutput("refgroup_controls")
           )
         )
       )
@@ -125,6 +127,26 @@ ui <- fluidPage(
       tabsetPanel(
         type = "tabs",
         id = "main_tabs",
+        tabPanel(
+          "Odds Ratio",
+          icon = icon("chart-line"),
+          uiOutput("or_plot")
+        ),
+        tabPanel(
+          "Relative Risk",
+          icon = icon("chart-line"),
+          uiOutput("rr_plot")
+        ),
+        tabPanel(
+          "Predicted Risk",
+          icon = icon("chart-line"),
+          uiOutput("pr_plot")
+        ),
+        tabPanel(
+          "Exposed vs Unexposed",
+          icon = icon("chart-line"),
+          uiOutput("rr_exposed_vs_unexposed_plot")
+        ),
         tabPanel(
           "Help",
           icon = icon("circle-question"),

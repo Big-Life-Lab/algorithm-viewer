@@ -5,12 +5,18 @@ source("R/utils/cached_curve_data.R")
 source("R/utils/config.R")
 source("R/utils/url.R")
 source("R/utils/general_plot.R")
-source("R/plots/plot_manager.R")
+
+source("R/plots/plot_or.R")
+source("R/plots/plot_pr.R")
+source("R/plots/plot_rr.R")
+source("R/plots/plot_rr_exposed_vs_unexposed.R")
+
+# Standard height of the plots
+plot_height <- "calc(100vh - 170px)"
 
 #' Shiny Server Function
 #'
-#' Main server logic for the Algorithm Viewer Shiny application. Handles
-#' reactive UI updates, model selection, and odds ratio curve visualization.
+#' Main server logic for the Algorithm Viewer Shiny application.
 #'
 #' @param input Shiny input object.
 #' @param output Shiny output object.
@@ -20,178 +26,129 @@ source("R/plots/plot_manager.R")
 #'
 #' @export
 server <- function(input, output, session) {
-  # React to redraw_trigger when the plots need to be redrawn
-  redraw_trigger <- reactiveVal(0)
-  # React to reload_trigger when something needs to be updated due to a loading
-  # of an algorithm file.
-  reload_trigger <- reactiveVal(0)
-  # React to initial_load_trigger to respond to the very first load
-  initial_load_trigger <- reactiveVal(0)
-
   # The environment containing all variables associated with the predictor
   # controls
   predictor_controls_env <- initialize_predictor_controls_env()
   # The envionment containing all variables associated with cached curve data
   cached_curve_env <- initialize_cached_curve_data_env()
-  # The environment containing all model definitions
-  model_definitions_env <- rlang::env(model_definitions = NULL)
-  # The environment for the plot manager
-  plot_man_env <- initialize_plot_manager_env()
 
-  #' Load and Register Plot Modules
-  #'
-  #' Discovers all plot definition files matching \code{plot-*.R} under
-  #' \code{R/plots/}, sources each file, and calls the returned registration
-  #' function with the shared plot manager environment. After this call,
-  #' every plot module is available to the plot manager for rendering.
-  #'
-  #' Plot files must follow the naming convention \code{plot-<name>.R} and must
-  #' return a single-argument function from \code{source()} that accepts the
-  #' plot manager environment and performs registration as a side effect.
-  #'
-  #' @return NULL (called for side effects; modifies \code{plot_man_env}).
-  #'
-  #' @keywords internal
-  load_and_register_plots <- function() {
-    # Load all the plots and register them with the plot manager
-    plot_files <- list.files(path = "R/plots", pattern = "^plot-.*\\.R$")
-    plot_files <- file.path("R", "plots", plot_files)
-    for (plot_file in plot_files) {
-      fn <- source(plot_file, local = new.env())
-      # Call the registration function
-      fn$value(plot_man_env)
-    }
-  }
+  # Stores the currently loaded model definitions (NULL when no algorithm is loaded).
+  # model_definitions()$models contains all the models (keyed by model ID).
+  # Once loaded with load_model_definitions, the values in model_definitions
+  # remain unchanged until the next algorithm is loaded.
+  model_definitions <- reactiveVal(NULL)
+  # Stores the reference group predictor values keyed by model ID.
+  # These match the values that are shown in the reference groups UI.
+  reference_groups <- reactiveValues()
 
-  #' Check Whether Model Definitions Are Loaded
-  #'
-  #' Returns TRUE if model definitions have been loaded into the session
-  #' environment and the definitions list is non-empty.
-  #'
-  #' @return Logical scalar; TRUE if model definitions are available, FALSE
-  #'   otherwise.
-  #'
-  #' @keywords internal
-  has_model_definitions <- function() {
-    !is.null(model_definitions_env$model_definitions) && length(model_definitions_env$model_definitions) > 0
-  }
-
-  #' Create Predictor Controls
-  #'
-  #' Destroys any existing predictor controls modules and UI elements, then
-  #' recreates them from the current model definitions. This includes
-  #' the reference group controls and any other predictor controls
-  #'
-  #' @return NULL (called for side effects on UI and module state).
-  #'
-  #' @keywords internal
-  create_all_predictor_controls <- function() {
-    # Destroy existing predictor controls
-    destroy_all_predictor_controls(predictor_controls_env)
-
-    # Empty the refeence group controls container
-    refgroup_controls_container_id <- "#refgroup_controls"
-    shiny::removeUI(
-      selector = paste0(refgroup_controls_container_id, " > *"),
-      immediate = TRUE,
-      multiple = TRUE
-    )
-
-    # Create the reference group controls UI (plus module servers)
-    # refgroup_controls_ui is a list of the UI controls that we insert
-    # with shiny::insertUI
-    last_model_id <- tail(names(model_definitions_env$model_definitions$models), 1)
-    refgroup_controls_ui <- tagList()
-    for (model_data in model_definitions_env$model_definitions$models) {
-      model_id <- model_data$model_id
-      predictor_ctrl <- create_predictor_controls(
-        predictor_controls_env,
-        model_data,
-        change_trigger = redraw_trigger
-      )
-
-      refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- predictor_ctrl$ui
-
-      if (model_id != last_model_id) {
-        refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- hr()
-      }
-    }
-
-    # Add the reference group controls UI
-    shiny::insertUI(
-      selector = refgroup_controls_container_id,
-      where = "afterBegin",
-      ui = refgroup_controls_ui,
-      immediate = TRUE
-    )
-  }
-
-  #' Get Currently Selected Models
-  #'
-  #' @return Named list of model data objects for the selected models,
-  #'   or an empty list if no model definitions are loaded.
-  #'
-  #' @keywords internal
-  selected_models <- function() {
+  # Filters model_definitions to only the models the user has selected via checkboxes.
+  # Use selected_reference_groups to get the corresponding reference group values for
+  # each selected model.
+  selected_models <- reactive({
     if (has_model_definitions()) {
-      model_defs <- model_definitions_env$model_definitions
-      models <- model_defs$
-        models[as.vector(session$userData$selected_model_ids)]
+      model_defs <- model_definitions()
+      models <- model_defs$models[as.vector(input$selected_model_ids)]
       models <- models[!is.na(names(models))]
       models
     } else {
       list()
     }
-  }
+  })
 
-  #' Update Predictor Dropdown Choices
-  #'
-  #' Populates the predictor selectInput with available predictor variables
-  #' from the currently selected models.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  update_predictor_choices <- function() {
-    if (!has_model_definitions()) {
-      updateSelectInput(
-        session,
-        "predictor",
-        choices = character(0),
-        selected = character(0)
-      )
-      return()
-    }
-
-    # Create list of all possible choices (from all models)
-    predictor_choices <-
-      gather_predictor_choices(model_definitions_env$model_definitions$models)
-
-    # If at least one predictor is available then select the first one
-    if (length(predictor_choices) > 0) {
-      selected <- predictor_choices[[names(predictor_choices)[[1]]]]
+  # Filters reference_groups to only the groups corresponding to selected models.
+  # Use selected_models to get the corresponding models for each selected
+  # reference group.
+  selected_reference_groups <- reactive({
+    if (has_model_definitions()) {
+      groups <- list()
+      for (model_id in input$selected_model_ids) {
+        groups[[model_id]] <- reference_groups[[model_id]]
+      }
+      groups
     } else {
+      list()
+    }
+  })
+
+  # Returns TRUE when model definitions are loaded and non-empty.
+  has_model_definitions <- reactive({
+    val <- !is.null(model_definitions()) && length(model_definitions()) > 0
+  })
+
+  # Renders the container UI for the Relative Risk plot tab.
+  output$rr_plot <- renderUI({
+    plotRRUI("rr_plot", plot_height, model_definitions)
+  })
+
+  # Renders the container UI for the Odds Ratio plot tab.
+  output$or_plot <- renderUI({
+    plotORUI("or_plot", plot_height, model_definitions)
+  })
+
+  # Renders the container UI for the Predicted Risk plot tab.
+  output$pr_plot <- renderUI({
+    plotPRUI("pr_plot", plot_height, model_definitions)
+  })
+
+  # Renders the container UI for the Exposed vs Unexposed Relative Risk plot tab.
+  output$rr_exposed_vs_unexposed_plot <- renderUI({
+    plotRRExposedUnexposedUI("rr_exposed_vs_unexposed_plot", plot_height, model_definitions)
+  })
+
+  # Handle initial loading of the page, loading the initial algorithm (if
+  # there is one) and creating all plots.
+  # This is called only once per session
+  observeEvent(TRUE,
+    {
+      if (url_has_algorithm_id(session)) {
+        # The URL has an algorithm specified (eg
+        # "example.com/?algorithm=htnport-reduced"), so try to load the
+        # algorithm specified in the URL.
+        process_data_file(config_get_algorithm_file(
+          url_get_algorithm_id(session)
+        ))
+      } else if (!is.null(config_get_initial_algorithm_file())) {
+        # Load initial algorithm
+        process_data_file(config_get_initial_algorithm_file())
+      } else {
+        # Did not load an initial algorithm
+      }
+
+      create_all_plots()
+    },
+    once = TRUE
+  )
+  
+  # Populate the UI for available models in "selected_model_ids" checkbox group
+  observe({
+    model_defs <- model_definitions()
+    if (!is.null(model_defs) && length(model_defs$models) > 0) {
+      selected <- unname(get_model_choices(model_defs$models))
+      choice_names <- get_model_titles(
+        model_defs$models,
+        include_model_colors = TRUE,
+        escape_html = TRUE
+      )
+      choice_values <- get_model_ids(model_defs$models)
+    } else {
+      # No model definitions loaded, so show an empty checkbox group
       selected <- character(0)
+      choice_names <- character(0)
+      choice_values <- character(0)
     }
 
-    session$userData$predictor <- selected
-    updateSelectInput(
+    updateCheckboxGroupInput(
       session,
-      "predictor",
-      choices = predictor_choices,
-      selected = selected
+      "selected_model_ids",
+      label = "Models:",
+      selected = selected,
+      choiceNames = choice_names,
+      choiceValues = choice_values
     )
-  }
+  })
 
-  #' Update Interaction Predictor Dropdown Choices
-  #'
-  #' Populates the interaction predictor selectInput with available predictor
-  #' variables from the currently selected models, including an empty option.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  update_interaction_predictor_choices <- function() {
+  # Populate UI for "interaction_predictor" dropdown
+  observe({
     if (!has_model_definitions()) {
       updateSelectInput(
         session,
@@ -204,7 +161,7 @@ server <- function(input, output, session) {
 
     # Create list of all possible choices (from all models)
     predictor_choices <-
-      gather_predictor_choices(model_definitions_env$model_definitions$models)
+      gather_predictor_choices(model_definitions()$models)
 
     # If at least one predictor is available, then add the empty predictor and
     # select it
@@ -218,129 +175,176 @@ server <- function(input, output, session) {
       selected <- character(0)
     }
 
-    session$userData$interaction_predictor <- selected
     updateSelectInput(
       session,
       "interaction_predictor",
       choices = predictor_choices,
       selected = selected
     )
-  }
-
-  # Handle change in "Logarithmic" checkbox item
-  observeEvent(input$logarithmic, {
-    session$userData$logarithmic <- input$logarithmic
-    redraw_trigger(redraw_trigger() + 1)
   })
 
-  # Handle change in "Predictor" drop down box
-  observeEvent(input$predictor, {
-    session$userData$predictor <- input$predictor
-    redraw_trigger(redraw_trigger() + 1)
+  # Populate UI for the "predictor" dropdown
+  observe({
+    if (!has_model_definitions()) {
+      updateSelectInput(
+        session,
+        "predictor",
+        choices = character(0),
+        selected = character(0)
+      )
+      return()
+    }
+
+    # Create list of all possible choices (from all models)
+    predictor_choices <-
+      gather_predictor_choices(model_definitions()$models)
+
+    # If at least one predictor is available then select the first one
+    if (length(predictor_choices) > 0) {
+      selected <- predictor_choices[[names(predictor_choices)[[1]]]]
+    } else {
+      selected <- character(0)
+    }
+
+    updateSelectInput(
+      session,
+      "predictor",
+      choices = predictor_choices,
+      selected = selected
+    )
   })
 
-  # Handle change in "Interaction Predictor" drop down box
-  observeEvent(input$interaction_predictor, {
-    session$userData$interaction_predictor <- input$interaction_predictor
-    redraw_trigger(redraw_trigger() + 1)
+  # Populate the UI for the preloaded "algorithms" dropdown
+  observe({
+    if (config_has_algorithms()) {
+      # Find the preloaded algorithm ID that has the same config file as
+      # the currently loaded one. If the source file exists then we
+      # need to select it, otherwise we select nothing
+      selected <- config_get_algorithm_id_from_file(
+        model_definitions()$source_file
+      )
+      if (is.null(selected)) {
+        selected <- character(0)
+        choices <- config_get_algorithm_choices()
+
+        # When we select nothing in the dropdown, R Shiny doesn't recognize
+        # this as a change in the selected value. Instead, it assumes that
+        # whatever was previously selected remains the selected value.
+        # If the user then reselects the previously selected value then
+        # the "algorithms" dropdown will not trigger observers. To avoid this,
+        # we add an extra fake ID to the dropdown, select that fake ID,
+        # then clear the selection with selected = character(0).
+
+        # Make a fake ID consisting of "x"s so that its length is one
+        # character longer than the longest existing ID. This will
+        # guarantee our fake ID doesn't clash with an existing
+        # algorithm ID
+        max_choice_id_length <- unname(unlist(choices)) |>
+          stringr::str_length()
+        max_choice_id_length <- max(max_choice_id_length)
+        fake_choice <- strrep("x", max_choice_id_length + 1)
+        choices[[fake_choice]] <- fake_choice
+        updateSelectInput(
+          session,
+          "algorithms",
+          choices = choices,
+          selected = fake_choice
+        )
+      }
+      updateSelectInput(
+        session,
+        "algorithms",
+        choices = config_get_algorithm_choices(),
+        selected = selected
+      )
+    }
   })
 
-  #' Add Plot Tabs to Main UI
+  # Populate UI for the "refgroup_controls" reference group controls
+  output$refgroup_controls <- renderUI({
+    # Create the reference group controls UI (plus module servers)
+    # refgroup_controls_ui is a list of the UI controls that we return
+    last_model_id <- tail(names(model_definitions()$models), 1)
+    refgroup_controls_ui <- tagList()
+    for (model_data in model_definitions()$models) {
+      predictor_ctrl <- create_predictor_controls(
+        predictor_controls_env,
+        session,
+        model_data,
+        initial_predictor_values = isolate(reference_groups[[model_data$model_id]])
+      )
+      predictor_server <- predictor_ctrl$server
+
+      # Updates reference_groups whenever this model's predictor control values change.
+      cur_env <- rlang::env(
+        rv_values = predictor_server$rv_values,
+        model_id = model_data$model_id
+      )
+      observe(
+        {
+          reference_groups[[model_id]] <- rv_values()
+        },
+        env = cur_env
+      )
+
+      refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- predictor_ctrl$ui # predictor_ui
+
+      if (model_data$model_id != last_model_id) {
+        refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- hr()
+      }
+    }
+
+    refgroup_controls_ui
+  })
+
+  #' Create All Plot Servers
   #'
-  #' Iterates over all registered plot IDs and insert a \code{tabPanel} for
-  #' each into \code{main_tabs}, selecting the first plot's tab on
-  #' completion. Each tab contains the plot's panel UI and a
-  #' \code{plotly::renderPlotly} output bound to the plot ID.
-  #' 
   #' This is called once when the page is first loaded.
   #'
-  #' @return NULL (called for side effects on UI).
+  #' @return NULL (called for side effects).
   #'
   #' @keywords internal
-  add_plot_tabs_to_ui <- function() {
-    get_panel_id <- function(id) {
-      as.character(glue::glue("plot_panel_{id}"))
-    }
-
-    all_plot_ids <- plot_man_all_plot_ids(plot_man_env)
-
-    prev_tab_id <- NULL
-    for (id in plot_man_all_plot_ids(plot_man_env)) {
-      panel_id <- get_panel_id(id)
-      
-      # Create the tab panel containing the plot's panel UI
-      new_tab <- tabPanel(
-        icon = icon("chart-line"),
-        title = plot_man_get_title(plot_man_env, id),
-        value = panel_id,
-        plot_man_call_panel_ui_fn(
-          plot_man_env,
-          id,
-          plot_height = "calc(100vh - 170px)"
-        )
-      )
-
-      # Insert the tab. They are all inserted at the start of the tabsetPanel (before any
-      # pre-existing tab, such as the "Help" tab)
-      insertTab(
-        inputId = "main_tabs",
-        tab = new_tab,
-        select = is.null(prev_tab_id),
-        target = prev_tab_id,
-        position = ifelse(is.null(prev_tab_id), "before", "after")
-      )
-
-      # Save the ID of the last added tab
-      prev_tab_id <- panel_id
-
-      # Add the renderPlotly function to render the plot
-      cur_env <- rlang::env(
-        redraw_trigger = redraw_trigger,
-        plot_man_env = plot_man_env,
-        id = id,
-        session = session,
-        selected_models = selected_models,
-        model_definitions_env = model_definitions_env,
-        predictor_controls_env = predictor_controls_env,
-        cached_curve_env = cached_curve_env
-      )
-      output[[id]] <- plotly::renderPlotly({
-        redraw_trigger()
-
-        plot_man_call_make_plot_fn(
-          plot_man_env,
-          id,
-          session,
-          selected_models(),
-          model_definitions_env$model_definitions,
-          predictor_controls_env,
-          cached_curve_env
-        )
-      }, env = cur_env)
-    }
-  }
-
-  #' Create UI Controls for All Plots
-  #'
-  #' Iterates over all registered plot IDs and invokes each plot's model UI
-  #' function, inserting predictor controls and wiring up the redraw trigger.
-  #' 
-  #' This is called once when an algorithm file is loaded. The UI controls
-  #' might be specific to the loaded models.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  create_all_plot_ui <- function() {
-    for (id in plot_man_all_plot_ids(plot_man_env)) {
-      plot_man_call_model_ui_fn(
-        plot_man_env,
-        id,
-        model_definitions_env$model_definitions,
-        predictor_controls_env,
-        redraw_trigger
-      )
-    }
+  create_all_plots <- function() {
+    plotRRExposedUnexposedServer(
+      "rr_exposed_vs_unexposed_plot",
+      reactive(input$predictor),
+      reactive(input$interaction_predictor),
+      reactive(input$logarithmic),
+      selected_models,
+      selected_reference_groups,
+      model_definitions,
+      cached_curve_env
+    )
+    plotRRServer(
+      "rr_plot",
+      reactive(input$predictor),
+      reactive(input$interaction_predictor),
+      reactive(input$logarithmic),
+      selected_models,
+      selected_reference_groups,
+      model_definitions,
+      cached_curve_env
+    )
+    plotORServer(
+      "or_plot",
+      reactive(input$predictor),
+      reactive(input$interaction_predictor),
+      reactive(input$logarithmic),
+      selected_models,
+      selected_reference_groups,
+      model_definitions,
+      cached_curve_env
+    )
+    plotPRServer(
+      "pr_plot",
+      reactive(input$predictor),
+      reactive(input$interaction_predictor),
+      reactive(input$logarithmic),
+      selected_models,
+      selected_reference_groups,
+      model_definitions,
+      cached_curve_env
+    )
   }
 
   #' Load Model Definitions from File
@@ -354,38 +358,48 @@ server <- function(input, output, session) {
   #'
   #' @keywords internal
   load_model_definitions <- function(file) {
-    session$userData$selected_model_ids <- NULL
     tryCatch(
       {
-        model_definitions_env$model_definitions <- read_model_definitions(file)
+        # Destroy all predictor controls
+        destroy_all_predictor_controls(predictor_controls_env)
+
+        # Clear all cached curve data, since they will no longer apply after
+        # loading the new definitions
+        clear_cached_curve_data(cached_curve_env)
+
+        model_definitions(read_model_definitions(file))
+
+        # Initialize the reference group values. These values will be automatically
+        # updated by changes in the reference groups UI, but the UI does not exist
+        # until it first gets rendered with renderUI, so we must initialize
+        # reference_groups here.
+        clear_reference_groups()
+        for (model_data in model_definitions()$models) {
+          reference_groups[[model_data$model_id]] <- model_data$reference_group
+        }
       },
       error = function(e) {
-        model_definitions_env$model_definitions <- NULL
+        model_definitions(NULL)
+        clear_reference_groups()
         showModal(errorModal("Error Loading Model Definitions", e$message))
       }
     )
   }
 
-  #' Recreate All UI Components and data and trigger a reload all.
+  #' Clear All Reference Groups
   #'
-  #' Refreshes all model-dependent UI components including model selections,
-  #' reference group controls, and predictor dropdowns. Once everything is
-  #' created we trigger downstream reloading and redrawing.
+  #' Removes all entries from the \code{reference_groups} reactive values
+  #' object by setting each keyed value to \code{NULL}. Typically called
+  #' before loading new model definitions or when a load error occurs, to
+  #' ensure stale reference group data does not persist.
   #'
-  #' @return NULL (called for side effects on UI).
+  #' @return NULL (called for side effects).
   #'
   #' @keywords internal
-  recreate_and_trigger_reload <- function() {
-    session$userData$selected_model_ids <- NULL
-    clear_cached_curve_data(cached_curve_env)
-    update_preloaded_algorithms()
-    update_model_selections()
-    update_predictor_choices()
-    update_interaction_predictor_choices()
-    create_all_predictor_controls()
-    create_all_plot_ui()
-    reload_trigger(reload_trigger() + 1)
-    redraw_trigger(redraw_trigger() + 1)
+  clear_reference_groups <- function() {
+    for (key in names(reference_groups)) {
+      reference_groups[[key]] <- NULL
+    }
   }
 
   #' Process Uploaded Data File
@@ -402,7 +416,7 @@ server <- function(input, output, session) {
   process_data_file <- function(file) {
     if (is.null(file)) {
       # Empty file
-      model_definitions_env$model_definitions <- NULL
+      model_definitions(NULL)
     } else if (
       grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)
     ) {
@@ -412,7 +426,7 @@ server <- function(input, output, session) {
       # An archive
       temp_dir_path <- tempdir()
 
-      model_definitions_env$model_definitions <- NULL
+      model_definitions(NULL)
       archive_success <- FALSE
       config_files <- c()
 
@@ -482,8 +496,6 @@ server <- function(input, output, session) {
         load_model_definitions(config_file)
       }
     }
-
-    recreate_and_trigger_reload()
   }
 
   # Handle file that has been uploaded
@@ -505,16 +517,15 @@ server <- function(input, output, session) {
 
   # Show a message to the user at the top of the "Models" tab
   output$model_message <- renderUI({
-    reload_trigger()
     if (!has_model_definitions()) {
-      has_algorithms <- config_has_algorithms()
+      has_algorithm_selection <- config_allow_algorithms_selection()
       allow_file_uploads <- config_allow_file_uploads()
-      if (has_algorithms && allow_file_uploads) {
+      if (has_algorithm_selection && allow_file_uploads) {
         msg <- paste(
           "Select an algorithm from the \"Preloaded Algorithms\" dropdown",
           "or click \"Browse\" to upload your own algorithm."
         )
-      } else if (has_algorithms) {
+      } else if (has_algorithm_selection) {
         msg <- "Select an algorithm from the \"Preloaded Algorithms\" dropdown."
       } else if (allow_file_uploads) {
         msg <- "Click \"Browse\" to upload an algorithm."
@@ -531,61 +542,14 @@ server <- function(input, output, session) {
 
   # Populate the main title of the page
   output$ui_title <- renderUI({
-    reload_trigger()
-
+    bare_title <- "Algorithm Viewer"
     if (has_model_definitions()) {
-      meta <- model_definitions_env$model_definitions$meta
-      glue::glue("{meta$algorithm} v{meta$version} Algorithm Viewer")
+      meta <- model_definitions()$meta
+      glue::glue("{meta$algorithm} v{meta$version} {bare_title}")
     } else {
-      "Algorithm Viewer"
+      bare_title
     }
   })
-
-  # Handle initial loading of the page
-  # (load the initial algorithm file if there is one)
-  observe({
-    if (initial_load_trigger() > 0) {
-      return()
-    }
-
-    # Load and register the plots
-    load_and_register_plots()
-
-    # Add all the plot tabs
-    add_plot_tabs_to_ui()
-
-    if (url_has_algorithm_id(session)) {
-      # The URL has an algorithm specified (eg
-      # "example.com/?algorithm=htnport-reduced"), so try to load the
-      # algorithm specified in the URL.
-      process_data_file(config_get_algorithm_file(
-        url_get_algorithm_id(session)
-      ))
-    } else if (!is.null(config_get_initial_algorithm_file())) {
-      # Load initial algorithm
-      process_data_file(config_get_initial_algorithm_file())
-    } else {
-      # Did not load an initial algorithm, but we still need
-      # to create all the UI elements and perform other initial
-      # setup
-      recreate_and_trigger_reload()
-    }
-
-    initial_load_trigger(initial_load_trigger() + 1)
-  })
-
-  # Redraw when the selected Models changes.
-  # The checkbox group returns NULL if nothing is selected, so we must
-  # set ignoreNULL = FALSE to make sure that we redraw when no model
-  # is selected
-  observeEvent(input$model_id,
-    {
-      session$userData$selected_model_ids <- input$model_id
-      redraw_trigger(redraw_trigger() + 1)
-    },
-    ignoreInit = TRUE,
-    ignoreNULL = FALSE
-  )
 
   # Handle selection from the "Preloaded Algorithms" dropdown
   observeEvent(input$algorithms, {
@@ -599,7 +563,7 @@ server <- function(input, output, session) {
 
       # A file is selected. If it is not the currently loaded file then
       # load it.
-      current_source_file <- model_definitions_env$model_definitions$source_file
+      current_source_file <- model_definitions()$source_file
       if (
         is.null(current_source_file) || selected_file != current_source_file
       ) {
@@ -609,100 +573,6 @@ server <- function(input, output, session) {
       }
     }
   })
-
-  #' Update Preloaded Algorithms Dropdown
-  #'
-  #' Refreshes the algorithms dropdown with the list of preloaded algorithms
-  #' from the app config, and sets the selected value to the algorithm whose
-  #' source file matches the currently loaded model definitions. If no match
-  #' is found, the selection is cleared.
-  #'
-  #' Does nothing if no preloaded algorithms are defined in the config.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  update_preloaded_algorithms <- function() {
-    if (config_has_algorithms()) {
-      # Find the preloaded algorithm ID that has the same config file as
-      # the currently loaded one. If the source file exists then we
-      # need to select it, otherwise we select nothing
-      selected <- config_get_algorithm_id_from_file(
-        model_definitions_env$model_definitions$source_file
-      )
-      if (is.null(selected)) {
-        selected <- character(0)
-        choices <- config_get_algorithm_choices()
-
-        # When we select nothing in the dropdown, R Shiny doesn't recognize
-        # this as a change in the selected value. Instead, it assumes that
-        # whatever was previously selected remains the selected value.
-        # If the user then reselects the previously selected value then
-        # the "algorithms" dropdown will not trigger observers. To avoid this,
-        # we add an extra fake ID to the dropdown, select that fake ID,
-        # then clear the selection with selected = character(0).
-
-        # Make a fake ID consisting of "x"s so that its length is one
-        # character longer than the longest existing ID. This will
-        # guarantee our fake ID doesn't clash with an existing
-        # algorithm ID
-        max_choice_id_length <- unname(unlist(choices)) |>
-          stringr::str_length()
-        max_choice_id_length <- max(max_choice_id_length)
-        fake_choice <- strrep("x", max_choice_id_length + 1)
-        choices[[fake_choice]] <- fake_choice
-        updateSelectInput(
-          session,
-          "algorithms",
-          choices = choices,
-          selected = fake_choice
-        )
-      }
-      updateSelectInput(
-        session,
-        "algorithms",
-        choices = config_get_algorithm_choices(),
-        selected = selected
-      )
-    }
-  }
-
-  #' Update Model Selection Checkboxes
-  #'
-  #' Populates the model selection checkbox group with available models
-  #' from the loaded model definitions. Selects all models by default
-  #' and triggers a reload of dependent UI components.
-  #'
-  #' @return NULL (called for side effects on UI).
-  #'
-  #' @keywords internal
-  update_model_selections <- function() {
-    model_defs <- model_definitions_env$model_definitions
-    if (!is.null(model_defs) && length(model_defs$models) > 0) {
-      selected <- unname(get_model_choices(model_defs$models))
-      choice_names <- get_model_titles(
-        model_defs$models,
-        include_model_colors = TRUE,
-        escape_html = TRUE
-      )
-      choice_values <- get_model_ids(model_defs$models)
-    } else {
-      # No model definitions loaded, so show an empty checkbox group
-      selected <- character(0)
-      choice_names <- character(0)
-      choice_values <- character(0)
-    }
-
-    updateCheckboxGroupInput(
-      session,
-      "model_id",
-      label = "Models:",
-      selected = selected,
-      choiceNames = choice_names,
-      choiceValues = choice_values
-    )
-    session$userData$selected_model_ids <- selected
-  }
 
   #' Create Error Modal Dialog
   #'
@@ -764,7 +634,6 @@ server <- function(input, output, session) {
     selected <- input$select_yaml_radio
     if (!is.null(selected) && selected != "") {
       load_model_definitions(selected)
-      recreate_and_trigger_reload()
     }
     removeModal()
   })

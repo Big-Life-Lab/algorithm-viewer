@@ -3,15 +3,15 @@
 #' @description
 #' Provides a thin management layer around the [predictorControls] Shiny module.
 #' An environment created by [initialize_predictor_controls_env()] tracks all
-#' active predictor-controls instances and a monotonically increasing index that
-#' guarantees unique module IDs even after controls are destroyed and recreated.
+#' active predictor-controls instances and GUID index that guarantees unique
+#' module IDs even after controls are destroyed and recreated.
 #'
 #' The typical lifecycle is:
 #' \enumerate{
 #'   \item Call [initialize_predictor_controls_env()] once (e.g. in the Shiny
 #'         server function) to obtain a shared environment.
 #'   \item Call [create_predictor_controls()] for each model whose predictors
-#'         you want to expose.  Insert the returned \code{$ui} element into the
+#'         you want to expose. Insert the returned \code{$ui} element into the
 #'         UI and the \code{$server} element is already registered.
 #'   \item Read current predictor values at any time with
 #'         [get_predictor_controls_values()].
@@ -25,7 +25,6 @@
 #' library(shiny)
 #'
 #' server <- function(input, output, session) {
-#'
 #'   # 1. Create the shared environment once
 #'   pc_env <- initialize_predictor_controls_env()
 #'
@@ -37,9 +36,9 @@
 #'   # 3. Create controls (returns list with $ui and $server)
 #'   ctrls <- create_predictor_controls(
 #'     pc_env,
+#'     session        = session,
 #'     model_data     = model_data,
 #'     extra_tag      = "primary",
-#'     change_trigger = reactive(input$refresh),
 #'     model_name     = "Hypertension Risk"
 #'   )
 #'
@@ -49,7 +48,8 @@
 #'   # 4. Read predictor values (isolated by default)
 #'   observeEvent(input$calculate, {
 #'     vals <- get_predictor_controls_values(pc_env, model_data,
-#'                                           extra_tag = "primary")
+#'       extra_tag = "primary"
+#'     )
 #'     print(vals)
 #'   })
 #'
@@ -96,12 +96,15 @@ initialize_predictor_controls_env <- function() {
 #' registers the server in the environment, and returns both components.
 #'
 #' @param .env Environment created by [initialize_predictor_controls_env()].
+#' @param session The Shiny \code{session} object from the enclosing server
+#'   function. Used to namespace the module UI correctly.
 #' @param model_data List of model metadata used to derive the module ID and
 #'   populate the controls.
+#' @param initial_predictor_values Named list of initial predictor values keyed by
+#'   variable name. If \code{NULL}, the reference group from
+#'   \code{model_data$reference_group} is used.
 #' @param extra_tag Optional character string appended to the module ID to
 #'   distinguish multiple controls for the same model.
-#' @param change_trigger Optional reactive expression passed to the server
-#'   module that fires when predictor values should be refreshed.
 #' @param model_name Optional display name for the model shown in the UI. If
 #'   NULL then the model's title (in \code{model_data}) is used.
 #' @param show_model_color Logical; whether to display the model colour swatch
@@ -115,20 +118,22 @@ initialize_predictor_controls_env <- function() {
 #'   }
 create_predictor_controls <- function(
   .env,
+  session,
   model_data,
+  initial_predictor_values = NULL,
   extra_tag = NULL,
-  change_trigger = NULL,
   model_name = NULL,
   show_model_color = TRUE
 ) {
   id <- get_model_predictor_controls_id(.env, model_data, extra_tag = extra_tag)
   ui <- predictorControlsUI(
-    id,
+    session$ns(id),
     model_data,
+    initial_predictor_values = initial_predictor_values,
     model_name = model_name,
     show_model_color = show_model_color
   )
-  server <- predictorControlsServer(id, model_data, change_trigger)
+  server <- predictorControlsServer(id, model_data)
 
   .env$predictor_controls[[id]] <- server
 
