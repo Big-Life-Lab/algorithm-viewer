@@ -19,6 +19,7 @@ Imports:
     archive,
     bslib,
     cli,
+    digest,
     dplyr,
     ggplot2,
     glue,

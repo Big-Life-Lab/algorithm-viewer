@@ -42,6 +42,14 @@ plotORServer <- function(
   cached_curve_env
 ) {
   shiny::moduleServer(id, function(input, output, session) {
+    # cached_curve_env <- initialize_cached_curve_data_env()
+
+    # observe({
+    #   print("RESETTING")
+    #   model_definitions()
+    #   clear_cached_curve_data(cached_curve_env)
+    # }, priority = 100)
+
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
         return(make_general_plot(
@@ -65,17 +73,17 @@ plotORServer <- function(
               interaction_predictor = interaction_predictor(),
               reference_group = predictor_values
             )
+            cache_key <- list("or", model_data$model_id, predictor(), interaction_predictor())
             if (
               is_reusable_cached_curve_data(
                 cached_curve_env,
-                "or",
-                model_data$model_id,
+                cache_key,
                 model_params
               )
             ) {
               # Reuse the old data
               all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_curve_data(cached_curve_env, "or", model_data$model_id)
+                get_cached_curve_data(cached_curve_env, cache_key)
             } else {
               tic <- Sys.time()
 
@@ -105,8 +113,7 @@ plotORServer <- function(
               # Save the data to our cache
               set_cached_curve_data(
                 cached_curve_env,
-                "or",
-                model_data$model_id,
+                cache_key,
                 model_params,
                 curve_data
               )

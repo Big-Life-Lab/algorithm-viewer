@@ -65,17 +65,17 @@ plotRRServer <- function(
               interaction_predictor = interaction_predictor(),
               reference_group = predictor_values
             )
+            cache_key <- list("rr", model_data$model_id, predictor(), interaction_predictor())
             if (
               is_reusable_cached_curve_data(
                 cached_curve_env,
-                "rr",
-                model_data$model_id,
+                cache_key,
                 model_params
               )
             ) {
               # Reuse the old data
               all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_curve_data(cached_curve_env, "rr", model_data$model_id)
+                get_cached_curve_data(cached_curve_env, cache_key)
             } else {
               tic <- Sys.time()
 
@@ -105,8 +105,7 @@ plotRRServer <- function(
               # Save the data to our cache
               set_cached_curve_data(
                 cached_curve_env,
-                "rr",
-                model_data$model_id,
+                cache_key,
                 model_params,
                 curve_data
               )

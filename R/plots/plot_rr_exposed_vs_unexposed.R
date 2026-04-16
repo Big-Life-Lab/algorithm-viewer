@@ -122,21 +122,17 @@ plotRRExposedUnexposedServer <- function(
               exposed_group = exposed_group,
               unexposed_group = unexposed_group
             )
+            cache_key <- list("rr_exposed_vs_unexposed", model_data$model_id)
             if (
               is_reusable_cached_curve_data(
                 cached_curve_env,
-                "rr_exposed_vs_unexposed",
-                model_data$model_id,
+                cache_key,
                 model_params
               )
             ) {
               # Reuse the old data
               all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_curve_data(
-                  cached_curve_env,
-                  "rr_exposed_vs_unexposed",
-                  model_data$model_id
-                )
+                get_cached_curve_data(cached_curve_env, cache_key)
             } else {
               # Get predictor type (Categorical or Continuous)
               tic <- Sys.time()
@@ -161,8 +157,7 @@ plotRRExposedUnexposedServer <- function(
               # Save the data to our cache
               set_cached_curve_data(
                 cached_curve_env,
-                "rr_exposed_vs_unexposed",
-                model_data$model_id,
+                cache_key,
                 model_params,
                 curve_data
               )
