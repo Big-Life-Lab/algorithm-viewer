@@ -1,3 +1,7 @@
+# pkgdown
+docs/
+
+# Shinylive
 webr/
 
 # R History files
@@ -21,9 +25,6 @@ webr/
 # knitr and R Markdown
 *_cache/
 /cache/
-
-# Compiled R package files
-*.Rd
 
 # Shiny token for shinyapps.io
 rsconnect/
@@ -61,3 +62,5 @@ _site/
 # Logs
 logs/
 *.log
+/doc/
+/Meta/

@@ -1,7 +1,12 @@
 # Algorithm Viewer
 
+<!-- badges: start -->
+[![R-CMD-check.yaml](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml)
+<!-- badges: end -->
+
 An R Shiny application for visualizing health risk prediction algorithms,
-displaying odds ratio and predicted risk curves.
+displaying various interactive plots including odds ratio, predicted risk
+curves, and relative risk.
 
 ## About
 
@@ -48,22 +53,33 @@ individuals.
 
 ```text
 algorithm-viewer/
-├── app.R                 # Main application entry point
-├── global.R              # Global configuration and model loading
-├── ui.R                  # User interface definition
-├── server.R              # Server-side logic and reactive elements
-├── R/                    # R source files
-│   ├── plots/            # Plot R Shiny modules (eg. Odds Ratio plot)
-│   ├── model_definitions/# Model definitions/config file parser
-│   ├── modules/          # R Shiny modules
-│   └── utils/            # Utility functions
+├── R/                              # R source files
+│   ├── app.R                       # Main application entry point
+│   ├── ui.R                        # User interface definition
+│   ├── server.R                    # Server-side logic and reactive elements
+│   ├── tab_panels.R                # UI tab panel definitions
+│   ├── model_definitions.R         # Config file parser
+│   ├── model_definitions_utils.R   # Model definition helper functions
+│   ├── predictor_controls.R        # Predictor control UI module
+│   ├── predictor_controls_manager.R# Manages multiple predictor control modules
+│   ├── plot_or.R                   # Odds ratio plot module
+│   ├── plot_pr.R                   # Predicted risk plot module
+│   ├── plot_rr.R                   # Relative risk plot module
+│   ├── plot_rr_exposed_vs_unexposed.R # Exposed vs unexposed RR plot module
+│   ├── general_plot.R              # Shared plot utilities
+│   ├── cached_data.R               # General-purpose reactive data cache
+│   ├── config.R                    # App configuration loading
+│   ├── function_parser.R           # Parses R function expressions from config
+│   ├── make_string_values_unique.R # Utility for deduplicating string values
+│   ├── path_utils.R                # File path helpers
+│   └── url.R                       # URL parsing and construction
 └── data/
     └── models/           # Prepackaged model config files (YAML + CSV exports)
 ```
 
 ## Configuration
 
-Models are defined using YAML configuration files that specify:
+Algorithms and models are defined using YAML configuration files that specify:
 
 - Algorithm metadata (name, version)
 - Model definitions with titles and data file paths
@@ -91,21 +107,65 @@ models:
 ```
 
 See the [Algorithm Viewer Configuration
-Specification](docs/specs/CONFIG_SPECIFICATION.md) for details on configuration
+Specification](specs/CONFIG_SPECIFICATION.md) for details on configuration
 files.
 
 ## Running the App
 
-### Locally
+### Parameters
+
+`run_app()` accepts the following parameters:
+
+| Parameter | Default | Description |
+| --------- | ------- | ----------- |
+| `config` | `NULL` | Path to a YAML configuration file. When `NULL`, the built-in example HTNPoRT configuration (`inst/extdata/config.yaml`) is used. |
+| `port` | `getOption("shiny.port")` | Port number for the Shiny server. |
+| `host` | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server. |
+
+Example — loading a custom algorithm configuration:
 
 ```r
-# From the project directory
-shiny::runApp()
+library(algorithm.viewer)
+run_app(config = "path/to/my-algorithm/config.yaml")
 ```
 
-### In RStudio or VS Code
+Example — running in Docker or hosting on your local network:
 
-Open `app.R` and click the "Run App"/"Run Shiny App" button.
+```r
+run_app(host = "0.0.0.0", port = 3838)
+```
+
+### Locally
+
+Install the package from GitHub:
+
+```r
+remotes::install_github("Big-Life-Lab/algorithm-viewer")
+```
+
+Or install from a local copy of the repository:
+
+```r
+remotes::install_local("path/to/algorithm-viewer")
+```
+
+Then run the app:
+
+```r
+library(algorithm.viewer)
+run_app()
+```
+
+#### Development Mode
+
+To run without installing (e.g. while actively editing source files), make sure
+your working directory is at the root of the local repository, then load all
+source files and call `run_app()` directly:
+
+```r
+devtools::load_all()
+run_app()
+```
 
 ### With Docker
 
@@ -118,30 +178,25 @@ docker compose up --build
 Or build and run manually:
 
 ```bash
-docker build --platform linux/amd64 -t algorithm-viewer .
-docker run -p 3838:3838 -v ./data:/srv/shiny-server/algorithm-viewer/data algorithm-viewer
+docker build -t algorithm-viewer .
+docker run -p 3838:3838 algorithm-viewer
 ```
 
 Then open `http://localhost:3838` in your browser.
 
-The volume mount (`-v`) allows the container to use algorithm files from your
-local `data/` directory. To use different algorithm files, place them in
-`data/models/` and update `data/config.yaml` accordingly. Rerun the `docker run`
-command to use the new algorithm files.
-
 ## Deployment
 
-The [Deployment Specification](docs/specs/DEPLOYMENT.md) is a planning document
-that discusses various deployment options we may want to implement in the
-future, including a public web application, a hosted algorithm showcase for
-sharing models via URL, and a local development tool for scientists building
+The [Deployment Specification](specs/DEPLOYMENT.md) is a planning document that
+discusses various deployment options we may want to implement in the future,
+including a public web application, a hosted algorithm showcase for sharing
+models via URL, and a local development tool for scientists building
 algorithms.
 
 ## Requirements
 
 ### R Version
 
-- R >= 4.0
+- R >= 4.1
 
 ### Required Packages
 

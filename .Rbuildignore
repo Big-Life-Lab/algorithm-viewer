@@ -1,0 +1,15 @@
+^algorithm-viewer\.Rproj$
+^\.Rproj\.user$
+^_pkgdown\.yml$
+^docs/
+^webr/
+^specs/
+^\.github/
+^\.claude/
+^Dockerfile$
+^\.dockerignore$
+^docker-compose\.yml$
+^application\.yml$
+^\.markdownlint\.json$
+^doc$
+^Meta$

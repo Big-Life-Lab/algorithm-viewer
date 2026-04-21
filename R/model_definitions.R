@@ -1,0 +1,519 @@
+#' Model Definitions
+#'
+#' Model definitions reads a YAML configuration file containing information
+#' about various models (eg. model titles, predictor allowable values, reference
+#' groups, model export files, etc.). It parses all information about
+#' the models and allows the user to extract information from them.
+#'
+#' @examples
+#' \dontrun{
+#' # The following model_definitions will have meta information at $meta
+#' # and model information at $models. See the function read_model_definitions
+#' # for further details.
+#' model_definitions <- read_model_definitions(
+#'   file.path("inst/extdata/models/htnport-mpp/htnport-reduced.yaml")
+#' )
+#' }
+#' @name model_definitions
+#' @noRd
+#' @keywords internal
+NULL
+
+all_tag <- "_all_"
+
+#' Read Model Definitions from YAML File
+#'
+#' Loads and processes a YAML model definitions file, including loading
+#' referenced data files, parsing predictor allowable values, and applying
+#' shared configuration. The returned named list has a $meta field
+#' containing meta information about the algorithm that all models represent
+#' (eg. the algorithm name and version), and has a $models field containing
+#' all models that can be used.
+#'
+#' The following is an example of a full model definitions list returned
+#' by this function:
+#'
+#'   meta = list(
+#'     algorithm = "HTNPoRT",
+#'     version = "1.0.0"
+#'   ),
+#'   models = list(
+#'     female = list(
+#'        title = "Female",
+#'        model_export = <data.frame>,
+#'        reference_group = list(
+#'           clc_age = 20,
+#'           fmh_15 = 2,
+#'           hwmdbmi = 14.9,
+#'           diabx = 2
+#'        ),
+#'        predictor_allowable_values = list(
+#'           hwmdbmi = <value>,
+#'           clc_age = <value>,
+#'           fmh_15 = <value>,
+#'           diabx = <value>
+#'        ),
+#'        root_dir = "data/models/htnport-mpp",
+#'        variables = <data.frame>,
+#'        variable_details = <data.frame>,
+#'        model_steps = <data.frame>,
+#'        model_index = 1,
+#'        model_id = "female",
+#'        model_color = "#440154FF",
+#'        pipelines = list()
+#'     ),
+#'     male = ...
+#'   )
+#'
+#' @param file Character string specifying the path to the YAML definitions
+#'   file.
+#'
+#' @return A named list containing processed model definitions with loaded data.
+#'   The main top-level names are $meta and $models.
+#'
+#' @noRd
+#' @keywords internal
+read_model_definitions <- function(file) {
+  file <- normalizePath(file)
+  root_dir <- dirname(file)
+  tryCatch(
+    {
+      info <- yaml::read_yaml(file)
+    },
+    error = function(e) {
+      stop(paste(
+        "Could not load the model definitions file",
+        file
+      ))
+    }
+  )
+
+  info$source_file <- file
+
+  info <- .copy_from_all_model(info)
+  info <- .make_model_titles_unique(info)
+  info <- .assign_root_dir(info, root_dir)
+  info <- .load_model_pipelines(info, root_dir)
+  info <- .load_model_export_files(info, root_dir)
+  info <- .parse_predictor_allowable_values(info)
+  info <- .cleanup_reference_groups(info)
+  info <- .add_model_indices_and_ids(info)
+  info <- .add_model_colors(info)
+  info <- .add_empty_pipelines(info)
+
+  info
+}
+
+#' Make model titles unique
+#'
+#' Ensures all model titles within the model definitions are unique by
+#' appending a numeric suffix (e.g., \code{"Title (2)"}) to any duplicate
+#' titles. Duplicates are resolved in order, so the first occurrence keeps
+#' its original title and subsequent duplicates receive incrementing suffixes.
+#'
+#' @param info Model definitions list containing at minimum a \code{$models}
+#'   element where each entry has a \code{title} field.
+#'
+#' @return The \code{info} list with model titles updated so that all titles
+#'   are unique.
+#'
+#' @noRd
+#' @keywords internal
+.make_model_titles_unique <- function(info) {
+  # Get all the titles
+  titles <- info$models |>
+    sapply(`[[`, "title") |>
+    unlist() |>
+    unname()
+
+  # Modify titles so that all titles are unique
+  titles <- make_string_values_unique(titles)
+
+  # Assign all the titles to all the models
+  for (idx in seq_along(info$models)) {
+    model_id <- names(info$models)[[idx]]
+    info$models[[model_id]]$title <- titles[[idx]]
+  }
+
+  info
+}
+
+#' Initialize Empty Pipeline Lists
+#'
+#' Adds an empty pipelines list to each model for storing cached
+#' model pipeline objects during runtime.
+#'
+#' @param info Model definitions list containing models.
+#'
+#' @return Updated model definitions with empty pipelines lists.
+#'
+#' @noRd
+#' @keywords internal
+.add_empty_pipelines <- function(info) {
+  for (model_id in names(info$models)) {
+    info$models[[model_id]]$pipelines <- list()
+  }
+
+  info
+}
+
+#' Create Predictor Allowable Values from Various Formats
+#'
+#' Converts allowable value specifications (string expressions, vectors, or list
+#' definitions) into numeric vectors.
+#'
+#' @param info Allowable values specification as string (e.g., "1:10",
+#'   "seq(1,10,2)"), vector, or list with seq parameters.
+#'
+#' @return Numeric vector representing the allowable values, or NULL if parsing
+#'   fails.
+#'
+#' @noRd
+#' @keywords internal
+.create_predictor_allowable_values <- function(info) {
+  if (is.character(info) && length(info) == 1) {
+    func_info <- get_function_and_params(info)
+    if (!is.null(func_info)) {
+      if (func_info$func == "seq" && length(func_info$params) >= 2) {
+        return(do.call(seq, func_info$params))
+      }
+    } else if (stringr::str_count(info, ":") == 1) {
+      lower_upper <- as.integer(unlist(strsplit(info, ":")))
+      return(lower_upper[[1]]:lower_upper[[2]])
+    }
+  } else if (is.vector(info) && is.null(names(info))) {
+    return(info)
+  }
+
+  NULL
+}
+
+#' Copy Shared Configuration to All Models
+#'
+#' Copies configuration from the "_all_" template model to all other models,
+#' without overwriting existing values.
+#'
+#' @param info Model definitions list potentially containing an "_all_" model.
+#'
+#' @return Updated model definitions with shared configuration applied.
+#'
+#' @noRd
+#' @keywords internal
+.copy_from_all_model <- function(info) {
+  if (all_tag %in% names(info$models)) {
+    for (model_id in names(info$models)) {
+      if (model_id == all_tag) {
+        next
+      }
+      info$models[[model_id]] <- .copy_from_all(
+        info$models[[model_id]],
+        info$models[[all_tag]]
+      )
+    }
+
+    info$models[[all_tag]] <- NULL
+  }
+
+  info
+}
+
+#' Copy Missing Values from Template
+#'
+#' Recursively copies values from a template object to the target object
+#' for any keys not already present in the target. This function
+#' is used by .copy_from_all_model (which should usually be called
+#' instead of .copy_from_all)
+#'
+#' @param info List to receive copied values.
+#' @param all_info Template list to copy values from.
+#'
+#' @return The info list with missing values filled from all_info.
+#'
+#' @noRd
+#' @keywords internal
+.copy_from_all <- function(info, all_info) {
+  for (key in names(all_info)) {
+    if (is.list(info[[key]])) {
+      info[[key]] <- .copy_from_all(info[[key]], all_info[[key]])
+    } else if (!(key %in% names(info))) {
+      info[[key]] <- all_info[[key]]
+    }
+  }
+
+  info
+}
+
+#' Get Allowable Values from Variable Details
+#'
+#' Extracts the allowable values for a variable from the variable_details
+#' table in model data.
+#'
+#' @param model_data List containing model data with variable_details.
+#' @param variable Character string specifying the variable name.
+#'
+#' @return Numeric vector of allowable values for the variable.
+#'
+#' @noRd
+#' @keywords internal
+.get_allowable_values_from_variable_details <- function(model_data, variable) {
+  info <- model_data$variable_details |>
+    dplyr::filter(variable == !!variable) |>
+    dplyr::select(recStart, recEnd)
+
+  allowable_values <- c()
+
+  for (idx in seq_len(nrow(info))) {
+    rec_start <- info$recStart[[idx]]
+    rec_end <- info$recEnd[[idx]]
+    val <- rec_end
+    if (val == "copy") {
+      val <- rec_start
+    }
+    if (val == "else" || is_data_missing(val)) {
+      next
+    }
+    val_yaml <- yaml::read_yaml(text = val)
+    if (is.null(val_yaml)) {
+      next
+    }
+    if (is.vector(val_yaml) && length(val_yaml) == 2) {
+      allowable_values <- append(allowable_values, val_yaml[1]:val_yaml[2])
+    } else {
+      # Note that read_yaml above will do some automatic conversion, such as
+      # converting the string "Y" to the boolean TRUE. We do not want this,
+      # so we stick with adding the allowable value val before calling
+      # read_yaml, provided that it was not loaded as another valid format
+      # (eg. an array of size 2, which represents a range from val[1] to
+      # val[2])
+      allowable_values <- append(allowable_values, val)
+    }
+  }
+
+  allowable_values
+}
+
+#' Get Model Predictors
+#'
+#' Retrieves all predictor variable names from a model's variables table.
+#'
+#' @param model_data List containing model data with variables table.
+#'
+#' @return Character vector of predictor variable names.
+#'
+#' @noRd
+#' @keywords internal
+.get_model_predictors <- function(model_data) {
+  model_data$variables |>
+    dplyr::filter(role == "Predictor") |>
+    dplyr::pull(variable)
+}
+
+#' Parse Predictor Allowable Values
+#'
+#' Converts predictor allowable value specifications in model definitions to
+#' numeric vectors and fills in missing allowable values from variable details.
+#'
+#' @param info Model definitions list containing models with
+#'   predictor_allowable_values.
+#'
+#' @return Updated model definitions with parsed predictor allowable values.
+#'
+#' @noRd
+#' @keywords internal
+.parse_predictor_allowable_values <- function(info) {
+  for (model_id in names(info$models)) {
+    if ("predictor_allowable_values" %in% names(info$models[[model_id]])) {
+      for (variable in names(
+        info$models[[model_id]][["predictor_allowable_values"]]
+      )) {
+        info$models[[model_id]]$predictor_allowable_values[[variable]] <-
+          .create_predictor_allowable_values(
+            info$models[[model_id]]$predictor_allowable_values[[variable]]
+          )
+      }
+    }
+  }
+
+  for (model_id in names(info$models)) {
+    if (model_id == all_tag) {
+      next
+    }
+    predictors <- .get_model_predictors(info$models[[model_id]])
+    for (predictor in predictors) {
+      if (!(predictor %in% names(
+        info$models[[model_id]]$predictor_allowable_values
+      ))) {
+        info$models[[model_id]]$predictor_allowable_values[[predictor]] <-
+          .get_allowable_values_from_variable_details(
+            info$models[[model_id]], predictor
+          )
+      }
+    }
+  }
+
+  info
+}
+
+#' Load Model Files
+#'
+#' Loads CSV files referenced in model definitions and model export files.
+#'
+#' @param info Model definitions list containing file references.
+#' @param root_dir Character string specifying the root directory for file
+#'   paths.
+#'
+#' @return Updated model definitions with loaded data frames.
+#'
+#' @noRd
+#' @keywords internal
+.load_model_export_files <- function(info, root_dir) {
+  for (model_id in names(info$models)) {
+    model_export_file <- info$models[[model_id]]$model_export
+    if (!is.null(model_export_file)) {
+      # Load model export file and assign to the model's $model_export
+      model_export_file <- file.path(root_dir, model_export_file)
+      model_export <- utils::read.csv(model_export_file)
+      info$models[[model_id]]$model_export <- model_export
+
+      # Load variables, variable-details, and model-steps files,
+      # assign them to the model's $variables, $variable_details, $model_steps
+      model_export_root <- dirname(model_export_file)
+      for (file_type in c("variables", "variable-details", "model-steps")) {
+        file_path <- model_export[model_export$fileType == file_type, ]$filePath
+        file_path <- file.path(model_export_root, file_path)
+        file_key <- gsub("[^A-Za-z0-9]", "_", file_type)
+        info$models[[model_id]][[file_key]] <- utils::read.csv(file_path)
+      }
+    }
+  }
+  info
+}
+
+#' Load Model Pipelines
+#'
+#' Loads the model pipeline for each model in the definitions by reading
+#' the model export file and preparing it with \code{prepare_model_pipeline}.
+#'
+#' @param info Model definitions list.
+#' @param root_dir Character string specifying the root directory containing
+#'   model export files.
+#'
+#' @return Updated model definitions with model_pipeline loaded for each model.
+#'
+#' @noRd
+#' @keywords internal
+.load_model_pipelines <- function(info, root_dir) {
+  for (model_id in names(info$models)) {
+    model_export <- info$models[[model_id]]$model_export
+    model_export_file <- file.path(root_dir, model_export)
+
+    if (!is_file_descendant_of(model_export_file, root_dir)) {
+      stop(paste(
+        "A model export file specified in the algorithm definition file does",
+        "not exist or points to a file outside of the allowed directory",
+        "structure:",
+        model_export
+      ))
+    }
+
+    info$models[[model_id]]$model_pipeline <-
+      model.parameters.pipeline::prepare_model_pipeline(
+        model_export_file,
+        sandbox_path = root_dir
+      )
+  }
+
+  info
+}
+
+#' Assign Root Directory to Models
+#'
+#' Sets the root_dir field for each model in the definitions.
+#'
+#' @param info Model definitions list.
+#' @param root_dir Character string specifying the root directory.
+#'
+#' @return Updated model definitions with root_dir assigned.
+#'
+#' @noRd
+#' @keywords internal
+.assign_root_dir <- function(info, root_dir) {
+  for (model_id in names(info$models)) {
+    info$models[[model_id]]$root_dir <- root_dir
+  }
+  info
+}
+
+#' Add Sequential Indices to Models
+#'
+#' Assigns a sequential model_index to each model in the definitions.
+#'
+#' @param info Model definitions list.
+#'
+#' @return Updated model definitions with model_index assigned.
+#'
+#' @noRd
+#' @keywords internal
+.add_model_indices_and_ids <- function(info) {
+  idx <- 1
+  for (model_id in names(info$models)) {
+    info$models[[model_id]]$model_index <- idx
+    info$models[[model_id]]$model_id <- model_id
+    idx <- idx + 1
+  }
+
+  info
+}
+
+#' Convert Categorical Reference Group Values to Strings
+#'
+#' Ensures all categorical predictor values in each model's reference group
+#' are stored as character strings. This prevents type mismatches when
+#' comparing reference group values against the character values used by
+#' the UI controls (radio buttons).
+#'
+#' @param info Model definitions list containing models with reference_group
+#'   and variable metadata.
+#'
+#' @return Updated model definitions with categorical reference group values
+#'   converted to character strings.
+#'
+#' @noRd
+#' @keywords internal
+.cleanup_reference_groups <- function(info) {
+  for (model_id in names(info$models)) {
+    reference_group <- info$models[[model_id]]$reference_group
+    for (variable in names(reference_group)) {
+      if (is_variable_categorical(info$models[[model_id]], variable)) {
+        reference_group[[variable]] <- as.character(reference_group[[variable]])
+      }
+    }
+    info$models[[model_id]]$reference_group <- reference_group
+  }
+
+  info
+}
+
+#' Assign Colors to Models
+#'
+#' Assigns distinct colors from the viridis palette to each model. If the
+#' model already has the $model_colors field specified (from the loaded
+#' config), then the existing model color is used.
+#'
+#' @param info Model definitions list.
+#'
+#' @return Updated model definitions with model_color assigned to each model.
+#'
+#' @noRd
+#' @keywords internal
+.add_model_colors <- function(info) {
+  model_colors <- viridis::viridis(length(info$models))
+  for (idx in seq_along(names(info$models))) {
+    model_id <- names(info$models)[[idx]]
+    if (is.null(info$models[[model_id]]$model_color)) {
+      info$models[[model_id]]$model_color <- model_colors[[idx]]
+    }
+  }
+
+  info
+}
