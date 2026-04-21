@@ -120,6 +120,13 @@ app_ui <- function(request) {
 
               # Log or non-log scale
               shiny::checkboxInput("logarithmic", "Logarithmic", value = TRUE),
+              shiny::hr(),
+
+              # Algorithm Viewer version number
+              shiny::div(
+                style = "color: #999",
+                paste0("Algorithm Viewer v", packageVersion(packageName()))
+              )
             )
           ),
 
