@@ -5,11 +5,11 @@ meta:
 hide_plots: "rr_exposed_vs_unexposed"
 
 models:
-  femalex:
-    title: FemaleX
+  female:
+    title: Female
     model_export: ./female-full/HTNPoRT-full-female-model-export.csv
-  malex:
-    title: MaleX
+  male:
+    title: Male
     model_export: ./male-full/HTNPoRT-full-male-model-export.csv
   _all_:
     predictor_allowable_values:
