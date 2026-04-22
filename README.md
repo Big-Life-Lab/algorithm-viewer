@@ -196,6 +196,8 @@ package root where `application.yml` is located, launch ShinyProxy with:
 java -jar shinyproxy-x.y.z.jar
 ```
 
+Then access the site at `http://localhost:8080`.
+
 This requires a Java runtime environment and Docker to be running. For details
 on installing these refer to the [ShinyProxy Getting Started
 Guide](https://www.shinyproxy.io/documentation/getting-started/).
