@@ -184,6 +184,22 @@ docker run -p 3838:3838 algorithm-viewer
 
 Then open `http://localhost:3838` in your browser.
 
+### With ShinyProxy
+
+ShinyProxy can serve the app as a multi-user deployment. A sample
+`application.yml` configuration file is included in the package root.
+
+Ensure the Docker container has been built as described above, then from the
+package root where `application.yml` is located, launch ShinyProxy with:
+
+```bash
+java -jar shinyproxy-x.y.z.jar
+```
+
+This requires a Java runtime environment and Docker to be running. For details
+on installing these refer to the [ShinyProxy Getting Started
+Guide](https://www.shinyproxy.io/documentation/getting-started/).
+
 ## Deployment
 
 The [Deployment Specification](specs/DEPLOYMENT.md) is a planning document that

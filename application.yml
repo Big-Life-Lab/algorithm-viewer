@@ -1,0 +1,28 @@
+# Sample ShinyProxy configuration for the Algorithm Viewer
+proxy:
+  title: Big Life Lab Shiny Apps
+  # logo-url: /assets/img/pbl-lettering-white.svg     # Add your logo here
+  landing-page: /
+  # template-path: ./shinyproxy-template              # For a custom UI
+  heartbeat-rate: 10000
+  heartbeat-timeout: 60000
+  port: 8080
+  authentication: none                                # Use 'simple' to enable passwords in the 'users' section
+  admin-groups: admins
+  # Example: 'simple' authentication configuration (if "authentication: simple" is set)
+  users:
+    - name: biglifelab
+      password: password
+      goups: scientist
+  docker:
+    port-range-start: 20000
+  specs:
+    - id: algorithm-viewer
+      display-name: Algorithm Viewer
+      description: An application for visualizing health risk prediction algorithms, displaying various curves and comparisons.
+      container-image: algorithm-viewer:latest
+      # logo-url: /assets/img/algorithm-viewer.svg    # Custom logo for the Algorithm Viewer
+
+logging:
+  file:
+    name: shinyproxy.log
