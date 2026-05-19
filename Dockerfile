@@ -1,4 +1,4 @@
-FROM rocker/r-ver:4
+FROM rocker/r-ver:4.5.2
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -15,7 +15,7 @@ COPY . /srv/shiny-server/algorithm-viewer/
 RUN R -e "install.packages('remotes', repos = 'https://cloud.r-project.org')"
 
 # Install R package dependencies
-RUN R -e "remotes::install_local('/srv/shiny-server/algorithm-viewer/')"
+RUN R -e "remotes::install_local('/srv/shiny-server/algorithm-viewer/', dependencies = TRUE)"
 
 EXPOSE 3838
 
