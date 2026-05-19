@@ -1,7 +1,7 @@
 Package: algorithm.viewer
 Type: Package
 Title: Algorithm Viewer - Shiny Application for Visualizing Prediction Algorithms
-Version: 0.1.0
+Version: 0.1.1
 Date: 2026-04-20
 Description: A Shiny web application for visualizing prediction algorithms.
   Allows users to upload algorithm configurations, select models, adjust
@@ -28,6 +28,7 @@ Imports:
   plotly,
   rlang,
   R.utils,
+  S7schema,
   shiny,
   shinyjs,
   stringr,
