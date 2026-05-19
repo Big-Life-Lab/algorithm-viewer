@@ -1,0 +1,44 @@
+/*
+Styles for categorical_radio_table.R
+*/
+
+.crt-radio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  margin-bottom: 12px;
+  /* margin-bottom: 2px; */
+}
+
+.crt-radio-table th {
+  padding: 3px 0 3px 8px;
+  text-align: center;
+  font-weight: 600;
+  /* border-bottom: 1px solid #dee2e6; */
+}
+
+.crt-radio-table th:first-child {
+  text-align: left;
+  padding-left: 0;
+}
+
+.crt-radio-table td.crt-label-cell {
+  padding: 4px 8px 4px 0;
+  vertical-align: top;
+  word-break: break-word;
+}
+
+.crt-radio-table td.crt-radio-cell {
+  text-align: center;
+  vertical-align: top;
+  /* padding: 4px 8px; */
+  padding: 4px 0 4px 8px;
+  /* width:1px + no wrap collapses column to fit the radio button */
+  width: 1px;
+  white-space: nowrap;
+}
+
+.crt-radio-table input[type='radio'] {
+  cursor: pointer;
+  margin: 0;
+}
