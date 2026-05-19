@@ -141,20 +141,27 @@ pipeline.
 
 **Supported formats:**
 
-1. **R sequence expression:**
+1. **YAML sequence definition:**
 
    ```yaml
-   hwmdbmi: seq(13, 49, by = 0.01)
-   clc_age: seq(20, 79, length.out = 10)
+   hwmdbmi:
+     # Generates the sequence seq(from = 13, to = 49, by = 0.01)
+     # or: [13.00, 13.01, 13.02, ..., 48.99, 49.00]
+     seq:
+       from: 13
+       to: 49
+       by: 0.01
+   clc_age:
+     # Generates the sequence seq(from = 20, to = 79, length.out = 5)
+     # or: [20.00, 34.75, 49.50, 64.25, 79.00]
+     seq:
+       from: 20
+       to: 79
+       length.out: 5
+   fmh_15: [1, 2]
    ```
 
-2. **Integer range:**
-
-   ```yaml
-   clc_age: 20:80
-   ```
-
-3. **YAML Array:**
+2. **YAML Array:**
 
    ```yaml
    diabx: [1, 2]
@@ -175,20 +182,34 @@ models:
     title: Male
     model_export: ./HTNPoRT-male-model-export.csv
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
   female:
     title: Female
     model_export: ./HTNPoRT-female-model-export.csv
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
-      clc_age: 15:85
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
+      clc_age:
+        seq:
+          from: 15
+          to: 85
   _all_:
     predictor_allowable_values:
-      clc_age: 20:80
+      clc_age:
+        seq:
+          from: 20
+          to: 80
 ```
 
-In this example, `_all_` defines `clc_age: 20:80` as a shared default under the
-`predictor_allowable_values` key. The `male` model does not have `clc_age`
+In this example, `_all_` defines a `clc_age` sequence as a shared default under
+the `predictor_allowable_values` key. The `male` model does not have `clc_age`
 defined under `predictor_allowable_values`, so inherits the values from
 `_all_`. The `female` model already has `clc_age` defined, so it does not
 inherit the values from `_all_`. The above example is equivalent to:
@@ -199,14 +220,28 @@ models:
     title: Male
     model_export: ./HTNPoRT-male-model-export.csv
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
-      clc_age: 20:80
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
+      clc_age:
+        seq:
+          from: 20
+          to: 80
   female:
     title: Female
     model_export: ./HTNPoRT-female-model-export.csv
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
-      clc_age: 15:85
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
+      clc_age:
+        seq:
+          from: 15
+          to: 85
 ```
 
 This inheritance pattern applies to all keys and values specified under
@@ -248,5 +283,9 @@ models:
       diabx: 2
   _all_:
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
 ```
