@@ -11,19 +11,58 @@ NULL
 
 .CONFIG <- new.env(parent = emptyenv())
 
-# Load the global configuration. .CONFIG should not be modified with
-# user-specific data, it is shared by ALL active sessions so changes
-# to the config will affect all users.
+#' Load the global application configuration
+#'
+#' Reads a YAML config file into the shared \code{.CONFIG} environment.
+#' \code{.CONFIG} is shared across all active sessions, so changes affect
+#' every user; it should not be modified with session-specific data.
+#'
+#' @param config Path to a YAML configuration file, or \code{NULL} to use
+#'   the built-in default at \code{inst/extdata/config.yaml}.
+#'
+#' @return NULL (called for side effects).
+#'
+#' @noRd
+#' @keywords internal
 load_config <- function(config) {
   if (is.null(config)) {
     config <- system.file("extdata/config.yaml", package = utils::packageName())
   }
-  list2env(yaml::read_yaml(config), .CONFIG)
+
+  schema_file <- system.file(
+    "extdata/schema/config.schema.json",
+    package = utils::packageName()
+  )
+  tryCatch(
+    {
+      # Validate the file
+      data <- S7schema::S7schema(
+        config,
+        schema_file
+      )
+    },
+    error = function(e) {
+      stop(paste0(
+        "Error with configuration file ",
+        htmltools::htmlEscape(basename(config)),
+        ":\n",
+        parse_s7schema_error(e)
+      ))
+    }
+  )
+
+  list2env(data, .CONFIG)
 
   # Save the path, so we can retrieve it with config_get_path().
   .CONFIG$config_path__ <- config
 }
 
+#' Get the path to the loaded configuration file
+#'
+#' @return Character string with the path to the currently loaded config file.
+#'
+#' @noRd
+#' @keywords internal
 config_get_path <- function() {
   .CONFIG$config_path__
 }
@@ -83,6 +122,10 @@ config_get_initial_algorithm_file <- function() {
 #' @noRd
 #' @keywords internal
 config_expand_and_normalize_algorithm_file <- function(file) {
+  if (is.null(file)) {
+    return(NULL)
+  }
+
   # If the file is not an absolute path, then make it relative
   # to the directory containing the config file.
   if (!R.utils::isAbsolutePath(file)) {
@@ -190,6 +233,9 @@ config_has_algorithms <- function() {
 #' @noRd
 #' @keywords internal
 config_get_algorithm_file <- function(algorithm_id) {
+  if (is.null(algorithm_id) || !algorithm_id %in% names(.CONFIG$algorithms)) {
+    return(NULL)
+  }
   config_expand_and_normalize_algorithm_file(
     .CONFIG$algorithms[[algorithm_id]]$file
   )
