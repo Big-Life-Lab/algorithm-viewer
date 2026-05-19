@@ -91,6 +91,53 @@ immediately. Click **Reset** to restore a model's defaults.
 
 ---
 
+### Me vs Ref Tab (Plot)
+
+Compares a personal risk profile ("Me") against a configurable reference
+profile ("Ref") and explores what-if scenarios for categorical variables.
+
+The plot is arranged in rows:
+
+- **Overall (first row)** &mdash; the relative risk of the Me profile versus
+  the Ref profile using the exact values set in the sidebar. A value greater
+  than 1 means higher risk than the reference; a value less than 1 means lower
+  risk.
+- **What-if rows (all other rows)** &mdash; one row for each alternative level
+  of every categorical variable. Each row asks "what if this variable in my
+  profile were changed to this level?" All other Me values remain unchanged;
+  the Ref profile is always unchanged.
+
+Two vertical lines are drawn on the plot:
+
+- **Solid line (RR&nbsp;=&nbsp;1)** &mdash; no difference from the reference.
+- **Dotted line (overall baseline)** &mdash; the Overall relative risk for each
+  model, coloured to match that model. Points to the right of this line
+  indicate levels that would increase risk above the current Me profile; points
+  to the left indicate levels that would decrease it.
+
+Hover over any point to see the exact relative risk and, for what-if rows, the
+current Me value being replaced.
+
+---
+
+### Me vs Ref Tab (Sidebar Controls)
+
+Sets the predictor values for both the "Me" (individual) and "Ref" (reference)
+profiles used in the Me vs Ref plot. Controls are built from the first selected
+model.
+
+- **Continuous variables** &mdash; two stacked sliders sharing the same range:
+  the top slider ("Me") controls the individual value; the bottom slider
+  ("Ref") controls the reference value.
+- **Categorical variables** &mdash; a compact table with a column of radio
+  buttons for "Me" and a separate column of radio buttons for "Ref". The two
+  columns are independent, so the same level can be selected for both.
+
+Both profiles are initialised to the first model's default reference group
+values. Click **Reset** to restore all controls to those defaults.
+
+---
+
 ### Logarithmic Scale
 
 The **Logarithmic** checkbox (in the Models tab) toggles the y-axis of the
