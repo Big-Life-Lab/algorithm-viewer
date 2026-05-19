@@ -20,29 +20,34 @@ app_ui <- function(request) {
     shiny::tags$head(
       shiny::tags$link(
         rel = "icon", type = "image/png",
-        sizes = "128x128", href = "/www/favicon-128x128.png"
+        sizes = "128x128", href = "www/favicon-128x128.png"
       ),
       shiny::tags$link(
         rel = "icon", type = "image/png",
-        sizes = "64x64", href = "/www/favicon-64x64.png"
+        sizes = "64x64", href = "www/favicon-64x64.png"
       ),
       shiny::tags$link(
         rel = "icon", type = "image/png",
-        sizes = "32x32", href = "/www/favicon-32x32.png"
+        sizes = "32x32", href = "www/favicon-32x32.png"
       ),
       shiny::tags$link(
         rel = "icon", type = "image/png",
-        sizes = "180x180", href = "/www/favicon-180x180.png"
+        sizes = "180x180", href = "www/favicon-180x180.png"
       ),
       shiny::tags$link(
         rel = "apple-touch-icon",
-        sizes = "180x180", href = "/www/favicon-180x180.png"
+        sizes = "180x180", href = "www/favicon-180x180.png"
       )
     ),
-
-    # Removes width of the controls in the sidebar so that they take up the full
-    # width (instead of the default 300px).
+    shiny::tags$head(
+      # Styles for categorical_radio_table.R
+      shiny::tags$link(rel = "stylesheet", href = "www/crt.css"),
+      # Styles for continuous_slider_group.R
+      shiny::tags$link(rel = "stylesheet", href = "www/csg.css")
+    ),
     shiny::tags$style(shiny::HTML("
+      /* Removes width of the controls in the sidebar so that they take up the
+         full width (instead of the default 300px). */
       .shiny-input-container:not(.shiny-input-container-inline) {
         width: unset;
       }
@@ -50,7 +55,7 @@ app_ui <- function(request) {
 
     # Application title
     shiny::titlePanel(
-      shiny::htmlOutput("ui_title")
+      shiny::textOutput("ui_title", inline = TRUE)
     ),
 
     # Sidebar layout
@@ -62,8 +67,13 @@ app_ui <- function(request) {
         width = 3,
         shiny::tabsetPanel(
           type = "tabs",
+          id = "settings_tabs",
           shiny::tabPanel(
             "Models",
+            style = paste(
+              "height: calc(100vh - 140px); margin-bottom: 30px;",
+              "overflow-y: scroll"
+            ),
             icon = shiny::icon("atom"),
             shiny::br(),
             shiny::div(
@@ -87,12 +97,14 @@ app_ui <- function(request) {
                   "upload",
                   "Upload Algorithm:",
                   accept = c(".zip", ".tar", ".gz")
-                ),
+                )
+              ),
+              shiny::div(
                 shiny::hr(),
                 shiny::checkboxGroupInput(
                   inputId = "selected_model_ids",
                   label = "Models:"
-                ),
+                )
               ),
               shiny::hr(
                 style = ifelse(
@@ -126,21 +138,25 @@ app_ui <- function(request) {
               shiny::div(
                 style = "color: #999",
                 paste0("Algorithm Viewer v", packageVersion(packageName()))
-              )
+              ),
+
+              shiny::br()
             )
           ),
 
           # Predictor controls get added as children to #refgroup_controls
           shiny::tabPanel(
             "Reference",
+            value = "reference_groups",
             icon = icon("cog"),
-            shiny::div(
-              style = paste(
-                "height: calc(100vh - 140px); margin-bottom: 20px;",
-                "overflow-y: scroll"
-              ),
-              shiny::uiOutput("refgroup_controls")
-            )
+            predictorGroupedControlsUI("refgroup")
+          ),
+
+          shiny::tabPanel(
+            "Me vs Ref",
+            value = "a_vs_b",
+            icon = icon("cog"),
+            predictorGroupedControlsUI("a_vs_b_groups")
           )
         )
       ),
@@ -155,26 +171,31 @@ app_ui <- function(request) {
           id = "main_tabs",
           shiny::tabPanel(
             "Odds Ratio",
+            value = "or",
             icon = shiny::icon("chart-line"),
-            shiny::uiOutput("or_plot")
+            plotORUI("or_plot", .external_height)
           ),
           shiny::tabPanel(
             "Relative Risk",
+            value = "rr",
             icon = shiny::icon("chart-line"),
-            shiny::uiOutput("rr_plot")
+            plotRRUI("rr_plot", .external_height)
           ),
           shiny::tabPanel(
             "Predicted Risk",
+            value = "pr",
             icon = shiny::icon("chart-line"),
-            shiny::uiOutput("pr_plot")
+            plotPRUI("pr_plot", .external_height)
           ),
           shiny::tabPanel(
-            "Exposed vs Unexposed",
+            "Me vs Ref",
+            value = "a_vs_b",
             icon = shiny::icon("chart-line"),
-            shiny::uiOutput("rr_exposed_vs_unexposed_plot")
+            plotRRAvsBUI("rr_a_vs_b_plot", .external_height)
           ),
           shiny::tabPanel(
             "Help",
+            value = "help",
             icon = shiny::icon("circle-question"),
             style = "max-width: 800px",
             shiny::br(),
