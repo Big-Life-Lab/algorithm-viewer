@@ -24,10 +24,10 @@
 NULL
 
 # When the config file allows specifying algorithms in the URL,
-# algorithm_query_param is the parameter name for specifying the
-# algorithm ID. eg. If algorithm_query_param <- "algorithm", then
+# .algorithm_query_param is the parameter name for specifying the
+# algorithm ID. eg. If .algorithm_query_param <- "algorithm", then
 # an example URL would be http://example.com/?algorithm=htnport-full
-algorithm_query_param <- "algorithm"
+.algorithm_query_param <- "algorithm"
 
 #' Check whether the current URL contains an algorithm ID query parameter
 #'
@@ -47,9 +47,9 @@ url_has_algorithm_id <- function(session) {
   if (!config_allow_algorithm_in_url()) {
     return(FALSE)
   }
-  # Check if the URL has a query parameter named algorithm_query_param
+  # Check if the URL has a query parameter named .algorithm_query_param
   params <- shiny::getQueryString(session)
-  !is.null(params[[algorithm_query_param]])
+  !is.null(params[[.algorithm_query_param]])
 }
 
 #' Get the algorithm ID from the current URL query string
@@ -73,7 +73,7 @@ url_get_algorithm_id <- function(session) {
   # Get the algorithm ID from the URL, and if it is a valid algorithm ID
   # found in the config file then return the ID
   params <- shiny::getQueryString(session)
-  query_algorithm_id <- params[[algorithm_query_param]]
+  query_algorithm_id <- params[[.algorithm_query_param]]
   if (is.null(query_algorithm_id)) {
     return(NULL)
   } else if (config_algorithm_id_exists(query_algorithm_id)) {
@@ -97,7 +97,8 @@ url_get_algorithm_id <- function(session) {
 #' @noRd
 #' @keywords internal
 url_set_algorithm_id <- function(algorithm_id, session) {
-  query_string <- paste0("?", algorithm_query_param, "=", algorithm_id)
+  algorithm_id <- utils::URLencode(algorithm_id, reserved = TRUE)
+  query_string <- paste0("?", .algorithm_query_param, "=", algorithm_id)
   url_update_query_string(query_string, mode = "replace", session = session)
 }
 
