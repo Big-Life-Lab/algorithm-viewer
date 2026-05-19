@@ -7,8 +7,68 @@
 #' @keywords internal
 NULL
 
-# Standard height of the plots
-plot_height <- "calc(100vh - 170px)"
+# Height, in pixels, of the area outside of the plot area (in the main tabs).
+# If a plot wants to fill up the height of the page, without causing overflow
+# at the bottom (and hence scrolling), then a plot's height should be
+# \code{calc(100vh - {.external_height}px)}
+.external_height <- 170
+
+#' Create Error Modal Dialog
+#'
+#' Creates a modal dialog for displaying error messages to the user.
+#'
+#' @param title Character string specifying the modal title.
+#' @param message Character string or HTML content for the modal body.
+#'
+#' @return A modalDialog object for use with showModal().
+#'
+#' @noRd
+#' @keywords internal
+errorModal <- function(title, message) {
+  message <- gsub("\n", "<br />", message)
+  shiny::modalDialog(
+    title = title,
+    shiny::HTML(message),
+    easyClose = TRUE,
+    footer = shiny::tagList(
+      shiny::modalButton("Dismiss")
+    )
+  )
+}
+
+#' Create Yes/No Modal Dialog
+#'
+#' Creates a modal dialog with OK and optional Cancel buttons for
+#' user confirmation prompts.
+#'
+#' @param title Character string specifying the modal title.
+#' @param message Character string or HTML content for the modal body.
+#' @param ok_button_id Character string specifying the input ID for the
+#'   OK button, used to observe click events.
+#' @param show_no Logical indicating whether to show the Cancel button.
+#'   Default is TRUE.
+#' @param size Character string specifying the modal size. One of "s",
+#'   "m", "l", or "xl". Default is "m".
+#'
+#' @return A modalDialog object for use with showModal().
+#'
+#' @noRd
+#' @keywords internal
+yesNoModal <- function(title,
+                       message,
+                       ok_button_id,
+                       show_no = TRUE,
+                       size = "m") {
+  shiny::modalDialog(
+    title = title,
+    message,
+    footer = shiny::tagList(
+      if (show_no) shiny::modalButton("Cancel"),
+      shiny::actionButton(ok_button_id, "OK")
+    ),
+    size = size
+  )
+}
 
 #' Shiny Server Function
 #'
@@ -23,19 +83,23 @@ plot_height <- "calc(100vh - 170px)"
 #' @noRd
 #' @keywords internal
 app_server <- function(input, output, session) {
-  # The environment containing all variables associated with the predictor
-  # controls
-  predictor_controls_env <- initialize_predictor_controls_env()
-
   # Stores the currently loaded model definitions (NULL when no algorithm is
   # loaded).
   # model_definitions()$models contains all the models (keyed by model ID).
   # Once loaded with load_model_definitions, the values in model_definitions
   # remain unchanged until the next algorithm is loaded.
   model_definitions <- shiny::reactiveVal(NULL)
+
+  # Tracks the temp directory created for the most-recent archive upload.
+  # Used by the select_yaml_ok observer to validate the user's YAML selection
+  # against the specific directory for that upload (not the shared tempdir()).
+  upload_temp_dir <- NULL
+
   # Stores the reference group predictor values keyed by model ID.
   # These match the values that are shown in the reference groups UI.
-  reference_groups <- shiny::reactiveValues()
+  reference_groups <- predictorGroupedControlsServer(
+    "refgroup", model_definitions
+  )
 
   # Handle initial loading of the page, loading the initial algorithm (if
   # there is one) and creating all plots.
@@ -43,6 +107,7 @@ app_server <- function(input, output, session) {
   shiny::observeEvent(TRUE,
     {
       create_all_plot_servers()
+
       if (url_has_algorithm_id(session)) {
         # The URL has an algorithm specified (eg
         # "example.com/?algorithm=htnport-reduced"), so try to load the
@@ -91,33 +156,36 @@ app_server <- function(input, output, session) {
     }
   })
 
+  # Model definitions for a vs b predictor control panel
+  a_vs_b_model_definitions <- shiny::reactive({
+    if (has_model_definitions()) {
+      defns <- model_definitions()
+      a_model <- defns$models[[names(defns$models)[[1]]]]
+      b_model <- a_model
+      a_model$model_id <- "a"
+      b_model$model_id <- "b"
+      a_model$title <- "Me"
+      b_model$title <- "Ref"
+      defns$models <- list(
+        a = a_model,
+        b = b_model
+      )
+      defns
+    } else {
+      NULL
+    }
+  })
+
+  a_vs_b_groups <- predictorGroupedControlsServer(
+    "a_vs_b_groups",
+    a_vs_b_model_definitions,
+    mode = "compact",
+    show_model_color = FALSE
+  )
+
   # Returns TRUE when model definitions are loaded and non-empty.
   has_model_definitions <- shiny::reactive({
     !is.null(model_definitions()) && length(model_definitions()) > 0
-  })
-
-  # Renders the container UI for the Relative Risk plot tab.
-  output$rr_plot <- shiny::renderUI({
-    plotRRUI("rr_plot", plot_height, model_definitions)
-  })
-
-  # Renders the container UI for the Odds Ratio plot tab.
-  output$or_plot <- shiny::renderUI({
-    plotORUI("or_plot", plot_height, model_definitions)
-  })
-
-  # Renders the container UI for the Predicted Risk plot tab.
-  output$pr_plot <- shiny::renderUI({
-    plotPRUI("pr_plot", plot_height, model_definitions)
-  })
-
-  # Renders the container UI for the Exposed vs Unexposed Relative Risk tab.
-  output$rr_exposed_vs_unexposed_plot <- shiny::renderUI({
-    plotRRExposedUnexposedUI(
-      "rr_exposed_vs_unexposed_plot",
-      plot_height,
-      model_definitions
-    )
   })
 
   # Populate the UI for available models in "selected_model_ids" checkbox group
@@ -261,45 +329,22 @@ app_server <- function(input, output, session) {
     }
   })
 
-  # Populate UI for the "refgroup_controls" reference group controls
-  output$refgroup_controls <- shiny::renderUI({
-    # Create the reference group controls UI (plus module servers)
-    # refgroup_controls_ui is a list of the UI controls that we return
-    last_model_id <- utils::tail(names(model_definitions()$models), 1)
-    refgroup_controls_ui <- shiny::tagList()
-    for (model_data in model_definitions()$models) {
-      predictor_ctrl <- create_predictor_controls(
-        predictor_controls_env,
-        session,
-        model_data,
-        initial_predictor_values = shiny::isolate(
-          reference_groups[[model_data$model_id]]
-        )
+  # Show/hide settings sub-tabs based on the active main tab
+  observeEvent(input$main_tabs, {
+    hideable_tabs <- c("a_vs_b", "reference_groups")
+    if (input$main_tabs %in% c("a_vs_b")) {
+      showTab(
+        "settings_tabs", "a_vs_b",
+        select = input$settings_tabs %in% hideable_tabs
       )
-      predictor_server <- predictor_ctrl$server
-
-      # Updates reference_groups whenever this model's predictor control values
-      # change.
-      cur_env <- rlang::env(
-        rv_values = predictor_server$rv_values,
-        model_id = model_data$model_id
+      hideTab("settings_tabs", "reference_groups")
+    } else {
+      hideTab("settings_tabs", "a_vs_b")
+      showTab(
+        "settings_tabs", "reference_groups",
+        select = input$settings_tabs %in% hideable_tabs
       )
-      shiny::observe(
-        {
-          reference_groups[[model_id]] <- rv_values()
-        },
-        env = cur_env
-      )
-
-      refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <-
-        predictor_ctrl$ui
-
-      if (model_data$model_id != last_model_id) {
-        refgroup_controls_ui[[length(refgroup_controls_ui) + 1]] <- shiny::hr()
-      }
     }
-
-    refgroup_controls_ui
   })
 
   #' Create All Plot Servers
@@ -308,13 +353,13 @@ app_server <- function(input, output, session) {
   #'
   #' @return NULL (called for side effects).
   create_all_plot_servers <- function() {
-    plotRRExposedUnexposedServer(
-      "rr_exposed_vs_unexposed_plot",
+    plotRRAvsBServer(
+      "rr_a_vs_b_plot",
       shiny::reactive(input$predictor),
       shiny::reactive(input$interaction_predictor),
       shiny::reactive(input$logarithmic),
       selected_models,
-      selected_reference_groups,
+      a_vs_b_groups,
       model_definitions
     )
     plotRRServer(
@@ -357,45 +402,17 @@ app_server <- function(input, output, session) {
   load_model_definitions <- function(file) {
     tryCatch(
       {
-        # Destroy all predictor controls
-        destroy_all_predictor_controls(predictor_controls_env)
-
         # Load the file
         model_definitions(read_model_definitions(file))
-
-        # Initialize the reference group values. These values will be
-        # automatically updated by changes in the reference groups UI, but the
-        # UI does not exist until it first gets rendered with renderUI, so we
-        # must initialize
-        # reference_groups here.
-        clear_reference_groups()
-        for (model_data in model_definitions()$models) {
-          reference_groups[[model_data$model_id]] <- model_data$reference_group
-        }
       },
       error = function(e) {
         model_definitions(NULL)
-        clear_reference_groups()
         shiny::showModal(errorModal(
           "Error Loading Model Definitions",
           conditionMessage(e)
         ))
       }
     )
-  }
-
-  #' Clear All Reference Groups
-  #'
-  #' Removes all entries from the \code{reference_groups} reactive values
-  #' object by setting each keyed value to \code{NULL}. Typically called
-  #' before loading new model definitions or when a load error occurs, to
-  #' ensure stale reference group data does not persist.
-  #'
-  #' @return NULL (called for side effects).
-  clear_reference_groups <- function() {
-    for (key in names(reference_groups)) {
-      reference_groups[[key]] <- NULL
-    }
   }
 
   #' Process Uploaded Data File
@@ -408,17 +425,25 @@ app_server <- function(input, output, session) {
   #'
   #' @return NULL (called for side effects).
   process_data_file <- function(file) {
-    if (is.null(file)) {
+    if (is.null(file) || length(file) == 0) {
       # Empty file
       model_definitions(NULL)
     } else if (
-      grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)
+      # Validating a YAML (based on a JSON schema) using S7schema only
+      # supports lower-case extensions (.yaml or .yml, but not .YAML or
+      # .YML). Because we use S7schema elsewhere, we only allow lowercase
+      # extensions here to remain consistent.
+      grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = FALSE)
     ) {
       # YAML file
       load_model_definitions(file)
     } else {
-      # An archive
-      temp_dir_path <- tempdir()
+      # An archive — extract into a per-upload directory so that concurrent
+      # uploads from different sessions don't share or overwrite each other's
+      # files, and so the YAML selection check below is scoped to this upload.
+      temp_dir_path <- tempfile("upload_")
+      dir.create(temp_dir_path, recursive = TRUE)
+      upload_temp_dir <<- temp_dir_path
 
       model_definitions(NULL)
       archive_success <- FALSE
@@ -429,8 +454,12 @@ app_server <- function(input, output, session) {
           files_in_archive <-
             archive::archive_extract(file, dir = temp_dir_path)
           yaml_pattern <- "(\\.yaml|\\.yml)$"
+          # Validating a YAML (based on a JSON schema) using S7schema only
+          # supports lower-case extensions (.yaml or .yml, but not .YAML or
+          # .YML). Because we use S7schema elsewhere, we only allow lowercase
+          # extensions here to remain consistent.
           config_files <- files_in_archive[
-            grepl(yaml_pattern, files_in_archive, ignore.case = TRUE)
+            grepl(yaml_pattern, files_in_archive, ignore.case = FALSE)
           ]
           # Ignore config files in the __MACOSX directory
           # (added automatically on a Mac)
@@ -452,6 +481,8 @@ app_server <- function(input, output, session) {
       } else if (length(config_files) == 0) {
         err_msg <- paste0(
           "A YAML configuration file was not found in your archive. ",
+          "Please make sure there is at least one .yaml or .yml file ",
+          "in your archive (case-sensitive). ",
           "No models were loaded."
         )
         shiny::showModal(errorModal("Error Loading Data", err_msg))
@@ -536,11 +567,17 @@ app_server <- function(input, output, session) {
   })
 
   # Populate the main title of the page
-  output$ui_title <- shiny::renderUI({
+  output$ui_title <- shiny::renderText({
     bare_title <- "Algorithm Viewer"
     if (has_model_definitions()) {
       meta <- model_definitions()$meta
-      glue::glue("{meta$algorithm} v{meta$version} {bare_title}")
+      paste0(
+        meta$algorithm,
+        " v",
+        meta$version,
+        " ",
+        bare_title
+      )
     } else {
       bare_title
     }
@@ -549,7 +586,7 @@ app_server <- function(input, output, session) {
   # Handle selection from the "Preloaded Algorithms" dropdown
   shiny::observeEvent(input$algorithms, {
     selected_file <- config_get_algorithm_file(input$algorithms)
-    if (!is.null(selected_file) && length(selected_file) != 0) {
+    if (!is.null(selected_file) && length(selected_file) > 0) {
       if (config_allow_algorithm_in_url()) {
         # Update the query string so users can bookmark the page/share
         # the url and have the selected algorithm automatically loaded.
@@ -566,72 +603,25 @@ app_server <- function(input, output, session) {
         # Clear the text in the file upload UI control
         shinyjs::reset(id = "upload")
       }
-    } else if (!is.null(selected_file) && length(selected_file) > 0) {
-      shiny::showModal(errorModal(
-        "Unknown Algorithm",
-        glue::glue("The algorithm with ID {input$algorithms} does not exist.")
-      ))
     }
-  })
-
-  #' Create Error Modal Dialog
-  #'
-  #' Creates a modal dialog for displaying error messages to the user.
-  #'
-  #' @param title Character string specifying the modal title.
-  #' @param message Character string or HTML content for the modal body.
-  #'
-  #' @return A modalDialog object for use with showModal().
-  errorModal <- function(title, message) {
-    shiny::modalDialog(
-      title = title,
-      message,
-      easyClose = TRUE,
-      footer = shiny::tagList(
-        shiny::modalButton("Dismiss")
-      )
-    )
-  }
-
-  #' Create Yes/No Modal Dialog
-  #'
-  #' Creates a modal dialog with OK and optional Cancel buttons for
-  #' user confirmation prompts.
-  #'
-  #' @param title Character string specifying the modal title.
-  #' @param message Character string or HTML content for the modal body.
-  #' @param ok_button_id Character string specifying the input ID for the
-  #'   OK button, used to observe click events.
-  #' @param show_no Logical indicating whether to show the Cancel button.
-  #'   Default is TRUE.
-  #' @param size Character string specifying the modal size. One of "s",
-  #'   "m", "l", or "xl". Default is "m".
-  #'
-  #' @return A modalDialog object for use with showModal().
-  yesNoModal <- function(title,
-                         message,
-                         ok_button_id,
-                         show_no = TRUE,
-                         size = "m") {
-    shiny::modalDialog(
-      title = title,
-      message,
-      footer = shiny::tagList(
-        if (show_no) shiny::modalButton("Cancel"),
-        shiny::actionButton(ok_button_id, "OK")
-      ),
-      size = size
-    )
-  }
+  }, ignoreNULL = FALSE, ignoreInit = TRUE)
 
   # OK pressed for dialog box asking to choose which YAML model definitions
   # file to load when multiple YAML files found in an uploaded archive
   shiny::observeEvent(input$select_yaml_ok, {
     selected <- input$select_yaml_radio
-    if (!is.null(selected) && selected != "") {
+    shiny::removeModal()
+
+    # Validate against the specific upload directory, not the shared tempdir(),
+    # so the check is scoped to exactly this upload's extracted files.
+    if (
+      length(selected) > 0 &&
+      !is.null(selected) &&
+      !is.null(upload_temp_dir) &&
+      is_file_descendant_of(selected, upload_temp_dir)
+    ) {
       load_model_definitions(selected)
     }
-    shiny::removeModal()
   })
 
   # Help tab
