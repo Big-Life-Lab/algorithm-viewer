@@ -45,7 +45,7 @@ plotORServer <- function(
   model_definitions
 ) {
   shiny::moduleServer(id, function(input, output, session) {
-    # Cached curve data, to avoid unncessary recalculation of curves that have
+    # Cached curve data, to avoid unnecessary recalculation of curves that have
     # already been calculated
     cached_curves <- initialize_cached_data()
 
@@ -66,89 +66,82 @@ plotORServer <- function(
           model_definitions()
         ))
       }
-      tryCatch(
-        {
-          all_curve_data <- list()
+      plot_render_safely(function() {
+        all_curve_data <- list()
 
-          # Go through all selected_models and calculate the OR curves
-          # We concatenate them (with bind_rows) to show one curve per model
-          for (model_data in selected_models()) {
-            predictor_values <-
-              selected_reference_groups()[[model_data$model_id]]
+        # Go through all selected_models and calculate the OR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          predictor_values <-
+            selected_reference_groups()[[model_data$model_id]]
 
-            # Check if we can use the cached old data for the current model
-            model_params <- list(
-              predictor = predictor(),
-              interaction_predictor = interaction_predictor(),
-              reference_group = predictor_values
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = predictor(),
+            interaction_predictor = interaction_predictor(),
+            reference_group = predictor_values
+          )
+          cache_key <- list(
+            "or",
+            model_data$model_id,
+            predictor(),
+            interaction_predictor()
+          )
+          if (
+            is_reusable_cached_data(
+              cached_curves,
+              cache_key,
+              model_params
             )
-            cache_key <- list(
-              "or",
-              model_data$model_id,
-              predictor(),
-              interaction_predictor()
-            )
+          ) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_data(cached_curves, cache_key)
+          } else {
+            tic <- Sys.time()
+
+            # Calculate the OR curve for the model
             if (
-              is_reusable_cached_data(
-                cached_curves,
-                cache_key,
-                model_params
-              )
+              length(interaction_predictor()) == 0 ||
+              interaction_predictor() == config_get_empty_selection()
             ) {
-              # Reuse the old data
-              all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_data(cached_curves, cache_key)
+              curve_data <- .calculate_or_curve(
+                predictor(),
+                model_data,
+                reference_group = predictor_values
+              )
             } else {
-              tic <- Sys.time()
-
-              # Calculate the OR curve for the model
-              if (interaction_predictor() == config_get_empty_selection()) {
-                curve_data <- .calculate_or_curve(
-                  predictor(),
-                  model_data,
-                  reference_group = predictor_values
-                )
-              } else {
-                curve_data <- .calculate_or_curve_interaction(
-                  predictor(),
-                  interaction_predictor(),
-                  model_data,
-                  reference_group = predictor_values
-                )
-              }
-
-              elapsed <- Sys.time() - tic
-              message(paste0(
-                "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
-              ))
-
-              all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-              # Save the data to our cache
-              set_cached_data(
-                cached_curves,
-                cache_key,
-                model_params,
-                curve_data
+              curve_data <- .calculate_or_curve_interaction(
+                predictor(),
+                interaction_predictor(),
+                model_data,
+                reference_group = predictor_values
               )
             }
-          }
 
-          make_general_plot(
-            all_curve_data,
-            model_definitions(),
-            logarithmic()
-          )
-        },
-        error = function(e) {
-          traceback()
-          message(conditionMessage(e))
-          make_message_plot(
-            glue::glue("<b>Error</b>: {conditionMessage(e)}"),
-            color = "red"
-          )
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for OR curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+            # Save the data to our cache
+            set_cached_data(
+              cached_curves,
+              cache_key,
+              model_params,
+              curve_data
+            )
+          }
         }
-      )
+
+        make_general_plot(
+          all_curve_data,
+          model_definitions(),
+          logarithmic()
+        )
+      })
     })
   })
 }
@@ -194,10 +187,10 @@ plotORServer <- function(
 
   # Create the input matrix (duplicate reference_group for each
   # value in predictor_allowable_values, set the predictor to the
-  # predictor_allowable_values, then add an extra unmodified reference group
+  # predictor_allowable_values, and add an extra unmodified reference group
   # to the end, at index output_rows+1)
   df <- data.frame(reference_group)
-  df <- df[rep(1, output_rows + 1), ]
+  df <- df[rep(1, output_rows + 1), ] # Add extra unmodified reference group
   df[predictor] <- append(predictor_allowable_values, predictor_reference_value)
   rownames(df) <- seq_len(nrow(df))
 
@@ -210,6 +203,8 @@ plotORServer <- function(
     x = df
   )
 
+  # Odds ratio is the predicted risk for each row, divided by the predicted
+  # risk of the last row (last row is the unmodified reference group)
   predicted_col <- colnames(dat)[[1]]
   or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
     (dat[[predicted_col]][output_rows + 1] /
@@ -255,9 +250,9 @@ plotORServer <- function(
       "Continuous"
     ),
     aes_args = list(
-      x = dplyr::sym(predictor_label),
-      y = dplyr::sym("OR"),
-      label = dplyr::sym("Comparison")
+      x = rlang::sym(predictor_label),
+      y = rlang::sym("OR"),
+      label = rlang::sym("Comparison")
     )
   )
 }
@@ -275,8 +270,6 @@ plotORServer <- function(
 #'   definitions utilities.
 #' @param predictor_allowable_values Numeric vector of predictor values to
 #'   evaluate. If NULL, uses the allowable values from model_data.
-#' @param interaction_predictor_allowable_values Numeric vector of interaction
-#'   predictor values. If NULL, uses the allowable values from model_data.
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'
@@ -290,12 +283,8 @@ plotORServer <- function(
   interaction_predictor,
   model_data,
   predictor_allowable_values = NULL,
-  interaction_predictor_allowable_values = NULL,
   reference_group = NULL
 ) {
-  interaction_predictor_allowable_values <-
-    interaction_predictor_allowable_values %||%
-    model_data$predictor_allowable_values[[interaction_predictor]]
   predictor_allowable_values <- predictor_allowable_values %||%
     model_data$predictor_allowable_values[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
@@ -311,18 +300,18 @@ plotORServer <- function(
 
   output_rows <- length(predictor_allowable_values)
 
-  # Create the input matrix (duplicate reference_group for each
-  # value in predictor_allowable_values, set the predictor to the
-  # predictor_allowable_values, then add an extra unmodified reference group
-  # to the end)
-  df1 <- data.frame(reference_group)
-  df1 <- df1[rep(1, output_rows), ]
-  df1[[predictor]] <- predictor_allowable_values
-  rownames(df1) <- seq_len(nrow(df1))
-  df2 <- data.frame(df1)
+  # df2 is the reference group (spanning all values of
+  # predictor_allowable_values for the predictor), while df1 is the target
+  # group in the numerator of the RR calculation. df1 is the same as df2, but
+  # with the interaction predictor increased by one.
+  df2 <- data.frame(reference_group)
+  df2 <- df2[rep(1, output_rows), ]
+  df2[[predictor]] <- predictor_allowable_values
+  rownames(df2) <- seq_len(nrow(df2))
+  df1 <- data.frame(df2)
 
-  # df2 is the same as df1 but with predictor increased by 1 (relative to the
-  # reference_group)
+  # df1 is the same as df2 but with interaction_predictor increased by 1
+  # (relative to the reference_group)
   if (is_variable_categorical(model_data, interaction_predictor)) {
     cat_val <- reference_group[[interaction_predictor]]
 
@@ -330,7 +319,7 @@ plotORServer <- function(
     allowable_values <- get_predictor_allowable_values(
       model_data, interaction_predictor
     )
-    indices <- unlist(df2[[interaction_predictor]])
+    indices <- unlist(df1[[interaction_predictor]])
     indices <- lapply(indices, function(x) which(x == allowable_values))
     indices <- lapply(
       indices, function(x) (x %% length(allowable_values)) + 1
@@ -338,9 +327,9 @@ plotORServer <- function(
     indices <- unlist(indices)
     cat_val <- allowable_values[indices]
 
-    df2[[interaction_predictor]] <- cat_val
+    df1[[interaction_predictor]] <- cat_val
   } else {
-    df2[[interaction_predictor]] <- df2[[interaction_predictor]] + 1
+    df1[[interaction_predictor]] <- df1[[interaction_predictor]] + 1
   }
 
   # Run the pipeline with the input matrix and calculate the odds ratios.
@@ -405,9 +394,9 @@ plotORServer <- function(
       "Continuous"
     ),
     aes_args = list(
-      x = dplyr::sym(predictor_label),
-      y = dplyr::sym("OR"),
-      label = dplyr::sym("Comparison")
+      x = rlang::sym(predictor_label),
+      y = rlang::sym("OR"),
+      label = rlang::sym("Comparison")
     )
   )
 }
@@ -418,11 +407,10 @@ plotORServer <- function(
 #'
 #' @param id Character string. The Shiny module namespace ID (must match the
 #'   ID used in \code{\link{plotORServer}}).
-#' @param plot_height Character or numeric specifying the height of the plot
-#'   area. Passed to \code{\link[plotly]{plotlyOutput}} as the \code{height}
-#'   argument.
-#' @param model_definitions A reactive expression (or \code{reactiveVal})
-#'   returning all top-level model definitions object.
+#' @param external_height Height, in pixels, of the area outside of the plot
+#'   area (in the main tabs). If a plot wants to fill up the height of the page,
+#'   without causing overflow at the bottom (and hence scrolling), then a plot's
+#'   height should be "calc(100vh - {external_height}px)".
 #'
 #' @return A \code{\link[shiny]{tagList}} containing the panel UI elements.
 #'
@@ -430,11 +418,13 @@ plotORServer <- function(
 #' @keywords internal
 plotORUI <- function(
   id,
-  plot_height,
-  model_definitions
+  external_height
 ) {
   shiny::tagList(
     shiny::br(),
-    plotly::plotlyOutput(shiny::NS(id, "plot"), height = plot_height)
+    plotly::plotlyOutput(
+      shiny::NS(id, "plot"),
+      height = glue::glue("calc(100vh - {external_height}px)")
+    )
   )
 }

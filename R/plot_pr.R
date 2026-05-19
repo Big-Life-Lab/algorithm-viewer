@@ -44,7 +44,7 @@ plotPRServer <- function(
   model_definitions
 ) {
   shiny::moduleServer(id, function(input, output, session) {
-    # Cached curve data, to avoid unncessary recalculation of curves that have
+    # Cached curve data, to avoid unnecessary recalculation of curves that have
     # already been calculated
     cached_curves <- initialize_cached_data()
 
@@ -66,74 +66,64 @@ plotPRServer <- function(
         ))
       }
 
-      tryCatch(
-        {
-          all_curve_data <- list()
+      plot_render_safely(function() {
+        all_curve_data <- list()
 
-          # Go through all selected_models and calculate the PR curves
-          # We concatenate them (with bind_rows) to show one curve per model
-          for (model_data in selected_models()) {
-            predictor_values <-
-              selected_reference_groups()[[model_data$model_id]]
+        # Go through all selected_models and calculate the PR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          predictor_values <-
+            selected_reference_groups()[[model_data$model_id]]
 
-            # Check if we can use the cached old data for the current model
-            model_params <- list(
-              predictor = predictor(),
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = predictor(),
+            reference_group = predictor_values
+          )
+          cache_key <- list("pr", model_data$model_id, predictor())
+          if (
+            is_reusable_cached_data(
+              cached_curves,
+              cache_key,
+              model_params
+            )
+          ) {
+            # Reuse the old data
+            all_curve_data[[length(all_curve_data) + 1]] <-
+              get_cached_data(cached_curves, cache_key)
+          } else {
+            tic <- Sys.time()
+
+            # Calculate the PR curve for the model
+            curve_data <- .calculate_pr_curve(
+              predictor(),
+              model_data,
               reference_group = predictor_values
             )
-            cache_key <- list("pr", model_data$model_id, predictor())
-            if (
-              is_reusable_cached_data(
-                cached_curves,
-                cache_key,
-                model_params
-              )
-            ) {
-              # Reuse the old data
-              all_curve_data[[length(all_curve_data) + 1]] <-
-                get_cached_data(cached_curves, cache_key)
-            } else {
-              tic <- Sys.time()
 
-              # Calculate the PR curve for the model
-              curve_data <- .calculate_pr_curve(
-                predictor(),
-                model_data,
-                reference_group = predictor_values
-              )
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
+            ))
 
-              elapsed <- Sys.time() - tic
-              message(paste0(
-                "Elapsed time for PR curve ", model_data$model_id, ": ", elapsed
-              ))
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
 
-              all_curve_data[[length(all_curve_data) + 1]] <- curve_data
-
-              # Save the data to our cache
-              set_cached_data(
-                cached_curves,
-                cache_key,
-                model_params,
-                curve_data
-              )
-            }
+            # Save the data to our cache
+            set_cached_data(
+              cached_curves,
+              cache_key,
+              model_params,
+              curve_data
+            )
           }
-
-          make_general_plot(
-            all_curve_data,
-            model_definitions(),
-            logarithmic()
-          )
-        },
-        error = function(e) {
-          traceback()
-          message(conditionMessage(e))
-          make_message_plot(
-            glue::glue("<b>Error</b>: {conditionMessage(e)}"),
-            color = "red"
-          )
         }
-      )
+
+        make_general_plot(
+          all_curve_data,
+          model_definitions(),
+          logarithmic()
+        )
+      })
     })
   })
 }
@@ -227,8 +217,8 @@ plotPRServer <- function(
     ),
     ylim_linear = c(0, 1),
     aes_args = list(
-      x = dplyr::sym(predictor_label),
-      y = dplyr::sym("PR")
+      x = rlang::sym(predictor_label),
+      y = rlang::sym("PR")
     )
   )
 }
@@ -239,12 +229,10 @@ plotPRServer <- function(
 #'
 #' @param id Character string. The Shiny module namespace ID (must match the
 #'   ID used in \code{\link{plotPRServer}}).
-#' @param plot_height Character or numeric specifying the height of the plot
-#'   area. Passed to \code{\link[plotly]{plotlyOutput}} as the \code{height}
-#'   argument.
-#' @param model_definitions A reactive expression (or \code{reactiveVal})
-#'   returning the top-level model definitions object. Currently unused by the
-#'   UI but accepted for consistency with the other plot UI functions.
+#' @param external_height Height, in pixels, of the area outside of the plot
+#'   area (in the main tabs). If a plot wants to fill up the height of the page,
+#'   without causing overflow at the bottom (and hence scrolling), then a plot's
+#'   height should be "calc(100vh - {external_height}px)".
 #'
 #' @return A \code{\link[shiny]{tagList}} containing the panel UI elements.
 #'
@@ -252,11 +240,13 @@ plotPRServer <- function(
 #' @keywords internal
 plotPRUI <- function(
   id,
-  plot_height,
-  model_definitions
+  external_height
 ) {
   shiny::tagList(
     shiny::br(),
-    plotly::plotlyOutput(shiny::NS(id, "plot"), height = plot_height)
+    plotly::plotlyOutput(
+      shiny::NS(id, "plot"),
+      height = glue::glue("calc(100vh - {external_height}px)")
+    )
   )
 }
