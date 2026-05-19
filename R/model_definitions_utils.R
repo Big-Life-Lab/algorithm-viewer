@@ -12,8 +12,8 @@
 is_data_missing <- function(val) {
   is.null(val) ||
     length(val) == 0 ||
-    (is.character(val) && stringr::str_to_lower(val) == "n/a") ||
-    (is.character(val) && stringr::str_to_lower(val) == "na::b")
+    (is.character(val) && any(stringr::str_to_lower(val) == "n/a")) ||
+    (is.character(val) && any(stringr::str_to_lower(val) == "na::b"))
 }
 
 #' Get Variable Metadata
@@ -354,9 +354,13 @@ get_all_models_field <- function(models, field, escape_html = FALSE) {
 #' @keywords internal
 get_model_colors <- function(models, names_field = "title") {
   model_colors <- get_all_models_field(models, "model_color")
+  if (is.null(model_colors)) {
+    model_colors <- rep("#ffffff00", length(models))
+  }
   if (!is.null(names_field)) {
     names(model_colors) <- get_all_models_field(
-      models, names_field,
+      models,
+      names_field,
       escape_html = TRUE
     )
   }
@@ -494,6 +498,9 @@ gather_predictor_choices <- function(models) {
     labels <- c(labels, predictors$label)
   }
 
+  # Keep the first occurrence of each variable name. Type conflicts across
+  # models are caught at load time by .validate_predictor_consistency; label
+  # differences produce a warning there and the first model's label is used.
   unique_variables <- !duplicated(variables)
   variables <- variables[unique_variables]
   labels <- labels[unique_variables]
