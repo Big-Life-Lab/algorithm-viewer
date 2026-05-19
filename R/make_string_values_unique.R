@@ -20,18 +20,19 @@
 #' @noRd
 #' @keywords internal
 make_string_values_unique <- function(values, template = "{value} ({num+1})") {
-  # env is the environment for string interpolating the template.
-  # We allow addition and subtraction. We also allow the variables
-  # "value" and "num"
+  # env is the evaluation environment for glue::glue(). Using an isolated
+  # environment (parent = emptyenv()) prevents accidental access to the
+  # calling frame's variables. The `+` and `-` operators are added explicitly
+  # so that arithmetic in the template (e.g. `{num+1}`) still works.
   env <- new.env(parent = emptyenv())
   env[["+"]] <- get("+")
   env[["-"]] <- get("-")
   for (idx in seq_along(values)) {
     env$value <- values[[idx]]
     env$num <- 0
-    # Generate a new value, based on the template, until the value
-    # at idx is not a duplicate of any of the values occurring
-    # earlier on in the list
+    # Keep generating new values until the value at idx is no longer a
+    # duplicate of any earlier element. duplicated() on the prefix
+    # [1..idx] returns TRUE for idx only when it matches a prior element.
     while (duplicated(values[seq_len(idx)])[[idx]]) {
       env$num <- env$num + 1
       values[[idx]] <- as.character(glue::glue(template, .envir = env))
