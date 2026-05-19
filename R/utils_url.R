@@ -18,7 +18,7 @@
 #' url_set_algorithm_id("htnport-full", session = session)
 #' }
 #'
-#' @name url
+#' @name utils_url
 #' @noRd
 #' @keywords internal
 NULL

@@ -52,7 +52,7 @@
 #' ctrl$destroy()
 #' }
 #'
-#' @name continuous_slider_group
+#' @name mod_continuous_slider_group
 #' @noRd
 #' @keywords internal
 NULL

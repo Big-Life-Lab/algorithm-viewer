@@ -2,7 +2,7 @@
 #'
 #' Functions for computing and rendering predicted risk (PR) curves.
 #'
-#' @name plot_pr
+#' @name mod_plot_pr
 #' @noRd
 #' @keywords internal
 NULL

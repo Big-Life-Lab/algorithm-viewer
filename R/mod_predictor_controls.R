@@ -39,7 +39,7 @@
 #'
 #' ctrl$destroy()
 #' }
-#' @name predictor_controls
+#' @name mod_predictor_controls
 #' @noRd
 #' @keywords internal
 NULL

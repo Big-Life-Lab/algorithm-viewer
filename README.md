@@ -58,23 +58,24 @@ algorithm-viewer/
 │   ├── app_server.R                         # Main Shiny server function
 │   ├── app_ui.R                             # Main Shiny UI function
 │   ├── run_app.R                            # Package entry point (run_app())
-│   ├── cached_data.R                        # General-purpose reactive data cache
-│   ├── model_definitions.R                  # YAML config file parser
-│   ├── categorical_radio_table.R            # Categorical radio button table module
-│   ├── continuous_slider_group.R            # Continuous slider group module
-│   ├── predictor_controls.R                 # Per-predictor control UI module
-│   ├── predictor_grouped_controls.R         # Multi-model predictor controls module
-│   ├── plot_or.R                            # Odds ratio plot module
-│   ├── plot_pr.R                            # Predicted risk plot module
-│   ├── plot_rr.R                            # Relative risk plot module
-│   ├── plot_rr_a_vs_b.R                     # A vs B relative risk plot module
-│   ├── config.R                             # App configuration loading
-│   ├── general_plot.R                       # Shared plot utilities
-│   ├── make_error.R                         # Typed error condition constructor
-│   ├── make_string_values_unique.R          # Utility for deduplicating string values
-│   ├── model_definitions_utils.R            # Model definition helper functions
-│   ├── path_utils.R                         # File path helpers
-│   └── url.R                               # URL parsing and construction
+│   ├── fct_cached_data.R                    # General-purpose reactive data cache
+│   ├── fct_config.R                         # App configuration loading
+│   ├── fct_model_definitions.R              # YAML config file parser
+│   ├── fct_model_definitions_utils.R        # Model definition helper functions
+│   ├── mod_categorical_radio_table.R        # Categorical radio button table module
+│   ├── mod_continuous_slider_group.R        # Continuous slider group module
+│   ├── mod_plot_or.R                        # Odds ratio plot module
+│   ├── mod_plot_pr.R                        # Predicted risk plot module
+│   ├── mod_plot_rr.R                        # Relative risk plot module
+│   ├── mod_plot_rr_a_vs_b.R                 # A vs B relative risk plot module
+│   ├── mod_predictor_controls.R             # Per-predictor control UI module
+│   ├── mod_predictor_grouped_controls.R     # Multi-model predictor controls module
+│   ├── utils_general_plot.R                 # Shared plot utilities
+│   ├── utils_make_error.R                   # Typed error condition constructor
+│   ├── utils_make_string_values_unique.R    # Utility for deduplicating string values
+│   ├── utils_path.R                         # File path helpers
+│   ├── utils_s7schema.R                     # S7 schema utilities
+│   └── utils_url.R                          # URL parsing and construction
 ├── inst/extdata/
 │   ├── config.yaml                          # Default HTNPoRT app configuration
 │   ├── help/

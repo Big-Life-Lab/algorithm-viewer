@@ -4,7 +4,7 @@
 #' helper plots used to display messages or status information in place of
 #' data visualizations.
 #'
-#' @name general_plot
+#' @name utils_general_plot
 #' @noRd
 #' @keywords internal
 NULL

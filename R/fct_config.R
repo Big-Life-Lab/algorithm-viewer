@@ -4,7 +4,7 @@
 #' configuration. These utilities abstract access to algorithm definitions,
 #' file paths, and feature flags stored in the global config.
 #'
-#' @name config
+#' @name fct_config
 #' @noRd
 #' @keywords internal
 NULL

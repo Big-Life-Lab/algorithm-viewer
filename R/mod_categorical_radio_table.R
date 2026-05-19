@@ -52,7 +52,7 @@
 #' ctrl$destroy()
 #' }
 #'
-#' @name categorical_radio_table
+#' @name mod_categorical_radio_table
 #' @noRd
 #' @keywords internal
 NULL

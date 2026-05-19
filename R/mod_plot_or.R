@@ -2,7 +2,7 @@
 #'
 #' Functions for computing and rendering odds ratio (OR) curves.
 #'
-#' @name plot_or
+#' @name mod_plot_or
 #' @noRd
 #' @keywords internal
 NULL

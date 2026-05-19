@@ -14,7 +14,7 @@
 #'   file.path("inst/extdata/models/htnport-mpp/htnport-reduced.yaml")
 #' )
 #' }
-#' @name model_definitions
+#' @name fct_model_definitions
 #' @noRd
 #' @keywords internal
 NULL

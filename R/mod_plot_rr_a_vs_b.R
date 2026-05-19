@@ -3,7 +3,7 @@
 #' Functions for computing and rendering A vs B relative risk curves.
 #' Predictor values for group A and group B can be specified in the UI.
 #'
-#' @name plot_rr_a_vs_b
+#' @name mod_plot_rr_a_vs_b
 #' @noRd
 #' @keywords internal
 NULL

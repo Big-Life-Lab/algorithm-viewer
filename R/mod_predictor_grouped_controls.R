@@ -45,7 +45,7 @@
 #'   })
 #' }
 #' }
-#' @name predictor_grouped_controls
+#' @name mod_predictor_grouped_controls
 #' @noRd
 #' @keywords internal
 NULL

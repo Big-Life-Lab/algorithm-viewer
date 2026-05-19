@@ -2,7 +2,7 @@
 #'
 #' Functions for computing and rendering relative risk (RR) curves.
 #'
-#' @name plot_rr
+#' @name mod_plot_rr
 #' @noRd
 #' @keywords internal
 NULL

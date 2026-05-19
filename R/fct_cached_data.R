@@ -60,7 +60,7 @@
 #' clear_cached_data(cache)
 #' }
 #'
-#' @name cached_data
+#' @name fct_cached_data
 #' @noRd
 #' @keywords internal
 NULL
