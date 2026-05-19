@@ -41,21 +41,56 @@
     }
   },
   "$defs": {
+    "seq_spec": {
+      "type": "object",
+      "description": "Parameters for R's seq() function. Must include 'from' and 'to'; use either 'by' (step size) or 'length.out' (number of values).",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "type": "number",
+          "description": "Start of the sequence."
+        },
+        "to": {
+          "type": "number",
+          "description": "End of the sequence."
+        },
+        "by": {
+          "type": "number",
+          "description": "Step size between values. May be negative when 'from' > 'to'. Mutually exclusive with 'length.out'.",
+          "not": {"enum": [0]}
+        },
+        "length.out": {
+          "type": "number",
+          "description": "Desired number of values in the sequence. Mutually exclusive with 'by'.",
+          "minimum": 1
+        }
+      }
+    },
     "predictor_allowable_values": {
       "type": "object",
-      "description": "Map of predictor variable names to their allowable input values. Each value is either a string expression (e.g. 'seq(13, 49, by = 0.01)' or '1:10') or an explicit array of numbers.",
+      "description": "Map of predictor variable names to their allowable input values. If omitted for a predictor, allowable values are derived from the variable-details CSV. Specified values take precedence over the CSV-derived ones.",
       "additionalProperties": {
         "oneOf": [
           {
-            "type": "string",
-            "description": "An R-style range or seq() expression defining allowable values.",
-            "examples": ["seq(13, 49, by = 0.01)", "1:10"]
+            "type": "object",
+            "description": "A seq() specification that generates a numeric sequence.",
+            "additionalProperties": false,
+            "required": ["seq"],
+            "properties": {
+              "seq": {
+                "$ref": "#/$defs/seq_spec"
+              }
+            }
           },
           {
             "type": "array",
-            "description": "An explicit list of allowable numeric values.",
+            "description": "An explicit list of allowable values. Use numbers for continuous variables and numbers or strings for categorical variables.",
             "items": {
-              "type": "number"
+              "oneOf": [
+                {"type": "number"},
+                {"type": "string"}
+              ]
             },
             "minItems": 1
           }
@@ -64,11 +99,25 @@
     },
     "reference_group": {
       "type": "object",
-      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs.",
+      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs (e.g. odds ratios). These set the initial slider/radio-button values in the UI.",
       "additionalProperties": {
-        "type": "number",
-        "description": "Reference value for this predictor variable."
+        "oneOf": [
+          {
+            "type": "number",
+            "description": "Reference value for a continuous predictor variable."
+          },
+          {
+            "type": "string",
+            "description": "Reference value for a categorical predictor variable."
+          }
+        ]
       }
+    },
+    "model_color": {
+      "type": "string",
+      "description": "Color used when displaying this model. Accepts CSS hex colors (e.g. '#440154FF', '#21908C') or CSS named colors (e.g. 'red'). If omitted, a color is assigned automatically from the viridis palette.",
+      "pattern": "^(#([0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})|[A-Za-z]+)$",
+      "examples": ["#440154FF", "#21908CFF", "red", "steelblue"]
     },
     "shared_model_config": {
       "type": "object",
@@ -80,18 +129,21 @@
         },
         "reference_group": {
           "$ref": "#/$defs/reference_group"
+        },
+        "model_color": {
+          "$ref": "#/$defs/model_color"
         }
       }
     },
     "model_entry": {
       "type": "object",
-      "description": "A named model within the algorithm. Defines the display title, the path to the model export CSV, and optional predictor configuration.",
+      "description": "A named model within the algorithm. Defines the display title, path to the model export CSV, and optional predictor configuration.",
       "additionalProperties": false,
       "required": ["title", "model_export"],
       "properties": {
         "title": {
           "type": "string",
-          "description": "Human-readable display name for this model.",
+          "description": "Human-readable display name for this model, shown in radio buttons and headings.",
           "examples": ["Female", "Male"]
         },
         "model_export": {
@@ -100,10 +152,7 @@
           "examples": ["./female-full/HTNPoRT-full-female-model-export.csv"]
         },
         "model_color": {
-          "type": "string",
-          "description": "Optional hex color used when displaying this model. If omitted, a color is assigned automatically from the viridis palette.",
-          "pattern": "^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$",
-          "examples": ["#440154FF", "#21908C"]
+          "$ref": "#/$defs/model_color"
         },
         "predictor_allowable_values": {
           "$ref": "#/$defs/predictor_allowable_values"
