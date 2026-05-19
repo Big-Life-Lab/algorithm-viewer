@@ -25,6 +25,16 @@ test_that("is_data_missing returns FALSE for normal values", {
   expect_false(algorithm.viewer:::is_data_missing(FALSE))
 })
 
+test_that("is_data_missing handles length > 1 character vectors", {
+  # Any element matching makes the whole value missing
+  expect_true(algorithm.viewer:::is_data_missing(c("hello", "n/a")))
+  expect_true(algorithm.viewer:::is_data_missing(c("NA::b", "world")))
+  # No element matching returns FALSE (not just the first element)
+  expect_false(algorithm.viewer:::is_data_missing(c("hello", "world")))
+  # First element non-missing, second missing — old code would return FALSE
+  expect_true(algorithm.viewer:::is_data_missing(c("hello", "N/A")))
+})
+
 test_that("cleanup_string escapes HTML special characters", {
   result <- algorithm.viewer:::cleanup_string("<b>bold</b>")
   expect_equal(result, "&lt;b&gt;bold&lt;/b&gt;")
