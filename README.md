@@ -47,68 +47,92 @@ individuals.
 ### Reference Group Configuration
 
 - Customize reference group values for each model
-- Adjust baseline predictor values using interactive sliders
+- Adjust baseline predictor values using interactive controls
 
 ## Project Structure
 
 ```text
 algorithm-viewer/
-├── R/                              # R source files
-│   ├── app.R                       # Main application entry point
-│   ├── ui.R                        # User interface definition
-│   ├── server.R                    # Server-side logic and reactive elements
-│   ├── tab_panels.R                # UI tab panel definitions
-│   ├── model_definitions.R         # Config file parser
-│   ├── model_definitions_utils.R   # Model definition helper functions
-│   ├── predictor_controls.R        # Predictor control UI module
-│   ├── predictor_controls_manager.R# Manages multiple predictor control modules
-│   ├── plot_or.R                   # Odds ratio plot module
-│   ├── plot_pr.R                   # Predicted risk plot module
-│   ├── plot_rr.R                   # Relative risk plot module
-│   ├── plot_rr_exposed_vs_unexposed.R # Exposed vs unexposed RR plot module
-│   ├── general_plot.R              # Shared plot utilities
-│   ├── cached_data.R               # General-purpose reactive data cache
-│   ├── config.R                    # App configuration loading
-│   ├── function_parser.R           # Parses R function expressions from config
-│   ├── make_string_values_unique.R # Utility for deduplicating string values
-│   ├── path_utils.R                # File path helpers
-│   └── url.R                       # URL parsing and construction
-└── data/
-    └── models/           # Prepackaged model config files (YAML + CSV exports)
+├── R/                                       # R source files
+│   ├── app_global.R                         # Global Shiny options (plot formatting, upload size)
+│   ├── app_server.R                         # Main Shiny server function
+│   ├── app_ui.R                             # Main Shiny UI function
+│   ├── run_app.R                            # Package entry point (run_app())
+│   ├── cached_data.R                        # General-purpose reactive data cache
+│   ├── model_definitions.R                  # YAML config file parser
+│   ├── categorical_radio_table.R            # Categorical radio button table module
+│   ├── continuous_slider_group.R            # Continuous slider group module
+│   ├── predictor_controls.R                 # Per-predictor control UI module
+│   ├── predictor_grouped_controls.R         # Multi-model predictor controls module
+│   ├── plot_or.R                            # Odds ratio plot module
+│   ├── plot_pr.R                            # Predicted risk plot module
+│   ├── plot_rr.R                            # Relative risk plot module
+│   ├── plot_rr_a_vs_b.R                     # A vs B relative risk plot module
+│   ├── config.R                             # App configuration loading
+│   ├── general_plot.R                       # Shared plot utilities
+│   ├── make_error.R                         # Typed error condition constructor
+│   ├── make_string_values_unique.R          # Utility for deduplicating string values
+│   ├── model_definitions_utils.R            # Model definition helper functions
+│   ├── path_utils.R                         # File path helpers
+│   └── url.R                               # URL parsing and construction
+├── inst/extdata/
+│   ├── config.yaml                          # Default HTNPoRT app configuration
+│   ├── help/
+│   │   └── main.md                          # In-app help content
+│   ├── models/
+│   │   ├── htnport-full/                    # Full HTNPoRT model (YAML + CSV)
+│   │   └── htnport-reduced/                 # Reduced HTNPoRT model (YAML + CSV)
+│   ├── schema/
+│   │   ├── algorithm.schema.json            # JSON Schema for algorithm YAML files
+│   │   └── config.schema.json               # JSON Schema for config YAML files
+│   └── www/                                 # Static web assets (CSS, favicons)
+├── specs/
+│   ├── CONFIG_SPECIFICATION.md              # Configuration file specification
+│   ├── DEPLOYMENT.md                        # Deployment options planning document
+│   └── INDIVIDUAL_VS_REFERENCE_SPEC.md      # Individual vs reference predictor spec
+├── tests/
+│   └── testthat/                            # Unit tests
+├── app.R                                    # Shiny app wrapper (for deployment)
+├── application.yml                          # ShinyProxy configuration
+├── Dockerfile                               # Docker build instructions
+├── docker-compose.yml                       # Docker Compose configuration
+└── DESCRIPTION                              # R package metadata and dependencies
 ```
 
 ## Configuration
 
-Algorithms and models are defined using YAML configuration files that specify:
+The app uses two types of YAML files.
 
-- Algorithm metadata (name, version)
-- Model definitions with titles and data file paths
-- Reference group default values
-- Predictor allowable values (eg. ranges for continuous variables, categories
-  for categorical variables)
+### App Configuration
 
-Example configuration structure:
+The app configuration file is passed to `run_app(config = ...)`. It declares
+which algorithms are available and controls feature flags:
 
 ```yaml
-meta:
-  algorithm: AlgorithmName
-  version: 1.0.0
+# Algorithms available for selection or URL access
+algorithms:
+  my_algorithm:
+    title: My Algorithm
+    file: path/to/my-algorithm.yaml
 
-models:
-  model_id:
-    title: Model Title
-    model_export: ./path-to-model-export.csv
-    reference_group:
-      predictor1: default_value
-      predictor2: default_value
-    predictor_allowable_values:
-      predictor1: allowable_values
-      predictor2: allowable_values
+# Algorithm to load on startup (matches a key in algorithms)
+initial_algorithm_id: my_algorithm
+
+# Feature flags (all optional)
+allow_file_uploads: false       # allow users to upload their own algorithm
+allow_algorithms_selection: true # show a dropdown to switch algorithms
+allow_algorithm_in_url: true    # allow ?algorithm=<id> in the URL
 ```
 
+### Algorithm YAML
+
+Each algorithm is defined in its own YAML file, referenced from the app
+configuration above. The algorithm YAML specifies model metadata, data file
+paths, reference group defaults, and predictor allowable values.
+
 See the [Algorithm Viewer Configuration
-Specification](specs/CONFIG_SPECIFICATION.md) for details on configuration
-files.
+Specification](specs/CONFIG_SPECIFICATION.md) for the full algorithm YAML
+format.
 
 ## Running the App
 
@@ -122,11 +146,11 @@ files.
 | `port` | `getOption("shiny.port")` | Port number for the Shiny server. |
 | `host` | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server. |
 
-Example — loading a custom algorithm configuration:
+Example — loading a custom app configuration:
 
 ```r
 library(algorithm.viewer)
-run_app(config = "path/to/my-algorithm/config.yaml")
+run_app(config = "path/to/my-config.yaml")
 ```
 
 Example — running in Docker or hosting on your local network:
