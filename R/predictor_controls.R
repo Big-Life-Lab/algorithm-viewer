@@ -1,55 +1,43 @@
 #' Predictor Controls Shiny Module
 #'
-#' A Shiny module that creates and manages predictor controls for a
-#' single model. The UI component renders input controls (radio buttons for
-#' categorical variables, sliders for continuous variables) that allow users
-#' to adjust predictor values. The server component tracks value
-#' changes, supports resetting to defaults, and exposes reactive values
-#' for consumption by other parts of the application.
+#' A Shiny module that creates and manages predictor controls for one or more
+#' models. When multiple models are provided, each becomes a labelled group
+#' column in the controls. When a single model is provided, no group column
+#' headers are shown and the model title appears as a sticky heading.
 #'
 #' @details
-#' `predictorControlsServer()` returns a named list with two elements:
+#' `predictorControlsServer()` returns a named list:
 #' \describe{
-#'   \item{rv_values}{A \code{shiny::reactiveVal()} containing the current
-#'     predictor values as a named list keyed by variable name.
-#'     Call `predictor_ctrl$rv_values()` to read values reactively, or wrap
-#'     in \code{shiny::isolate()} when a non-reactive snapshot is needed.}
-#'   \item{destroy_module}{A function that destroys the module's
-#'     observers and UI elements via. Call this before recreating the
-#'     module to avoid orphaned observers.}
+#'   \item{rv_values}{A \code{shiny::reactiveVal()} containing a named list
+#'     keyed by \code{model_id}. Each value is itself a named list keyed by
+#'     variable name holding the current selected value for that
+#'     model/variable combination.}
+#'   \item{destroy}{A function that destroys the module's observers and UI
+#'     elements. Call this before recreating the module.}
 #' }
 #'
-#' To reactively respond to changes in the predictor react to `$rv_values()`
-#' in the named list returned by `predictorControlsServer()`
-#'
-#' It is best to always use a unique ID whenever destroying and creating
-#' predictor controls. While duplicate IDs will work (as long as the
-#' previous predictor controls are first destroyed with `$destroy_module()`)
-#' there might be redundant reactive changes to the predictor values
-#' caused by deleting and destroying input controls with the same
-#' duplicate IDs.
+#' @param model_data Either a single model data named list (with at least
+#'   \code{model_id}, \code{title}, and \code{reference_group}), or an
+#'   \emph{unnamed} list of such model data objects (one per group column).
+#'   A named list is always treated as a single model. An unnamed list of
+#'   length 1 is also treated as a single model. An unnamed list of length > 1
+#'   activates multi-group mode.
 #'
 #' @examples
 #' \dontrun{
-#' # In a Shiny app's server function, after loading model definitions:
+#' # Single model
 #' model_data <- model_definitions$models[["female"]]
+#' ui <- predictorControlsUI("ctrl", model_data)
+#' ctrl <- predictorControlsServer("ctrl", model_data)
+#' ctrl$rv_values()  # list(female = list(age = 45, sex = "2", ...))
 #'
-#' # Create the UI (can be returned for a renderUI call or inserted via
-#' # shiny::insertUI)
-#' ui <- predictorControlsUI("predictor_ctrl_female", model_data)
+#' # Multiple models as groups
+#' models <- unname(model_definitions$models)
+#' ui <- predictorControlsUI("ctrl", models)
+#' ctrl <- predictorControlsServer("ctrl", models)
+#' ctrl$rv_values()  # list(female = list(...), male = list(...))
 #'
-#' # Create the server and get back a list with rv_values and
-#' # destroy_module
-#' predictor_ctrl <- predictorControlsServer(
-#'   "predictor_ctrl_female",
-#'   model_data
-#' )
-#'
-#' # Access the current predictor values reactively
-#' current_values <- predictor_ctrl$rv_values()
-#'
-#' # Destroy the module when no longer needed
-#' predictor_ctrl$destroy_module()
+#' ctrl$destroy()
 #' }
 #' @name predictor_controls
 #' @noRd
@@ -59,374 +47,302 @@ NULL
 # The ID of the generated HTML element that contains the predictor controls
 .predictor_controls_container_id <- "predictor_controls_container"
 
+# Normalize model_data to an unnamed list of one or more model data objects.
+# A named list (single model) is wrapped; an unnamed list is returned as-is.
+.normalize_model_data <- function(model_data) {
+  if (!is.null(names(model_data))) list(model_data) else model_data
+}
+
 #' Create Predictor Controls UI
 #'
-#' Builds the UI for a single model's predictor controls. Generates
-#' radio buttons for categorical variables and sliders for continuous
-#' variables, along with a sticky header showing the model title and a
-#' sticky footer with a reset button.
+#' Builds the UI for one or more models' predictor controls. Initial values
+#' are taken from each model's \code{reference_group}.
 #'
 #' @param id Character string. The module namespace ID.
-#' @param model_data Named list of model data containing reference group
-#'   values, variable metadata, and model display properties.
-#' @param initial_predictor_values Named list of initial predictor values keyed
-#'   by variable name. If \code{NULL}, the reference group from
-#'   \code{model_data$reference_group} is used.
-#' @param model_name Character string. Display name shown in the sticky
-#'   header and reset button label. If \code{NULL}, the model's title from
-#'   \code{model_data$title} is used.
-#' @param show_model_color Logical. If \code{TRUE} (the default), a colored
-#'   left border and color swatch are added to the panel using the model's
-#'   assigned color.
+#' @param model_data Single model data named list, or an unnamed list of model
+#'   data objects. See \code{?predictor_controls} for details.
+#' @param model_name Character string. Display name in the sticky heading and
+#'   reset button label. Used only in single-model mode; defaults to
+#'   \code{model_data$title}.
+#' @param show_model_color Logical. If \code{TRUE} (default), adds a colored
+#'   left border in single-model mode.
 #'
-#' @return A \code{shiny::tagList()} containing the predictor controls input
-#'   controls.
+#' @return A \code{shiny::tagList()} containing the predictor controls UI.
 #'
 #' @noRd
 #' @keywords internal
 predictorControlsUI <- function(
   id,
   model_data,
-  initial_predictor_values = NULL,
   model_name = NULL,
   show_model_color = TRUE
 ) {
   ns <- shiny::NS(id)
 
-  # Create the UI by saving them in predictor_controls_input
-  predictor_controls_input <- shiny::tagList()
+  models        <- .normalize_model_data(model_data)
+  is_multi      <- length(models) > 1
+  primary       <- models[[1]]
+  model_ids     <- vapply(models, function(m) m$model_id, character(1))
 
-  left_pad <- ifelse(show_model_color, "10px", "0")
-
-  # Add heading
-  if (is.null(model_name)) {
-    model_name <- model_data$title
-  }
-  model_heading <- cleanup_string(model_name)
-  if (show_model_color) {
-    model_heading <- shiny::HTML(add_model_color(
-      model_data,
-      cleanup_string(model_name),
-      "20px",
-      "20px",
-      after = FALSE
-    ))
-  }
-  model_heading <- shiny::h4(
-    model_heading,
-    style = paste(
-      "position: sticky; top: 0; background-color: #fff;",
-      "margin: 0; z-index: 10;",
-      glue::glue("padding: 10px 0 8px {left_pad};")
+  # Sub-module groups: names = model_ids, values = column header labels
+  groups <- if (is_multi) {
+    stats::setNames(
+      vapply(models, function(m) m$title, character(1)), model_ids
     )
-  )
-  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
-    model_heading
-
-  if (is.null(initial_predictor_values)) {
-    initial_predictor_values <- model_data$reference_group
+  } else {
+    stats::setNames("", model_ids[[1]])
   }
-  # Create a UI control for each variable in initial_predictor_values
-  # The controls are added to the items list
+
+  # Initial values per model, from each model's reference_group
+  init_by_model <- stats::setNames(
+    lapply(models, function(m) m$reference_group),
+    model_ids
+  )
+
+  left_pad <- ifelse(!is_multi && show_model_color, "10px", "0")
+  ui_parts <- shiny::tagList()
+
+  # Sticky heading: single-model mode only
+  if (!is_multi) {
+    display_name <-
+      if (!is.null(model_name))
+        model_name
+      else
+        primary$title
+    heading_content <- cleanup_string(display_name)
+    if (show_model_color) {
+      heading_content <- shiny::HTML(add_model_color(
+        primary, cleanup_string(display_name), "20px", "20px", after = FALSE
+      ))
+    }
+    ui_parts[[length(ui_parts) + 1]] <- shiny::h4(
+      heading_content,
+      style = paste(
+        "position: sticky; top: 0; background-color: #fff;",
+        "margin: 0; z-index: 10;",
+        glue::glue("padding: 10px 0 8px {left_pad};")
+      )
+    )
+  }
+
+  # Variable controls
+  variable_names <- names(init_by_model[[model_ids[[1]]]])
   items <- list()
-  for (variable in names(initial_predictor_values)) {
-    predictor_value <- initial_predictor_values[[variable]]
-    label <- get_variable_info(model_data, variable, "label")
-    variable_allowable_values <- get_predictor_allowable_values(
-      model_data, variable
+  for (variable in variable_names) {
+    initial_values <- stats::setNames(
+      lapply(model_ids, function(mid) init_by_model[[mid]][[variable]]),
+      model_ids
     )
     input_id <- ns(variable)
-
-    if (is_variable_categorical(model_data, variable)) {
-      # For categorical variables, add a radioButtons
-
-      # Get the labels for all allowable values of the variable
-      labels <- get_variable_label_from_value(
-        model_data,
-        variable,
-        as.vector(variable_allowable_values)
-      )
-
-      # Get the selected label (corresponding to predictor_value)
-      selected <- get_variable_label_from_value(
-        model_data,
-        variable,
-        predictor_value
-      )
-      if (!(selected %in% labels)) {
-        labels_str <- paste0("'", labels, "'", collapse = ", ")
-        warning(glue::glue(
-          "Initial value '{selected}' is not a valid value for ",
-          "variable {variable}. Must be one of {labels_str}."
-        ))
-        selected <- labels[[1]]
-      }
-
-      input_control <- shiny::radioButtons(
-        inputId = input_id,
-        label = label,
-        choices = labels,
-        selected = selected
+    if (is_variable_categorical(primary, variable)) {
+      items[[length(items) + 1]] <- categoricalRadioTableUI(
+        input_id, primary,
+        variable = variable, groups = groups, initial_values = initial_values
       )
     } else {
-      # For continuous variables, add a sliderInput
-
-      # Calculate the min, max and step information
-      min_range <- min(variable_allowable_values)
-      max_range <- max(variable_allowable_values)
-
-      is_integer_range <- is.integer(min_range) &&
-        is.integer(max_range) &&
-        all(min_range:max_range == sort(variable_allowable_values))
-
-      # For integer ranges, the step is 1, otherwise the
-      # step is the difference between the first two values
-      if (is_integer_range) {
-        step <- 1
-      } else {
-        step <- signif(
-          variable_allowable_values[2] - variable_allowable_values[1],
-          5
-        )
-      }
-
-      input_control <- shiny::sliderInput(
-        inputId = input_id,
-        label = label,
-        min = min_range,
-        max = max_range,
-        value = predictor_value,
-        step = step
+      items[[length(items) + 1]] <- continuousSliderGroupUI(
+        input_id, primary,
+        variable = variable, groups = groups, initial_values = initial_values
       )
     }
-
-    items[[length(items) + 1]] <-
-      input_control
   }
 
-  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
-    shiny::div(
-      style = paste(
-        "width: 100%;",
-        "overflow-x: hidden;",
-        glue::glue("padding: 0 12px 0 {left_pad};")
-      ),
-      items
-    )
-
-  # Create the reset button for the model
-  reset_button <- shiny::actionButton(
-    ns("reset_button"),
-    label = glue::glue("Reset {model_name}"),
-    icon = shiny::icon("arrow-rotate-left")
+  ui_parts[[length(ui_parts) + 1]] <- shiny::div(
+    style = paste(
+      "width: 100%;", "overflow-x: hidden;",
+      glue::glue(
+        "padding: {if (is_multi) '20px' else '5px'} 15px 0 {left_pad};"
+      )
+    ),
+    items
   )
-  # Put the reset button in a sticky footer
-  reset_button <- shiny::div(
+
+  # Sticky reset button
+  display_name <-
+    if (!is.null(model_name))
+      model_name
+        else
+      primary$title
+  reset_label  <- 
+    if (is_multi)
+      "Reset"
+    else
+      glue::glue("Reset {display_name}")
+  ui_parts[[length(ui_parts) + 1]] <- shiny::div(
     style = paste(
       "position: sticky; bottom: 0; background-color: #fff;",
       "margin: 0; z-index: 9; overflow-x: hidden; width: 100%;",
       glue::glue("padding: 10px 0 7px {left_pad};")
     ),
-    reset_button
-  )
-  predictor_controls_input[[length(predictor_controls_input) + 1]] <-
-    reset_button
-
-  # Ceate the style for the div containing the controls.
-  # If show_model_color is TRUE then we add a left margin with the model color.
-  model_color <- unname(get_model_colors(list(model_data)))[[1]]
-  style <- paste(
-    "width: 100%;",
-    ifelse(show_model_color,
-      glue::glue("border-left: solid 6px {model_color}; "),
-      ""
+    shiny::actionButton(
+      ns("reset_button"),
+      label = reset_label,
+      icon  = shiny::icon("arrow-rotate-left"),
+      style = "height: 34px;"
     )
   )
 
-  # Create the div containing the controls
-  predictor_controls_input <- shiny::div(
-    style = style,
-    id = ns(.predictor_controls_container_id),
-    predictor_controls_input
-  )
+  # Outer container (colored border in single-model mode)
+  container_style <- "width: 100%; "
+  if (!is_multi && show_model_color) {
+    model_color    <- unname(get_model_colors(list(primary)))[[1]]
+    container_style <- paste(
+      container_style,
+      glue::glue("border-left: solid 6px {model_color}; ")
+    )
+  }
 
-  shiny::tagList(predictor_controls_input)
+  shiny::tagList(shiny::div(
+    style = container_style,
+    id    = ns(.predictor_controls_container_id),
+    ui_parts
+  ))
 }
 
-#' Predictor Controls Server Logic (Internal)
+#' Predictor Controls Server Logic
 #'
-#' Implements the server-side logic for a single model's predictor controls
-#' module. Creates observers for each input control, tracks current values
-#' reactively, handles reset-to-defaults, and provides a destroy function
-#' for clean teardown.
+#' @param id Character string. The module namespace ID (must match
+#'   \code{predictorControlsUI()}).
+#' @param model_data Single model data named list, or an unnamed list of model
+#'   data objects. See \code{?predictor_controls} for details.
 #'
-#' @param id Character string. The module namespace ID (must match the ID
-#'   used in \code{predictorControlsUI()}).
-#' @param model_data Named list of model data containing reference group
-#'   values, variable metadata, and model display properties.
-#'
-#' @return A named list with the following elements:
+#' @return A named list:
 #'   \describe{
-#'     \item{destroy_module}{Function. Call to destroy the module, its
-#'       observers, and its UI elements.}
-#'     \item{rv_values}{A \code{shiny::reactiveVal()} containing the current
-#'       predictor values as a named list.}
+#'     \item{destroy}{Function. Destroys the module's observers and UI.}
+#'     \item{rv_values}{A \code{shiny::reactiveVal()} holding a named list
+#'       keyed by \code{model_id}; each value is a named list keyed by
+#'       variable name.}
 #'   }
 #'
 #' @noRd
 #' @keywords internal
-predictorControlsServer <- function(
-  id,
-  model_data
-) {
+predictorControlsServer <- function(id, model_data) {
   shiny::moduleServer(id, function(input, output, session) {
-    # List of all observers for the predictor controls
-    # We need these so we can destroy them later
-    observers <- list()
+    models    <- .normalize_model_data(model_data)
+    is_multi  <- length(models) > 1
+    primary   <- models[[1]]
+    model_ids <- vapply(models, function(m) m$model_id, character(1))
 
-    default_predictor_values <- model_data$reference_group
-    # Convert all categorical variables to strings
-    for (variable in names(default_predictor_values)) {
-      if (is_variable_categorical(model_data, variable)) {
-        default_predictor_values[[variable]] <- as.character(
-          default_predictor_values[[variable]]
-        )
-      }
+    groups <- if (is_multi) {
+      stats::setNames(vapply(models, function(m) m$title, character(1)), model_ids)
+    } else {
+      stats::setNames("", model_ids[[1]])
     }
 
-    # The current predictor values (matching what we see in the UI)
-    predictor_values_internal <-
-      shiny::reactiveVal(default_predictor_values)
+    # Default values: model_id -> variable -> value
+    # Categorical values are coerced to character.
+    default_predictor_values <- stats::setNames(
+      lapply(models, function(m) {
+        vals <- m$reference_group
+        for (v in names(vals)) {
+          if (is_variable_categorical(m, v)) {
+            vals[[v]] <- as.character(vals[[v]])
+          }
+        }
+        vals
+      }),
+      model_ids
+    )
 
-    # Create all observers for the predictor controls
-    for (variable in names(default_predictor_values)) {
-      input_id <- variable
-      cur_env <- rlang::env(
-        input_id = input_id,
-        variable = variable
+    variable_names <- names(default_predictor_values[[model_ids[[1]]]])
+    objects <- rlang::env(
+      observers = list(),
+      servers = list()
+    )
+    predictor_values_internal <- shiny::reactiveVal(default_predictor_values)
+
+    # Sub-module servers (one per variable)
+    for (variable in variable_names) {
+      initial_values <- stats::setNames(
+        lapply(
+          model_ids,
+          function(mid) default_predictor_values[[mid]][[variable]]
+        ),
+        model_ids
       )
-      # Saves the updated value to internal state whenever this predictor's
-      # input changes.
-      observers[[length(observers) + 1]] <-
-        shiny::observeEvent(
-          input[[input_id]],
+      input_id <- variable
+
+      if (is_variable_categorical(primary, variable)) {
+        objects$servers[[variable]] <- categoricalRadioTableServer(
+          input_id, primary,
+          variable = variable, groups = groups, initial_values = initial_values
+        )
+      } else {
+        objects$servers[[variable]] <- continuousSliderGroupServer(
+          input_id, primary,
+          variable = variable, groups = groups, initial_values = initial_values
+        )
+      }
+
+      local({
+        # Capture the current value for variable, to be used in the observer.
+        # If we don't do this, all observers will use the value of variable from
+        # the last iteration of the for loop
+        variable <- variable
+        objects$observers[[length(objects$observers) + 1]] <- shiny::observeEvent(
+          objects$servers[[variable]]$rv_values(),
           {
+            # Save the UI value
             save_values_from_ui(c(variable))
           },
-          event.env = cur_env,
-          handler.env = cur_env,
-          ignoreInit = TRUE
+          ignoreInit  = TRUE
         )
+      })
     }
 
-    # Create the observer for the reset button
-    cur_env <- rlang::env(
-      model_data = model_data,
-      model_id = model_data$model_id
+    # Reset button observer
+    objects$observers[[length(objects$observers) + 1]] <- shiny::observeEvent(
+      input$reset_button,
+      {
+        predictor_values_internal(default_predictor_values)
+        set_ui_from_values()
+      },
+      ignoreInit  = TRUE
     )
-    observers[[length(observers) + 1]] <-
-      shiny::observeEvent(
-        input$reset_button,
-        {
-          predictor_values_internal(default_predictor_values)
-          set_ui_from_values()
-        },
-        event.env = cur_env,
-        handler.env = cur_env,
-        ignoreInit = TRUE
-      )
 
-    #' Save the Values in the UI to the Internal Predictor Values.
-    #'
-    #' Retrieves current predictor values from UI input controls.
-    #'
-    #' @param variables A list of variables to save from the UI. Since
-    #'   accessing the UI can be slow (especially in Shinylive) we
-    #'   should only save the UI values that have changed. If NULL
-    #'   then all variables are saved from the UI. Default is NULL.
-    #'
-    #' @return NULL
+    # Pull the current UI values for the given variables and store them.
     save_values_from_ui <- function(variables = NULL) {
-      saved_predictor_values <- predictor_values_internal()
-
-      # Gather the variables to save the values for
-      if (is.null(variables)) {
-        variables <- names(default_predictor_values)
-      } else {
-        variables <- intersect(variables, names(default_predictor_values))
-      }
-
-      # Save each variable in variables
-      for (variable in variables) {
-        ui_id <- variable
-        val <- input[[ui_id]]
-
-        if (is_variable_categorical(model_data, variable)) {
-          # For categorical variables, convert the UI label to the
-          # actual value in the model (eg. convert "Yes" to 2)
-          val <- get_variable_value_from_label(model_data, variable, val)
+      # isolate() prevents reading rv_values() and predictor_values_internal()
+      # from establishing reactive dependencies inside this helper, which is
+      # already called from within an observeEvent (itself reactive).
+      isolate({
+        variables   <- if (is.null(variables)) variable_names
+                       else intersect(variables, variable_names)
+        saved_values <- predictor_values_internal()
+        for (variable in variables) {
+          group_vals <- objects$servers[[variable]]$rv_values()
+          for (mid in model_ids) {
+            val <- group_vals[[mid]]
+            if (!is.null(val)) saved_values[[mid]][[variable]] <- val
+          }
         }
-
-        saved_predictor_values[[variable]] <- val
-      }
-
-      predictor_values_internal(saved_predictor_values)
+      })
+      predictor_values_internal(saved_values)
     }
 
-    #' Repopulate Predictor Controls With Currently Saved Values
-    #'
-    #' Repopulates the existing predictor controls with the last
-    #' saved internal values. This will not destroy or create controls,
-    #' but instead update their values.
-    #'
-    #' @return NULL (called for side effects on UI).
+    # Push the internally stored values back into the UI sub-modules.
     set_ui_from_values <- function() {
-      cur_predictor_values <- predictor_values_internal()
-
-      for (variable in names(cur_predictor_values)) {
-        val <- cur_predictor_values[[variable]]
-        ui_id <- variable
-
-        if (is_variable_categorical(model_data, variable)) {
-          # For categorical variables, convert the value to a label
-          val <- get_variable_label_from_value(model_data, variable, val)
-          val <- as.character(val)
-          shiny::updateRadioButtons(session, ui_id, selected = val)
-        } else {
-          shiny::updateSliderInput(session, ui_id, value = val)
-        }
+      cur_values <- predictor_values_internal()
+      for (variable in variable_names) {
+        group_vals <- stats::setNames(
+          lapply(model_ids, function(mid) cur_values[[mid]][[variable]]),
+          model_ids
+        )
+        objects$servers[[variable]]$update_values(group_vals)
       }
     }
 
-    #' Destroy the Module, its UI Elements, and its Observers.
-    #'
-    #' This should be called whenever the module is no longer required.
-    #' This function is returned in the server's returned named list
-    #' under the name \code{"destroy_module"}.
-    #'
-    #' @return NULL
-    destroy_module <- function() {
-      # Destroy all observers
-      for (obs in observers) {
-        obs$destroy()
-      }
-      observers <- list()
-
-      # Remove UI
+    destroy <- function() {
+      for (obs in objects$observers) obs$destroy()
+      for (srv in objects$servers) srv$destroy()
+      objects$observers <- list()
+      objects$servers <- list()
       shiny::removeUI(
-        selector = paste0("#", session$ns(.predictor_controls_container_id)),
+        selector  = paste0("#", session$ns(.predictor_controls_container_id)),
         immediate = TRUE
       )
-
-      # Destroy the module (if using shiny.destroy)
-      # nolint start
-      # shiny.destroy::destroyModule(id)
-      # nolint end
     }
 
-    list(
-      destroy_module = destroy_module,
-      rv_values = predictor_values_internal
-    )
+    list(destroy = destroy, rv_values = predictor_values_internal)
   })
 }
