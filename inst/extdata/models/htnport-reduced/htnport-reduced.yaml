@@ -21,4 +21,8 @@ models:
       diabx: 2
   _all_:
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01

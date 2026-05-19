@@ -2,8 +2,6 @@ meta:
   algorithm: HTNPoRT Full
   version: 1.0.0
 
-hide_plots: "rr_exposed_vs_unexposed"
-
 models:
   female:
     title: Female
@@ -13,7 +11,11 @@ models:
     model_export: ./male-full/HTNPoRT-full-male-model-export.csv
   _all_:
     predictor_allowable_values:
-      hwmdbmi: seq(13, 49, by = 0.01)
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
     reference_group:
       clc_age: 24
       married: 3
