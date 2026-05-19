@@ -54,6 +54,67 @@ make_message_plot <- function(label, color = "black") {
     )
 }
 
+.format_sys_calls <- function(calls) {
+  calls <- utils::tail(calls, 15)
+  formatted <- sapply(seq_along(calls), function(i) {
+    number_prefix <- paste0(i, ": ")
+    indent_prefix <- strrep(" ", stringr::str_length(number_prefix))
+    val <- deparse(calls[[i]])
+    val <- paste0(val, collapse = paste0("\n", indent_prefix))
+    paste0(number_prefix, val)
+  })
+  paste0(formatted, collapse = "\n")
+}
+
+#' Safely Render a Plot with Structured Error Logging
+#'
+#' Wraps a plot-computation closure with two layers of error handling:
+#'
+#' \enumerate{
+#'   \item \code{withCallingHandlers} — fires \emph{before} the call stack
+#'     unwinds, so \code{conditionCall()} correctly identifies the frame that
+#'     signalled the error. This makes it possible to distinguish an expected
+#'     domain error (\code{stop("no predictor selected")}) from an unexpected
+#'     programming error (e.g. \code{NULL[[1]]}) by inspecting the logged
+#'     call site.
+#'   \item \code{tryCatch} — catches the error after the stack has unwound and
+#'     renders it as inline red text in the plot area so the user sees a
+#'     readable message rather than a broken widget.
+#' }
+#'
+#' @param fn A zero-argument function containing the plot computation. Reactive
+#'   dependencies inside \code{fn} are tracked normally because
+#'   \code{withCallingHandlers} and \code{tryCatch} do not alter the reactive
+#'   domain.
+#'
+#' @return The return value of \code{fn()}, or a \code{make_message_plot()}
+#'   error plot if \code{fn()} throws.
+#'
+#' @noRd
+#' @keywords internal
+plot_render_safely <- function(fn) {
+  tryCatch(
+    withCallingHandlers(
+      fn(),
+      error = function(e) {
+        call_str <- if (!is.null(conditionCall(e))) {
+          paste0(" [", deparse(conditionCall(e), nlines = 1, width.cutoff = 80), "]")
+        } else {
+          ""
+        }
+        message(.format_sys_calls(sys.calls()))
+        message("Plot error", call_str, ": ", conditionMessage(e))
+      }
+    ),
+    error = function(e) {
+      make_message_plot(
+        paste0("<b>Error</b>: ", htmltools::htmlEscape(conditionMessage(e))),
+        color = "red"
+      )
+    }
+  )
+}
+
 #' Create Plotly Visualization
 #'
 #' Generates a plotly plot from curve data for multiple models. Handles
@@ -72,6 +133,17 @@ make_message_plot <- function(label, color = "black") {
 #' @param plot_type The type of plot to create. Can be "bar", "line", or
 #'   "point". If NULL, defaults to "bar" for categorical predictors and
 #'   "line" for continuous predictors. Defaults to NULL.
+#' @param extra_plot List of additional ggplot2 layers (e.g. geom_hline calls)
+#'   to add to the plot. If NULL, no extra layers are added. Defaults to NULL.
+#' @param ylim_override Numeric vector of length 2 specifying explicit y-axis
+#'   limits (e.g. \code{c(0.5, 2.0)}). Overrides any ylim values from the
+#'   curve data. If NULL, limits are taken from curve data or left unset.
+#'   Defaults to NULL.
+#' @param show_reference_line Logical. If TRUE (the default), adds a dashed
+#'   horizontal line at y = 1, which marks the null-effect reference for ratio
+#'   scales (OR, RR). Set to FALSE for absolute-scale plots such as Predicted
+#'   Risk, where y = 1 is the top of the axis and not a meaningful reference.
+#'   Defaults to TRUE.
 #'
 #' @return A plotly object for rendering in the UI.
 #'
@@ -83,7 +155,10 @@ make_general_plot <- function(
   logarithmic = TRUE,
   flip_coords = FALSE,
   theme_args = NULL,
-  plot_type = NULL
+  plot_type = NULL,
+  extra_plot = NULL,
+  ylim_override = NULL,
+  show_reference_line = TRUE
 ) {
   if (is.null(model_definitions)) {
     # No algorithm file has been loaded
@@ -104,7 +179,7 @@ make_general_plot <- function(
   # then the legend would be sorted alphabetically.
   df$Model <- factor(df$Model, levels = unique(df$Model))
 
-  curve_data <- all_curve_data[[length(all_curve_data)]]
+  curve_data <- all_curve_data[[1]]
 
   # The hover mode, as passed to plotly::layout()
   hovermode <- "x unified"
@@ -121,14 +196,16 @@ make_general_plot <- function(
         curve_data$y_axis_label
       )
 
-      # Set y limits, if specified in the curve data
-      y_limits <- NULL
-      if (!is.null(curve_data[["ylim_logarithmic"]]) && logarithmic) {
-        y_limits <- curve_data[["ylim_logarithmic"]]
-      } else if (!is.null(curve_data[["ylim_linear"]]) && !logarithmic) {
-        y_limits <- curve_data[["ylim_linear"]]
-      } else if (!is.null(curve_data[["ylim"]])) {
-        y_limits <- curve_data[["ylim"]]
+      # Set y limits from override or curve data
+      y_limits <- ylim_override
+      if (is.null(y_limits)) {
+        if (!is.null(curve_data[["ylim_logarithmic"]]) && logarithmic) {
+          y_limits <- curve_data[["ylim_logarithmic"]]
+        } else if (!is.null(curve_data[["ylim_linear"]]) && !logarithmic) {
+          y_limits <- curve_data[["ylim_linear"]]
+        } else if (!is.null(curve_data[["ylim"]])) {
+          y_limits <- curve_data[["ylim"]]
+        }
       }
 
       # Factor the x axis categorical variables
@@ -166,7 +243,7 @@ make_general_plot <- function(
         # Create the bar plot (p)
         p <- ggplot2::ggplot(
           data = df,
-          make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
+          make_aes(curve_data$aes_args, fill = rlang::sym("Model"))
         )
         p <- p +
           ggplot2::geom_col(position = "dodge") +
@@ -178,7 +255,7 @@ make_general_plot <- function(
         # Create the line plot (p)
         p <- ggplot2::ggplot(
           data = df,
-          make_aes(curve_data$aes_args, color = dplyr::sym("Model"))
+          make_aes(curve_data$aes_args, color = rlang::sym("Model"))
         )
         p <- p +
           ggplot2::geom_line(linewidth = 1.2) +
@@ -190,7 +267,7 @@ make_general_plot <- function(
         # Create the point plot (p)
         p <- ggplot2::ggplot(
           data = df,
-          make_aes(curve_data$aes_args, fill = dplyr::sym("Model"))
+          make_aes(curve_data$aes_args, fill = rlang::sym("Model"))
         )
         p <- p +
           ggplot2::geom_point(
@@ -204,17 +281,21 @@ make_general_plot <- function(
           )
       }
 
+      if (!is.null(extra_plot)) {
+        for (cur_p in extra_plot) {
+          p <- p + cur_p
+        }
+      }
+
       # Add general options to the plot
+      ref_line <- if (show_reference_line) {
+        ggplot2::geom_hline(yintercept = 1, linetype = "dashed", color = "gray50")
+      } else {
+        NULL
+      }
       p <- p +
-        ggplot2::scale_y_continuous(
-          transform = transform,
-          limits = y_limits
-        ) +
-        ggplot2::geom_hline(
-          yintercept = 1,
-          linetype = "dashed",
-          color = "gray50"
-        ) +
+        ggplot2::scale_y_continuous(transform = transform) +
+        ref_line +
         ggplot2::labs(
           title = curve_data$title,
           x = curve_data$x_axis_label,
@@ -234,17 +315,31 @@ make_general_plot <- function(
           do.call(ggplot2::theme, theme_args)
       }
       if (flip_coords) {
-        # Flip the x and y axes
+        # Flip the x and y axes, zooming to y_limits without dropping data
         p <- p +
-          ggplot2::coord_flip()
+          ggplot2::coord_flip(ylim = y_limits)
         hovermode <- "y unified"
+      } else if (!is.null(y_limits)) {
+        p <- p + ggplot2::coord_cartesian(ylim = y_limits)
       }
 
-      # Generate and return the Plotly plot from the ggplot2
+      # Generate and return the Plotly plot from the ggplot2.
+      # Suppress hline traces (labelled "yintercept" by ggplotly) from the
+      # unified tooltip; "skip" excludes them entirely unlike "none".
       plotly::ggplotly(p) |>
+        (\(plt) {
+          hline_traces <- which(vapply(plt$x$data, function(tr) {
+            isTRUE(grepl("yintercept", tr$text, fixed = TRUE))
+          }, logical(1)))
+          if (length(hline_traces) > 0) {
+            plt <- plotly::style(plt, hoverinfo = "skip", traces = hline_traces)
+          }
+          plt
+        })() |>
         plotly::layout(hovermode = hovermode)
     },
     error = function(e) {
+      message(conditionMessage(e))
       make_message_plot(
         paste("Error making plot:", conditionMessage(e)),
         color = "red"
