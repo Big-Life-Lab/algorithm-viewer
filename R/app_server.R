@@ -453,11 +453,11 @@ app_server <- function(input, output, session) {
         {
           files_in_archive <-
             archive::archive_extract(file, dir = temp_dir_path)
-          yaml_pattern <- "(\\.yaml|\\.yml)$"
           # Validating a YAML (based on a JSON schema) using S7schema only
           # supports lower-case extensions (.yaml or .yml, but not .YAML or
           # .YML). Because we use S7schema elsewhere, we only allow lowercase
           # extensions here to remain consistent.
+          yaml_pattern <- "(\\.yaml|\\.yml)$"
           config_files <- files_in_archive[
             grepl(yaml_pattern, files_in_archive, ignore.case = FALSE)
           ]
@@ -487,14 +487,14 @@ app_server <- function(input, output, session) {
         )
         shiny::showModal(errorModal("Error Loading Data", err_msg))
       } else if (length(config_files) > 1) {
-        # The names of selections are the full path to the config file within
-        # the temporary directory. The values of selections are the values
-        # shown to the user in the dialog box (the values can be anything).
+        # The names of selections are the relative paths to the config files
+        # within the temporary directory. The values of selections are the
+        # values shown to the user in the dialog box (the values can be
+        # anything). We include the relative paths (instead of full
+        # absolute paths) to hide the directory structure of the server
+        # from the user.
         escaped_files <- htmltools::htmlEscape(config_files)
-        selections <- stats::setNames(
-          file.path(temp_dir_path, config_files),
-          escaped_files
-        )
+        selections <- stats::setNames(config_files, escaped_files)
         message <- shiny::tagList(
           paste0(
             "Multiple YAML model definitions were found in your archive, ",
@@ -612,15 +612,19 @@ app_server <- function(input, output, session) {
     selected <- input$select_yaml_radio
     shiny::removeModal()
 
-    # Validate against the specific upload directory, not the shared tempdir(),
-    # so the check is scoped to exactly this upload's extracted files.
     if (
       length(selected) > 0 &&
       !is.null(selected) &&
-      !is.null(upload_temp_dir) &&
-      is_file_descendant_of(selected, upload_temp_dir)
+      !is.null(upload_temp_dir)
     ) {
-      load_model_definitions(selected)
+      # Validate against the specific upload directory, not the shared
+      # tempdir(), so the check is scoped to exactly this upload's extracted
+      # files (is_file_descendant_of will normalize the path, to prevent
+      # path components such as '..' from injecting path traversal).
+      file <- file.path(upload_temp_dir, selected)
+      if (is_file_descendant_of(file, upload_temp_dir)) {
+        load_model_definitions(file)
+      }
     }
   })
 
