@@ -176,6 +176,19 @@ plotRRAvsBServer <- function(
         } else {
           input$x_range_linear
         }
+        
+        # Pad the labels to maintain a constant x axis label width (to avoid
+        # having the y axis change scales when fitting the x axis labels). Note
+        # that because flip_coords = TRUE, what we apply to the x axis is
+        # actually what is shown as the y axis in the final plot.
+        if (length(all_curve_data) > 0) {
+          max_label_len <- max(
+            sapply(all_curve_data, function(x) x$max_x_axis_label_len)
+          )
+          max_label_len <- max_label_len + 10
+          extra_plot[[length(extra_plot) + 1]] <- 
+            ggplot2::scale_x_discrete(labels = function(x) stringr::str_pad(x, max_label_len, side = "left"))
+        }
 
         make_general_plot(
           all_curve_data,
@@ -222,12 +235,37 @@ plotRRAvsBServer <- function(
   a_group,
   b_group
 ) {
+  # Get the x-axis label given the specified main label (eg. the predictor name)
+  # and the specified sub label (eg. the predictor categorical value)
+  # If html is TRUE then an HTML string is returned, otherwise a plain-text
+  # string is returned.
+  get_x_axis_label <- function(main_label, sub_label, html = TRUE) {
+    label <- main_label
+    if (html) {
+      label <- paste0("<b>", label, "</b>")
+    }
+    if (!is.null(sub_label) && stringr::str_length(sub_label) > 0) {
+      label <- paste0(label, ": ", sub_label)
+    }
+    label
+  }
+
   rows <- list()
   row_names <- list()
   row_comparisons <- list()
   predictors <- list()
   a_values <- list()
   b_values <- list()
+  overall_label <- "Overall Relative Risk"
+
+  # The is the maximum length (in characters) of an x axis label
+  # (eg. "Diabetes: Yes"). This allows us to determine how wide these labels
+  # can possibly be, for any combination of predictor and predictor value.
+  # We can then make the plot have a label region that is a constant width,
+  # avoiding resizing of the plot to fit the labels. Have a constant width
+  # makes it easier to read the plot and to see how the points move as
+  # the predictor values change.
+  max_x_axis_label_len <- 0
 
   # First row is the unmodified A group (the overall risk)
   # We will then add additional rows for each categorical variable.
@@ -235,7 +273,15 @@ plotRRAvsBServer <- function(
   # will add a row using the A group values, but with the categorical
   # variable set to the new level.
   rows[[length(rows) + 1]] <- a_group
-  row_names[[length(row_names) + 1]] <- "<b>Overall Relative Risk</b>"
+  row_names[[length(row_names) + 1]] <- get_x_axis_label(
+    overall_label,
+    NULL,
+    html = TRUE
+  )
+  max_x_axis_label_len <- max(
+    max_x_axis_label_len,
+    stringr::str_length(get_x_axis_label(overall_label, NULL, html = FALSE))
+  )
   row_comparisons[[length(row_comparisons) + 1]] <- "A vs B"
   predictors[[length(predictors) + 1]] <- ""
   a_values[[length(a_values) + 1]] <- ""
@@ -257,43 +303,53 @@ plotRRAvsBServer <- function(
       # "Widowed/separated/divorced")
       predictor_allowable_values <-
         get_predictor_allowable_values(model_data, predictor)
-      for (cur_a_value in predictor_allowable_values) {
-        # Skip if cur_a_value is the same as the B group value.
+      for (cur_alt_value in predictor_allowable_values) {
+        cur_alt_label <- get_variable_label_from_value(
+          model_data,
+          predictor,
+          cur_alt_value,
+          escape_html = TRUE
+        )
+        # Update maximum possible length of the x axis labels (includes the
+        # categories that are not displayed)
+        max_x_axis_label_len <- max(
+          max_x_axis_label_len,
+          stringr::str_length(
+            get_x_axis_label(predictor_label, cur_alt_label, html = FALSE)
+          )
+        )
+
+        # Skip if cur_alt_value is the same as the B group value.
         # This is because the predicted risk (or rr) will be identical
         # to the overall risk.
-        if (cur_a_value == a_group[[predictor]])
+        if (cur_alt_value == a_group[[predictor]])
           next
 
-        # Add the A row, with the predictor set to cur_a_value
+        # Add the A row, with the predictor set to cur_alt_value
         cur_group <- a_group
-        cur_group[[predictor]] <- cur_a_value
+        cur_group[[predictor]] <- cur_alt_value
         rows[[length(rows) + 1]] <- cur_group
 
         # Calculate the name (eg. "Marital status (Married)") of the new row and
         # the comparison label (eg. "Marital status (Married vs Single)")
-        cur_a_label <- get_variable_label_from_value(
-          model_data,
-          predictor,
-          cur_a_value,
-          escape_html = TRUE
-        )
         a_label <- get_variable_label_from_value(
           model_data,
           predictor,
           a_group[[predictor]],
           escape_html = TRUE
         )
-        row_name <-
-          as.character(glue::glue(
-            "<b>{predictor_label}</b>: {cur_a_label}"
-          ))
+        row_name <- get_x_axis_label(
+          predictor_label,
+          cur_alt_label,
+          html = TRUE
+        )
         row_names[[length(row_names) + 1]] <- row_name
         row_comparison <- as.character(glue::glue(
-          "{predictor_label} ({cur_a_label} vs {a_label})"
+          "{predictor_label} ({cur_alt_label} vs {a_label})"
         ))
         row_comparisons[[length(row_comparisons) + 1]] <- row_comparison
         predictors[[length(predictors) + 1]] <- predictor
-        a_values[[length(a_values) + 1]] <- cur_a_value
+        a_values[[length(a_values) + 1]] <- cur_alt_value
         b_values[[length(b_values) + 1]] <-
           b_group[[predictor]]
       }
@@ -330,6 +386,7 @@ plotRRAvsBServer <- function(
   list(
     df = output_df,
     overall_rr = rr[[1]],
+    max_x_axis_label_len = max_x_axis_label_len,
     x_axis_label = "Label",
     y_axis_label = "Relative Risk",
     title = "Relative Risk",
