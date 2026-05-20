@@ -25,7 +25,7 @@ on:
   workflow_dispatch:
   # Trigger on push to `proto` branch
   push:
-    branches: ["proto", "proto2"]
+    branches: [proto, proto2]
   # Trigger on pull request to all branches (but do not deploy to gh-pages)
   pull_request:
 
@@ -66,13 +66,13 @@ jobs:
           shinylive::export(".", "site")
 
       - name: Upload site artifact
-        if: github.ref == 'refs/heads/proto'
+        if: github.ref == 'refs/heads/proto' || github.ref == 'refs/heads/proto2'
         uses: actions/upload-pages-artifact@v3
         with:
           path: "site"
 
   deploy:
-    if: github.ref == 'refs/heads/proto'
+    if: github.ref == 'refs/heads/proto' || github.ref == 'refs/heads/proto2'
     needs: build
 
     # Grant GITHUB_TOKEN the permissions required to make a Pages deployment
