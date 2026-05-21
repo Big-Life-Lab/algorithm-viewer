@@ -10,7 +10,7 @@ allow_file_uploads: TRUE
 # The initial algorithm to load, must match a key in the algorithms section
 # If initial_algorithm_file is set then this is ignored
 # Defaults to NULL
-initial_algorithm_id: htnport-reduced
+initial_algorithm_id: htnport-full
 
 # Preloaded algorithms. Can be selected from a list (if allow_algorithms_selection is TRUE)
 # or specified in the URL algorithm query parameter (if allow_algorithm_in_url is TRUE)
