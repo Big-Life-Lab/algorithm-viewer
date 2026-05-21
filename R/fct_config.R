@@ -35,18 +35,15 @@ load_config <- function(config) {
   )
   tryCatch(
     {
-      # Validate the file
-      data <- S7schema::S7schema(
-        config,
-        schema_file
-      )
+      # Load and validate the file
+      data <- read_and_validate_yaml(config, schema_file, error_html = FALSE)
     },
     error = function(e) {
       stop(paste0(
         "Error with configuration file ",
         htmltools::htmlEscape(basename(config)),
         ":\n",
-        parse_s7schema_error(e)
+        conditionMessage(e)
       ))
     }
   )

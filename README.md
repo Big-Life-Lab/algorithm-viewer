@@ -71,10 +71,10 @@ algorithm-viewer/
 │   ├── mod_predictor_controls.R             # Per-predictor control UI module
 │   ├── mod_predictor_grouped_controls.R     # Multi-model predictor controls module
 │   ├── utils_general_plot.R                 # Shared plot utilities
+│   ├── utils_jsonschema.R                   # JSON Schema validation error formatting
 │   ├── utils_make_error.R                   # Typed error condition constructor
 │   ├── utils_make_string_values_unique.R    # Utility for deduplicating string values
 │   ├── utils_path.R                         # File path helpers
-│   ├── utils_s7schema.R                     # S7 schema utilities
 │   └── utils_url.R                          # URL parsing and construction
 ├── inst/extdata/
 │   ├── config.yaml                          # Default HTNPoRT app configuration

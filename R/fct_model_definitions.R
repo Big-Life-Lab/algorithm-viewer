@@ -104,20 +104,18 @@ read_model_definitions <- function(file) {
     }
   )
 
+  info <- yaml::read_yaml(file)
   tryCatch(
     {
-      # Validate the file
-      info <- S7schema::S7schema(
-        file,
-        schema_file
-      )
+      # Load and validate the file
+      info <- read_and_validate_yaml(file, schema_file)
     },
     error = function(e) {
       stop(paste0(
         "Error in model definitions file ",
         htmltools::htmlEscape(basename(file)),
         ":\n\n",
-        parse_s7schema_error(e)
+        conditionMessage(e)
       ))
     }
   )
