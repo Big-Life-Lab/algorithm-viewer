@@ -429,11 +429,7 @@ app_server <- function(input, output, session) {
       # Empty file
       model_definitions(NULL)
     } else if (
-      # Validating a YAML (based on a JSON schema) using S7schema only
-      # supports lower-case extensions (.yaml or .yml, but not .YAML or
-      # .YML). Because we use S7schema elsewhere, we only allow lowercase
-      # extensions here to remain consistent.
-      grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = FALSE)
+      grepl("^(yaml|yml)$", tools::file_ext(file), ignore.case = TRUE)
     ) {
       # YAML file
       load_model_definitions(file)
@@ -453,13 +449,9 @@ app_server <- function(input, output, session) {
         {
           files_in_archive <-
             archive::archive_extract(file, dir = temp_dir_path)
-          # Validating a YAML (based on a JSON schema) using S7schema only
-          # supports lower-case extensions (.yaml or .yml, but not .YAML or
-          # .YML). Because we use S7schema elsewhere, we only allow lowercase
-          # extensions here to remain consistent.
           yaml_pattern <- "(\\.yaml|\\.yml)$"
           config_files <- files_in_archive[
-            grepl(yaml_pattern, files_in_archive, ignore.case = FALSE)
+            grepl(yaml_pattern, files_in_archive, ignore.case = TRUE)
           ]
           # Ignore config files in the __MACOSX directory
           # (added automatically on a Mac)
