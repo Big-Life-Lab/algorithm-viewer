@@ -4,6 +4,7 @@
 #' continuous variable — one per group (e.g., "Me" and "Ref").  All sliders
 #' share the same min/max/step range derived from
 #' \code{predictor_allowable_values}.  Any number of groups is supported.
+#' The reactive values returned by the sliders are always doubles.
 #'
 #' @details
 #' `continuousSliderGroupServer()` returns a named list:
@@ -265,6 +266,7 @@ continuousSliderGroupServer <- function(
             if (!is.null(val)) {
               cur <- rv_values()
               if (!identical(cur[[g]], val)) {
+                # Cast to double to always remain consistent with the type
                 cur[[g]] <- as.double(val)
                 rv_values(cur)
               }
