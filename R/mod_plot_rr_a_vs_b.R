@@ -177,10 +177,16 @@ plotRRAvsBServer <- function(
           input$x_range_linear
         }
         
-        # Pad the labels to maintain a constant x axis label width (to avoid
-        # having the y axis change scales when fitting the x axis labels). Note
-        # that because flip_coords = TRUE, what we apply to the x axis is
-        # actually what is shown as the y axis in the final plot.
+        # Pad the labels to maintain a constant x axis label width.
+        # This prevents the location of the y = 0 line from moving to fit
+        # the labels, making it easier to see how the RR values change as
+        # the labels change.
+        # @TODO: This should be more exact. We add 10 to the amount of padding
+        # since it works well, we're using a non-monospace font, and we don't
+        # take into account the bolded text. Calculating the pixel width of
+        # the text with systemfonts::string_width, then setting the label
+        # section width with plotly::layout(margin = list(l = 500)) would be
+        # better.
         if (length(all_curve_data) > 0) {
           max_label_len <- max(
             sapply(all_curve_data, function(x) x$max_x_axis_label_len)
