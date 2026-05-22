@@ -207,5 +207,3 @@ app_ui <- function(request) {
     )
   )
 }
-
-app_ui
