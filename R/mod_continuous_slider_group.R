@@ -265,7 +265,7 @@ continuousSliderGroupServer <- function(
             if (!is.null(val)) {
               cur <- rv_values()
               if (!identical(cur[[g]], val)) {
-                cur[[g]] <- val
+                cur[[g]] <- as.double(val)
                 rv_values(cur)
               }
             }
