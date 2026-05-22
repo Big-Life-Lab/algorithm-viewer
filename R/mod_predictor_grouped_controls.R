@@ -131,9 +131,19 @@ predictorGroupedControlsServer <- function(
         predictor_values[[key]] <- NULL
       }
 
-      # Initialize predictor_values from each model's reference_group.
+      # Initialize predictor_values from each model's reference_group,
+      # coercing categorical values to character and continuous to double to
+      # match the format used by predictorControlsServer.
       for (model_data in model_definitions()$models) {
-        predictor_values[[model_data$model_id]] <- model_data$reference_group
+        vals <- model_data$reference_group
+        for (v in names(vals)) {
+          if (is_variable_categorical(model_data, v)) {
+            vals[[v]] <- as.character(vals[[v]])
+          } else {
+            vals[[v]] <- as.double(vals[[v]])
+          }
+        }
+        predictor_values[[model_data$model_id]] <- vals
       }
     }, priority = 10000)
 
