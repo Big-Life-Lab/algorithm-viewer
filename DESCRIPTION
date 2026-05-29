@@ -40,7 +40,7 @@ Imports:
   yaml,
   model.parameters.pipeline
 Remotes:
-  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.2.4-alpha
+  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.2.5-perf-alpha
 Suggests:
   knitr,
   rmarkdown,
