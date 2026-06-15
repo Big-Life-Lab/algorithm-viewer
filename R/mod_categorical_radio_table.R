@@ -326,12 +326,19 @@ categoricalRadioTableServer <- function(
     # the supplied value is missing or not in the allowable set.
     init_vals <- stats::setNames(
       lapply(group_keys, function(g) {
+        # as.character(NULL) is character(0), not NULL, so check length too —
+        # a group missing from initial_values must fall back rather than
+        # crash the `&&` below with a zero-length condition.
         iv <- if (!is.null(initial_values)) {
           as.character(initial_values[[g]])
         } else {
           NULL
         }
-        if (!is.null(iv) && iv %in% allowable_char) iv else allowable_char[[1]]
+        if (length(iv) == 1 && iv %in% allowable_char) {
+          iv
+        } else {
+          allowable_char[[1]]
+        }
       }),
       group_keys
     )
@@ -347,13 +354,19 @@ categoricalRadioTableServer <- function(
         # the last iteration of the for loop
         g <- g
         input_id <- .crt_group_input_id(variable, g)
-        observers[[length(observers) + 1]] <- shiny::observeEvent(
+        # <<- so the observer lands in the module-level `observers` list;
+        # a plain <- inside local() would modify a local copy and destroy()
+        # would never see (or destroy) these observers.
+        observers[[length(observers) + 1]] <<- shiny::observeEvent(
           input[[input_id]],
           {
             val <- get_variable_value_from_label(
               model_data, variable, input[[input_id]]
             )
-            if (!is.null(val)) {
+            # An unknown label yields NA (named-vector subscript miss), not
+            # NULL — guard against it so a bad client value can't poison
+            # rv_values with NA.
+            if (length(val) == 1 && !is.na(val)) {
               cur <- rv_values()
               val_char <- as.character(val)
               if (!identical(cur[[g]], val_char)) {
