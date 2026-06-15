@@ -69,7 +69,7 @@ predictorGroupedControlsUI <- function(
 
   shiny::div(
     style = paste(
-    "height: calc(100vh - 140px); margin-bottom: 30px;",
+    "max-height: calc(100vh - 140px); margin-bottom: 30px;",
     "overflow-y: scroll"
     ),
     shiny::uiOutput(ns("group_controls"))

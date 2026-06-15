@@ -94,7 +94,7 @@ app_ui <- function(request) {
           shiny::tabPanel(
             "Models",
             style = paste(
-              "height: calc(100vh - 140px); margin-bottom: 30px;",
+              "max-height: calc(100vh - 140px); margin-bottom: 30px;",
               "overflow-y: scroll"
             ),
             icon = shiny::icon("atom"),
