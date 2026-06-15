@@ -221,7 +221,8 @@ plotRRAvsBServer <- function(
                 ),
                 shiny::tags$td(
                   style = "width: 28.33%; vertical-align: top",
-                  paste0("Overall RR: ", sprintf(format, overall_rr), "×"),
+                  "Overall RR:",
+                  shiny::HTML(paste0(sprintf(format, overall_rr), "&#215;")),
                   paste0(
                     " (",
                     ifelse(delta_pr < 0, "-", "+"),
