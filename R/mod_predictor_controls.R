@@ -224,7 +224,10 @@ predictorControlsServer <- function(id, model_data) {
     model_ids <- vapply(models, function(m) m$model_id, character(1))
 
     groups <- if (is_multi) {
-      stats::setNames(vapply(models, function(m) m$title, character(1)), model_ids)
+      stats::setNames(
+        vapply(models, function(m) m$title, character(1)),
+        model_ids
+      )
     } else {
       stats::setNames("", model_ids[[1]])
     }
@@ -279,14 +282,15 @@ predictorControlsServer <- function(id, model_data) {
         # If we don't do this, all observers will use the value of variable from
         # the last iteration of the for loop
         variable <- variable
-        objects$observers[[length(objects$observers) + 1]] <- shiny::observeEvent(
-          objects$servers[[variable]]$rv_values(),
-          {
-            # Save the UI value
-            save_values_from_ui(c(variable))
-          },
-          ignoreInit  = TRUE
-        )
+        objects$observers[[length(objects$observers) + 1]] <-
+          shiny::observeEvent(
+            objects$servers[[variable]]$rv_values(),
+            {
+              # Save the UI value
+              save_values_from_ui(c(variable))
+            },
+            ignoreInit  = TRUE
+          )
       })
     }
 
@@ -305,7 +309,7 @@ predictorControlsServer <- function(id, model_data) {
       # isolate() prevents reading rv_values() and predictor_values_internal()
       # from establishing reactive dependencies inside this helper, which is
       # already called from within an observeEvent (itself reactive).
-      isolate({
+      shiny::isolate({
         variables   <- if (is.null(variables)) variable_names
                        else intersect(variables, variable_names)
         saved_values <- predictor_values_internal()
