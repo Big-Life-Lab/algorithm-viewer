@@ -100,7 +100,7 @@ read_model_definitions <- function(file) {
       )
     },
     error = function(e) {
-      stop0("Could not find algorithm JSON schema file in package.")
+      stop("Could not find algorithm JSON schema file in package.")
     }
   )
 
@@ -299,7 +299,10 @@ read_model_definitions <- function(file) {
       next
     }
     if (is.vector(val_yaml) && length(val_yaml) == 2) {
-      allowable_values <- append(allowable_values, seq(val_yaml[1], val_yaml[2]))
+      allowable_values <- append(
+        allowable_values,
+        seq(val_yaml[1], val_yaml[2])
+      )
     } else {
       # Note that read_yaml above will do some automatic conversion, such as
       # converting the string "Y" to the boolean TRUE. We do not want this,
@@ -406,12 +409,28 @@ read_model_definitions <- function(file) {
         if (file_key %in% names(info$models[[model_id]]$model_pipeline)) {
           # The file has already been loaded by the model_pipeline, so use
           # it instead of reloading it from disk
-          info$models[[model_id]][[file_key]] <- info$models[[model_id]]$model_pipeline[[file_key]]
+          info$models[[model_id]][[file_key]] <-
+            info$models[[model_id]]$model_pipeline[[file_key]]
         } else {
           # The file has not been loaded by the model_pipeline, so load the
           # file from disk
           orig_file_path <-
             model_export[model_export$fileType == file_type, ]$filePath
+          # With zero matching rows, file.path() and is_file_descendant_of()
+          # would return zero-length values and the if() below would fail with
+          # an opaque "argument is of length zero" error; with multiple rows
+          # the file path would be ambiguous. Report both cases clearly.
+          if (length(orig_file_path) != 1) {
+            stop(htmltools::htmlEscape(paste0(
+              "Expected exactly one row with fileType '",
+              file_type,
+              "' in the model export file for model '",
+              model_id,
+              "', but found ",
+              length(orig_file_path),
+              "."
+            )))
+          }
           file_path <- file.path(model_export_root, orig_file_path)
           if (!is_file_descendant_of(file_path, root_dir)) {
             stop(htmltools::htmlEscape(paste0(
@@ -745,7 +764,10 @@ read_model_definitions <- function(file) {
   # First pass: validate all user-specified colors up front.
   for (model_id in names(info$models)) {
     color <- info$models[[model_id]]$model_color
-    if (!is.null(color) && !grepl(.valid_model_color_pattern, color, perl = TRUE)) {
+    if (
+      !is.null(color) &&
+      !grepl(.valid_model_color_pattern, color, perl = TRUE)
+    ) {
       stop(htmltools::htmlEscape(paste0(
         "Invalid model_color '", color, "' for model '", model_id, "'. ",
         "Use a CSS hex color (e.g. '#FF0000', '#440154FF') ",
