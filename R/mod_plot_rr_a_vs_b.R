@@ -53,6 +53,18 @@ plotRRAvsBServer <- function(
 
     curve_data_rv <- reactiveVal(NULL)
 
+    range_rr_log    <- rangeSelectorServer("x_range_rr_log",    "logarithmic")
+    range_rr_linear <- rangeSelectorServer("x_range_rr_linear", "linear")
+    range_ad_log    <- rangeSelectorServer("x_range_ad_log",    "logarithmic")
+    range_ad_linear <- rangeSelectorServer("x_range_ad_linear", "linear")
+
+    session$onSessionEnded(function() {
+      range_rr_log$destroy()
+      range_rr_linear$destroy()
+      range_ad_log$destroy()
+      range_ad_linear$destroy()
+    })
+
     shiny::observe(
       {
         # React whenever new model definitions are loaded
@@ -62,44 +74,6 @@ plotRRAvsBServer <- function(
       },
       priority = 10000
     )
-
-    # Change in min/max range for logarithmic x-range slider
-    shiny::observe({
-      new_min <- input$x_range_log_min
-      new_max <- input$x_range_log_max
-      if (is.null(new_min) || is.null(new_max) ||
-          is.na(new_min) || is.na(new_max) ||
-          new_min >= new_max) return()
-      current_val <- shiny::isolate(input$x_range_log)
-      new_val <- if (!is.null(current_val)) {
-        pmax(pmin(current_val, new_max), new_min)
-      } else {
-        c(new_min, new_max)
-      }
-      shiny::updateSliderInput(
-        session, "x_range_log",
-        min = new_min, max = new_max, value = new_val
-      )
-    })
-
-    # Change in min/max range for linear x-range slider
-    shiny::observe({
-      new_min <- input$x_range_linear_min
-      new_max <- input$x_range_linear_max
-      if (is.null(new_min) || is.null(new_max) ||
-          is.na(new_min) || is.na(new_max) ||
-          new_min >= new_max) return()
-      current_val <- shiny::isolate(input$x_range_linear)
-      new_val <- if (!is.null(current_val)) {
-        pmax(pmin(current_val, new_max), new_min)
-      } else {
-        c(new_min, new_max)
-      }
-      shiny::updateSliderInput(
-        session, "x_range_linear",
-        min = new_min, max = new_max, value = new_val
-      )
-    })
 
     # Make the plot
     output$plot <- plotly::renderPlotly({
@@ -166,12 +140,26 @@ plotRRAvsBServer <- function(
           }
         }
 
-        # The log-scale slider operates on the exponent (e.g. -3 to 3),
-        # so convert back to actual axis limits by raising 10 to those values.
-        x_limits <- if (input$logarithmic) {
-          if (!is.null(input$x_range_log)) 10^input$x_range_log else NULL
+        x_limits <- if (input$display_mode == "rr") {
+          if (input$logarithmic) {
+            # Log-scale slider stores exponents; convert back via 10^e.
+            log_range <- range_rr_log$range()
+            print(log_range)
+            if (!is.null(log_range)) 10^log_range else NULL
+          } else {
+            range_rr_linear$range()
+          }
         } else {
-          input$x_range_linear
+          if (input$logarithmic) {
+            # AD values can be negative, so the slider stores signed exponents.
+            # Conversion: sign(e) * 10^|e|, so -2 -> -100 pp, +2 -> +100 pp.
+            log_range <- range_ad_log$range()
+            if (!is.null(log_range)) {
+              ifelse(log_range == 0, 0, sign(log_range) * 10^abs(log_range))
+            } else NULL
+          } else {
+            range_ad_linear$range()
+          }
         }
         
         curve_data_rv(all_curve_data)
@@ -179,7 +167,11 @@ plotRRAvsBServer <- function(
         make_general_plot(
           all_curve_data,
           model_definitions(),
-          input$logarithmic,
+          scale = dplyr::case_when(
+            !input$logarithmic              ~ "linear",
+            input$display_mode == "ad"      ~ "pseudo_log",
+            TRUE                            ~ "log10"
+          ),
           flip_coords = TRUE,
           theme_args = list(axis.title.y = ggplot2::element_blank()),
           plot_type = "point",
@@ -528,58 +520,31 @@ plotRRAvsBUI <- function(
       ),
       shiny::div(
         style = "padding: 0 15px",
-        # This panel is for the x-axis range controls when in logarithmic mode
         shiny::conditionalPanel(
-          condition = "input.logarithmic",
+          condition = "input.logarithmic && input.display_mode === 'rr'",
           ns = shiny::NS(id),
-          shiny::tags$label(
-            class = "control-label", "X Axis Range (log10 scale):"
-          ),
-          shiny::div(
-            style = "display: flex; align-items: center; gap: 8px",
-            shiny::numericInput(
-              inputId = shiny::NS(id, "x_range_log_min"),
-              label = NULL, value = -5, step = 0.1, width = "80px"
-            ),
-            shiny::div(
-              style = "flex: 1",
-              shiny::sliderInput(
-                inputId = shiny::NS(id, "x_range_log"),
-                label = NULL,
-                min = -5, max = 5, value = c(-3, 3), step = 0.1,
-                width = "100%"
-              )
-            ),
-            shiny::numericInput(
-              inputId = shiny::NS(id, "x_range_log_max"),
-              label = NULL, value = 5, step = 0.1, width = "80px"
-            )
+          rangeSelectorUI(shiny::NS(id, "x_range_rr_log"), "logarithmic")
+        ),
+        shiny::conditionalPanel(
+          condition = "!input.logarithmic && input.display_mode === 'rr'",
+          ns = shiny::NS(id),
+          rangeSelectorUI(shiny::NS(id, "x_range_rr_linear"), "linear")
+        ),
+        shiny::conditionalPanel(
+          condition = "input.logarithmic && input.display_mode === 'ad'",
+          ns = shiny::NS(id),
+          rangeSelectorUI(
+            shiny::NS(id, "x_range_ad_log"), "logarithmic",
+            label = "X Axis Range (signed log10 scale):",
+            min = -2, max = 2, value = c(-2, 2)
           )
         ),
-        # This panel is for the x-axis range controls when in linear mode
         shiny::conditionalPanel(
-          condition = "!input.logarithmic",
+          condition = "!input.logarithmic && input.display_mode === 'ad'",
           ns = shiny::NS(id),
-          shiny::tags$label(class = "control-label", "X Axis Range:"),
-          shiny::div(
-            style = "display: flex; align-items: center; gap: 8px",
-            shiny::numericInput(
-              inputId = shiny::NS(id, "x_range_linear_min"),
-              label = NULL, value = 0, step = 1, width = "80px"
-            ),
-            shiny::div(
-              style = "flex: 1",
-              shiny::sliderInput(
-                inputId = shiny::NS(id, "x_range_linear"),
-                label = NULL,
-                min = 0, max = 500, value = c(0, 300), step = 1,
-                width = "100%"
-              ),
-            ),
-            shiny::numericInput(
-              inputId = shiny::NS(id, "x_range_linear_max"),
-              label = NULL, value = 500, step = 1, width = "80px"
-            )
+          rangeSelectorUI(
+            shiny::NS(id, "x_range_ad_linear"), "linear",
+            min = -100, max = 100, value = c(-100, 100)
           )
         )
       )
