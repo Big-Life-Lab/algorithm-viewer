@@ -20,6 +20,11 @@ run_app <- function(
   port = getOption("shiny.port"),
   host = getOption("shiny.host", "127.0.0.1")
 ) {
+  # Remove scientific notation from plots
+  options(scipen = 8)
+  # Maximum upload size in bytes
+  options(shiny.maxRequestSize = 30 * 1024^2)
+
   shiny::shinyApp(
     ui = app_ui,
     server = app_server,
