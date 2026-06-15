@@ -139,11 +139,11 @@ plot_render_safely <- function(fn) {
 #'   limits (e.g. \code{c(0.5, 2.0)}). Overrides any ylim values from the
 #'   curve data. If NULL, limits are taken from curve data or left unset.
 #'   Defaults to NULL.
-#' @param show_reference_line Logical. If TRUE (the default), adds a dashed
-#'   horizontal line at y = 1, which marks the null-effect reference for ratio
-#'   scales (OR, RR). Set to FALSE for absolute-scale plots such as Predicted
-#'   Risk, where y = 1 is the top of the axis and not a meaningful reference.
-#'   Defaults to TRUE.
+#' @param show_reference_line Double. If NULL then do not show a dashed
+#'   reference line. If a double then show a dashed horizontal line at
+#'   y = show_reference_line. An example usage would be to set
+#'   show_reference_line = 1 to show where a null-effect would be on the plot
+#'   for a relative risk or odds ratio plot. Defaults to 1.
 #'
 #' @return A plotly object for rendering in the UI.
 #'
@@ -158,7 +158,7 @@ make_general_plot <- function(
   plot_type = NULL,
   extra_plot = NULL,
   ylim_override = NULL,
-  show_reference_line = TRUE
+  show_reference_line = 1
 ) {
   if (is.null(model_definitions)) {
     # No algorithm file has been loaded
@@ -288,8 +288,8 @@ make_general_plot <- function(
       }
 
       # Add general options to the plot
-      ref_line <- if (show_reference_line) {
-        ggplot2::geom_hline(yintercept = 1, linetype = "dashed", color = "gray50")
+      ref_line <- if (!is.null(show_reference_line)) {
+        ggplot2::geom_hline(yintercept = show_reference_line, linetype = "dashed", color = "gray50")
       } else {
         NULL
       }
