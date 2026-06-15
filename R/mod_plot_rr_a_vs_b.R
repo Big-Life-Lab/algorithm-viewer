@@ -144,7 +144,6 @@ plotRRAvsBServer <- function(
           if (input$logarithmic) {
             # Log-scale slider stores exponents; convert back via 10^e.
             log_range <- range_rr_log$range()
-            print(log_range)
             if (!is.null(log_range)) 10^log_range else NULL
           } else {
             range_rr_linear$range()
