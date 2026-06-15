@@ -63,6 +63,11 @@ NULL
   paste0(variable, "__", group_key)
 }
 
+# Compose the local (un-namespaced) input ID for the edit box of one group.
+.csg_group_edit_id <- function(variable, group_key) {
+  paste0(variable, "__", group_key, "__edit")
+}
+
 # Derive the slider step from the allowable values, matching the logic used
 # in predictorControlsUI.
 .csg_step <- function(allowable_values) {
@@ -106,6 +111,9 @@ NULL
 #'   Defaults to \code{min(allowable_values)} for omitted groups.
 #' @param show_label Logical. If \code{TRUE} (default), display the variable
 #'   label (and units, if present) above the sliders.
+#' @param show_edit_box Logical. If \code{TRUE}, display a numeric input to the
+#'   right of each slider so the user can type an exact value.  Values outside
+#'   \[min, max\] are clamped when committed.  Defaults to \code{FALSE}.
 #'
 #' @return A \code{shiny::tagList} containing the label and sliders.
 #'
@@ -117,7 +125,8 @@ continuousSliderGroupUI <- function(
   variable,
   groups,
   initial_values = NULL,
-  show_label = TRUE
+  show_label = TRUE,
+  show_edit_box = TRUE
 ) {
   ns <- shiny::NS(id)
 
@@ -155,8 +164,25 @@ continuousSliderGroupUI <- function(
   # collapses to a single column so sliders take the full width.
   grid_items <- unlist(
     lapply(group_keys, function(g) {
+      init_val <- resolve_init(g)
       label_item <- if (has_labels) {
         list(shiny::tags$div(class = "csg-group-label", groups[[g]]))
+      } else {
+        list()
+      }
+      edit_item <- if (show_edit_box) {
+        list(shiny::tags$div(
+          class = "csg-edit-wrapper",
+          shiny::numericInput(
+            inputId = ns(.csg_group_edit_id(variable, g)),
+            label = NULL,
+            value = init_val,
+            min = min_val,
+            max = max_val,
+            step = step,
+            width = "80px"
+          )
+        ))
       } else {
         list()
       }
@@ -169,16 +195,24 @@ continuousSliderGroupUI <- function(
             label = NULL,
             min = min_val,
             max = max_val,
-            value = resolve_init(g),
+            value = init_val,
             step = step
           )
-        ))
+        )),
+        edit_item
       )
     }),
     recursive = FALSE
   )
 
-  grid_cols <- if (has_labels) "max-content 1fr" else "1fr"
+  grid_cols <- paste(
+    c(
+      if (has_labels) "max-content" else character(0),
+      "1fr",
+      if (show_edit_box) "max-content" else character(0)
+    ),
+    collapse = " "
+  )
   sliders_grid <- do.call(
     function(...) shiny::tags$div(
       class = "csg-sliders-grid",
@@ -188,7 +222,32 @@ continuousSliderGroupUI <- function(
     grid_items
   )
 
+  # When edit boxes are present, replace Shiny's debounced input-event listener
+  # with handlers that only commit the value on blur or Enter, preventing the
+  # server from clamping a partially-typed number mid-entry.
+  # shiny::singleton deduplicates the script across multiple widget instances.
+  edit_box_js <- if (show_edit_box) {
+    shiny::singleton(shiny::tags$head(shiny::tags$script(shiny::HTML(
+      "$(document).on('shiny:bound', function(evt) {
+        var $el = $(evt.target);
+        if (!$el.closest('.csg-edit-wrapper').length || !$el.is('input[type=number]')) return;
+        $el.off('.numberInputBinding .textInputBinding');
+        function commit() {
+          var v = parseFloat($el.val());
+          if (!isNaN(v)) Shiny.setInputValue($el.attr('id'), v, {priority: 'event'});
+        }
+        $el.on('change.csgEdit blur.csgEdit', commit);
+        $el.on('keydown.csgEdit', function(e) {
+          if (e.which === 13) { e.preventDefault(); commit(); }
+        });
+      });"
+    ))))
+  } else {
+    NULL
+  }
+
   shiny::tagList(
+    edit_box_js,
     shiny::tags$div(
       class = "csg-slider-group",
       var_label,
@@ -226,7 +285,8 @@ continuousSliderGroupServer <- function(
   model_data,
   variable,
   groups,
-  initial_values = NULL
+  initial_values = NULL,
+  show_edit_box = TRUE
 ) {
   shiny::moduleServer(id, function(input, output, session) {
     group_keys <- names(groups)
@@ -250,6 +310,13 @@ continuousSliderGroupServer <- function(
 
     rv_values <- shiny::reactiveVal(init_vals)
 
+    # Each programmatic updateSliderInput call causes one slider round-trip back
+    # to the server. pending_env counts in-flight programmatic updates per group
+    # so the slider observer can ignore those responses instead of overwriting
+    # rv_values with a stale value and re-triggering the edit observer.
+    pending_env <- new.env(parent = emptyenv())
+    for (g in group_keys) pending_env[[g]] <- 0L
+
     # One observer per group: slider value -> rv_values.
     observers <- list()
     for (g in group_keys) {
@@ -259,21 +326,68 @@ continuousSliderGroupServer <- function(
         # the last iteration of the for loop
         g <- g
         input_id <- .csg_group_input_id(variable, g)
-        observers[[length(observers) + 1]] <- shiny::observeEvent(
+        edit_id <- .csg_group_edit_id(variable, g)
+        # <<- so the observer lands in the module-level `observers` list;
+        # a plain <- inside local() would modify a local copy and destroy()
+        # would never see (or destroy) these observers.
+        observers[[length(observers) + 1]] <<- shiny::observeEvent(
           input[[input_id]],
           {
             val <- input[[input_id]]
-            if (!is.null(val)) {
-              cur <- rv_values()
-              if (!identical(cur[[g]], val)) {
-                # Cast to double to always remain consistent with the type
-                cur[[g]] <- as.double(val)
-                rv_values(cur)
-              }
+            if (is.null(val)) return()
+            # Absorb one pending programmatic round-trip and stop, so stale
+            # slider responses from updateSliderInput don't overwrite rv_values.
+            if (pending_env[[g]] > 0L) {
+              pending_env[[g]] <- pending_env[[g]] - 1L
+              return()
+            }
+            val_dbl <- as.double(val)
+            cur <- rv_values()
+            if (!identical(cur[[g]], val_dbl)) {
+              # Cast to double to always remain consistent with the type
+              cur[[g]] <- val_dbl
+              rv_values(cur)
+            }
+            if (show_edit_box) {
+              shiny::updateNumericInput(
+                session,
+                inputId = edit_id,
+                value = val_dbl
+              )
             }
           },
           ignoreInit = TRUE
         )
+        if (show_edit_box) {
+          observers[[length(observers) + 1]] <<- shiny::observeEvent(
+            input[[edit_id]],
+            {
+              val <- input[[edit_id]]
+              if (!is.null(val) && !is.na(val)) {
+                clamped <- max(min_val, min(max_val, as.double(val)))
+                cur <- rv_values()
+                if (!identical(cur[[g]], clamped)) {
+                  pending_env[[g]] <- pending_env[[g]] + 1L
+                  shiny::updateSliderInput(
+                    session,
+                    inputId = input_id,
+                    value = clamped
+                  )
+                  cur[[g]] <- clamped
+                  rv_values(cur)
+                }
+                if (clamped != as.double(val)) {
+                  shiny::updateNumericInput(
+                    session,
+                    inputId = edit_id,
+                    value = clamped
+                  )
+                }
+              }
+            },
+            ignoreInit = TRUE
+          )
+        }
       })
     }
 
@@ -286,11 +400,19 @@ continuousSliderGroupServer <- function(
         val <- new_values[[g]]
         if (!is.numeric(val)) next
         val <- max(min_val, min(max_val, val))
+        pending_env[[g]] <- pending_env[[g]] + 1L
         shiny::updateSliderInput(
           session,
           inputId = .csg_group_input_id(variable, g),
           value = val
         )
+        if (show_edit_box) {
+          shiny::updateNumericInput(
+            session,
+            inputId = .csg_group_edit_id(variable, g),
+            value = val
+          )
+        }
         cur[[g]] <- val
       }
       rv_values(cur)
