@@ -320,7 +320,8 @@ convert_df_variable_to_label <- function(df,
 #' @param field Character string specifying the field name to extract.
 #' @param escape_html Logical indicating whether to escape HTML codes.
 #'
-#' @return Vector of field values, with NULL for models missing the field.
+#' @return Vector of field values, with NA for models missing the field, so
+#'   the result always has one element per model.
 #'
 #' @noRd
 #' @keywords internal
@@ -334,7 +335,9 @@ get_all_models_field <- function(models, field, escape_html = FALSE) {
       }
       fields <- append(fields, val)
     } else {
-      fields <- append(fields, NULL)
+      # append(fields, NULL) would be a no-op, silently shrinking the result
+      # and misaligning it with `models`, so record missing fields as NA.
+      fields <- append(fields, NA)
     }
   }
   fields
@@ -357,6 +360,8 @@ get_model_colors <- function(models, names_field = "title") {
   if (is.null(model_colors)) {
     model_colors <- rep("#ffffff00", length(models))
   }
+  # Models missing a model_color are reported as NA; fall back to transparent.
+  model_colors[is.na(model_colors)] <- "#ffffff00"
   if (!is.null(names_field)) {
     names(model_colors) <- get_all_models_field(
       models,
