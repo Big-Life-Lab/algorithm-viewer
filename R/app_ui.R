@@ -7,6 +7,29 @@
 #' @keywords internal
 NULL
 
+#' Build a Stylesheet Link Tag with a Content-Hash Cache Buster
+#'
+#' Creates a \code{<link rel="stylesheet">} tag whose href carries a query
+#' string derived from the file's contents, so browsers re-fetch the
+#' stylesheet whenever it changes, without manual "?N" version bumps.
+#'
+#' @param href Character string. The stylesheet path relative to the
+#'   resource prefix registered in \code{app_ui} (e.g. "www/csg.css", which
+#'   maps to inst/extdata/www/csg.css).
+#'
+#' @return A \code{shiny.tag} link element.
+#'
+#' @noRd
+#' @keywords internal
+.stylesheet_link <- function(href) {
+  file <- system.file("extdata", href, package = utils::packageName())
+  if (nzchar(file)) {
+    hash <- substr(digest::digest(file = file), 1, 8)
+    href <- paste0(href, "?", hash)
+  }
+  shiny::tags$link(rel = "stylesheet", href = href)
+}
+
 app_ui <- function(request) {
   # Allow browser access to files in the www directory (eg. images, favicons)
   shiny::addResourcePath(
@@ -41,9 +64,9 @@ app_ui <- function(request) {
     ),
     shiny::tags$head(
       # Styles for categorical_radio_table.R
-      shiny::tags$link(rel = "stylesheet", href = "www/crt.css"),
+      .stylesheet_link("www/crt.css"),
       # Styles for continuous_slider_group.R
-      shiny::tags$link(rel = "stylesheet", href = "www/csg.css")
+      .stylesheet_link("www/csg.css")
     ),
     shiny::tags$style(shiny::HTML("
       /* Removes width of the controls in the sidebar so that they take up the
@@ -135,10 +158,7 @@ app_ui <- function(request) {
               shiny::hr(),
 
               # Algorithm Viewer version number
-              shiny::div(
-                style = "color: #999",
-                paste0("Algorithm Viewer v", packageVersion(packageName()))
-              ),
+              package_versions_ui(algorithm_viewer_only = TRUE),
 
               shiny::br()
             )
@@ -148,14 +168,14 @@ app_ui <- function(request) {
           shiny::tabPanel(
             "Reference",
             value = "reference_groups",
-            icon = icon("cog"),
+            icon = shiny::icon("cog"),
             predictorGroupedControlsUI("refgroup")
           ),
 
           shiny::tabPanel(
             "Me vs Ref",
             value = "a_vs_b",
-            icon = icon("cog"),
+            icon = shiny::icon("cog"),
             predictorGroupedControlsUI("a_vs_b_groups")
           )
         )
@@ -199,7 +219,11 @@ app_ui <- function(request) {
             icon = shiny::icon("circle-question"),
             style = "max-width: 800px",
             shiny::br(),
-            shiny::htmlOutput("help")
+            shiny::htmlOutput("help"),
+            shiny::hr(),
+
+            # Version numbers
+            package_versions_ui()
           )
         ),
         shiny::br()
