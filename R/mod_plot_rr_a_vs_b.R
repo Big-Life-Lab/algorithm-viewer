@@ -51,6 +51,8 @@ plotRRAvsBServer <- function(
     # already been calculated
     cached_curves <- initialize_cached_data()
 
+    curve_data_rv <- reactiveVal(NULL)
+
     shiny::observe(
       {
         # React whenever new model definitions are loaded
@@ -160,13 +162,6 @@ plotRRAvsBServer <- function(
               curve_data
             )
           }
-
-          extra_plot[[length(extra_plot) + 1]] <- ggplot2::geom_hline(
-            yintercept = curve_data$overall_rr,
-            linetype = "dotted",
-            linewidth = 0.3,
-            color = model_data$model_color
-          )
         }
 
         # The log-scale slider operates on the exponent (e.g. -3 to 3),
@@ -177,24 +172,7 @@ plotRRAvsBServer <- function(
           input$x_range_linear
         }
         
-        # Pad the labels to maintain a constant x axis label width.
-        # This prevents the location of the y = 0 line from moving to fit
-        # the labels, making it easier to see how the RR values change as
-        # the labels change.
-        # @TODO: This should be more exact. We add 10 to the amount of padding
-        # since it works well, we're using a non-monospace font, and we don't
-        # take into account the bolded text. Calculating the pixel width of
-        # the text with systemfonts::string_width, then setting the label
-        # section width with plotly::layout(margin = list(l = 500)) would be
-        # better.
-        if (length(all_curve_data) > 0) {
-          max_label_len <- max(
-            sapply(all_curve_data, function(x) x$max_x_axis_label_len)
-          )
-          max_label_len <- max_label_len + 10
-          extra_plot[[length(extra_plot) + 1]] <- 
-            ggplot2::scale_x_discrete(labels = function(x) stringr::str_pad(x, max_label_len, side = "left"))
-        }
+        curve_data_rv(all_curve_data)
 
         make_general_plot(
           all_curve_data,
@@ -207,6 +185,56 @@ plotRRAvsBServer <- function(
           ylim_override = x_limits
         )
       })
+    })
+    output$info <- shiny::renderUI({
+      html <- list()
+      for (curve_data in curve_data_rv()) {
+        model_id <- curve_data[["model_id"]]
+        model_title <- selected_models()[[model_id]][["title"]]
+        a_pr <- curve_data[["a_pr"]]
+        b_pr <- curve_data[["b_pr"]]
+        delta_pr <- a_pr - b_pr
+        overall_rr <- curve_data[["overall_rr"]]
+
+        format <- "%.1f"
+        html[[length(html) + 1]] <- shiny::div(
+            shiny::tags$table(
+              style = "width: 100%;",
+              shiny::tags$tr(
+                shiny::tags$td(
+                  style = "width: 15%; vertical-align: top",
+                  shiny::tags$b(
+                    paste0(model_title, ":")
+                  )
+                ),
+                shiny::tags$td(
+                  style = "width: 28.33%; vertical-align: top",
+                  paste0(
+                    "Your estimated risk: ",
+                    sprintf(format, a_pr * 100),
+                    "%"
+                  )
+                ),
+                shiny::tags$td(
+                  style = "width: 28.33%; vertical-align: top",
+                  paste0("Reference risk: ", sprintf(format, b_pr * 100), "%")
+                ),
+                shiny::tags$td(
+                  style = "width: 28.33%; vertical-align: top",
+                  paste0("Overall RR: ", sprintf(format, overall_rr), "×"),
+                  paste0(
+                    " (",
+                    ifelse(delta_pr < 0, "-", "+"),
+                    sprintf(format, delta_pr * 100), " pts)"
+                  )
+                )
+              )
+            )
+        )
+      }
+
+      html[[length(html) + 1]] <- shiny::hr()
+      html
     })
   })
 }
@@ -242,16 +270,31 @@ plotRRAvsBServer <- function(
   b_group
 ) {
   # Get the x-axis label given the specified main label (eg. the predictor name)
-  # and the specified sub label (eg. the predictor categorical value)
+  # and the specified sub labels (eg. the predictor categorical values)
   # If html is TRUE then an HTML string is returned, otherwise a plain-text
   # string is returned.
-  get_x_axis_label <- function(main_label, sub_label, html = TRUE) {
+  get_x_axis_label <- function(main_label, a_value, b_value, html = TRUE) {
     label <- main_label
     if (html) {
       label <- paste0("<b>", label, "</b>")
+      arrow <- "&#8594;"
+      # We use "\n" instead of <br /> for the new line. Both are treated
+      # as new lines when rendering, but Plotly doesn't calculate text widths
+      # properly if <br /> is used (in order to determine the width of
+      # the left part of the plot, where the labels are located). If <br />
+      # is used, then Plotly doesn't treat it as a new line, instead it
+      # treats the text as one single line when calculating the width, leading
+      # to a large blank area on the far left of the plot, left of the labels.
+      new_line <- "\n"
+    } else {
+      arrow <- "->"
+      new_line <- "\n"
     }
-    if (!is.null(sub_label) && stringr::str_length(sub_label) > 0) {
-      label <- paste0(label, ": ", sub_label)
+    if (
+      !is.null(b_value) && stringr::str_length(b_value) > 0 &&
+      !is.null(a_value) && stringr::str_length(a_value) > 0
+    ) {
+      label <- paste0(label, new_line, b_value, arrow, a_value)
     }
     label
   }
@@ -262,36 +305,14 @@ plotRRAvsBServer <- function(
   predictors <- list()
   a_values <- list()
   b_values <- list()
-  overall_label <- "Overall Relative Risk"
 
-  # The is the maximum length (in characters) of an x axis label
-  # (eg. "Diabetes: Yes"). This allows us to determine how wide these labels
-  # can possibly be, for any combination of predictor and predictor value.
-  # We can then make the plot have a label region that is a constant width,
-  # avoiding resizing of the plot to fit the labels. Have a constant width
-  # makes it easier to read the plot and to see how the points move as
-  # the predictor values change.
-  max_x_axis_label_len <- 0
-
-  # First row is the unmodified A group (the overall risk)
-  # We will then add additional rows for each categorical variable.
-  # For all levels of the categorical variable that is not in A, we
-  # will add a row using the A group values, but with the categorical
-  # variable set to the new level.
+  # First row is the unmodified A group
   rows[[length(rows) + 1]] <- a_group
-  row_names[[length(row_names) + 1]] <- get_x_axis_label(
-    overall_label,
-    NULL,
-    html = TRUE
-  )
-  max_x_axis_label_len <- max(
-    max_x_axis_label_len,
-    stringr::str_length(get_x_axis_label(overall_label, NULL, html = FALSE))
-  )
-  row_comparisons[[length(row_comparisons) + 1]] <- "A vs B"
-  predictors[[length(predictors) + 1]] <- ""
-  a_values[[length(a_values) + 1]] <- ""
-  b_values[[length(b_values) + 1]] <- ""
+  row_names[[length(row_names) + 1]] <- "A"
+
+  # Second row is the unmodified B group
+  rows[[length(rows) + 1]] <- b_group
+  row_names[[length(row_names) + 1]] <- "B"
 
   for (idx in seq_along(names(a_group))) {
     predictor <- names(a_group)[[idx]]
@@ -301,70 +322,40 @@ plotRRAvsBServer <- function(
       escape_html = TRUE
     )
 
+    # Create the denominator: a_group with predictor set b_group[[predictor]]
+    cur_ref_group <- a_group
+    cur_ref_group[[predictor]] <- b_group[[predictor]]
+    rows[[length(rows) + 1]] <- cur_ref_group
+
+    # Create the row name (description of the row)
     if (is_variable_categorical(model_data, predictor)) {
-      # Add a row for each allowable value of the predictor. The group will
-      # be a_group but with each allowable value of the current predictor
-      # set in the A group (eg. for marital status, we could have one row
-      # for "Married", one for "Single", and one for
-      # "Widowed/separated/divorced")
-      predictor_allowable_values <-
-        get_predictor_allowable_values(model_data, predictor)
-      for (cur_alt_value in predictor_allowable_values) {
-        cur_alt_label <- get_variable_label_from_value(
-          model_data,
-          predictor,
-          cur_alt_value,
-          escape_html = TRUE
-        )
-        # Update maximum possible length of the x axis labels (includes the
-        # categories that are not displayed)
-        max_x_axis_label_len <- max(
-          max_x_axis_label_len,
-          stringr::str_length(
-            get_x_axis_label(predictor_label, cur_alt_label, html = FALSE)
-          )
-        )
-
-        # Skip if cur_alt_value is the same as the B group value.
-        # This is because the predicted risk (or rr) will be identical
-        # to the overall risk.
-        if (cur_alt_value == a_group[[predictor]])
-          next
-
-        # Add the A row, with the predictor set to cur_alt_value
-        cur_group <- a_group
-        cur_group[[predictor]] <- cur_alt_value
-        rows[[length(rows) + 1]] <- cur_group
-
-        # Calculate the name (eg. "Marital status (Married)") of the new row and
-        # the comparison label (eg. "Marital status (Married vs Single)")
-        a_label <- get_variable_label_from_value(
-          model_data,
-          predictor,
-          a_group[[predictor]],
-          escape_html = TRUE
-        )
-        row_name <- get_x_axis_label(
-          predictor_label,
-          cur_alt_label,
-          html = TRUE
-        )
-        row_names[[length(row_names) + 1]] <- row_name
-        row_comparison <- as.character(glue::glue(
-          "{predictor_label} ({cur_alt_label} vs {a_label})"
-        ))
-        row_comparisons[[length(row_comparisons) + 1]] <- row_comparison
-        predictors[[length(predictors) + 1]] <- predictor
-        a_values[[length(a_values) + 1]] <- cur_alt_value
-        b_values[[length(b_values) + 1]] <-
-          b_group[[predictor]]
-      }
+      cur_b_label <- get_variable_label_from_value(
+        model_data,
+        predictor,
+        b_group[[predictor]],
+        escape_html = TRUE
+      )
+      cur_a_label <- get_variable_label_from_value(
+        model_data,
+        predictor,
+        a_group[[predictor]],
+        escape_html = TRUE
+      )
+      row_names[[length(row_names) + 1]] <- get_x_axis_label(
+        predictor_label,
+        cur_a_label,
+        cur_b_label
+      )
+    } else {
+      cur_b_value <- b_group[[predictor]]
+      cur_a_value <- a_group[[predictor]]
+      row_names[[length(row_names) + 1]] <- get_x_axis_label(
+        predictor_label,
+        cur_a_value,
+        cur_b_value
+      )
     }
   }
-
-  # The B group is the last row. All risks calculated from previous
-  # rows are compared to this one.
-  rows[[length(rows) + 1]] <- b_group
 
   df <- do.call(rbind.data.frame, rows)
 
@@ -374,25 +365,22 @@ plotRRAvsBServer <- function(
     x = df
   )
 
-  # Calculate the relative risk. The risks are relative to the
-  # risk in the last row (the reference group).
-  rr <- dat[seq_len(nrow(dat) - 1), ] / dat[nrow(dat), ]
-
+  # Calculate relative risk. We do not calculate RR for the first row,
+  # which is always 1
+  rr <- dat[1, ] / dat[2:nrow(dat), ]
   output_df <- data.frame(
-    x = rr,
-    RR = rr,
+    x = rr[2:length(rr)],
+    RR = rr[2:length(rr)],
     Model = cleanup_string(model_data$title),
-    Label = unlist(row_names[seq_len(nrow(dat) - 1)]),
-    Comparison = unlist(row_comparisons[seq_len(nrow(dat) - 1)]),
-    predictor = unlist(predictors[seq_len(nrow(dat) - 1)]),
-    a_value = unlist(a_values[seq_len(nrow(dat) - 1)]),
-    b_value = unlist(b_values[seq_len(nrow(dat) - 1)])
+    Label = unlist(row_names[3:nrow(dat)])
   )
 
   list(
     df = output_df,
     overall_rr = rr[[1]],
-    max_x_axis_label_len = max_x_axis_label_len,
+    a_pr = dat[1, ],
+    b_pr = dat[2, ],
+    model_id = model_data$model_id,
     x_axis_label = "Label",
     y_axis_label = "Relative Risk",
     title = "Relative Risk",
@@ -427,71 +415,74 @@ plotRRAvsBUI <- function(
   # x-range controls to this height, but this value is used to determine how
   # much extra space we have for the plot (once the height of the x-range
   # controls are taken into account)
-  x_range_controls_height <- 75
+  x_range_controls_height <- 205 #75
 
   shiny::tagList(
-    shiny::br(),
-    shiny::fluidRow(
-      style = "width: 100%",
+      shiny::div(
+      style = glue::glue(
+        "width: 100%; overflow-x: visible; overflow-y: scroll; ",
+        "height: calc(100vh - {external_height}px)"
+      ),
+      shiny::br(),
+      shiny::uiOutput(shiny::NS(id, "info")),
       plotly::plotlyOutput(
         shiny::NS(id, "plot"),
-        # +75 is to remove the height of the X axis range controls below
         height = glue::glue(
           "calc(100vh - {external_height + x_range_controls_height}px)"
         )
-      )
-    ),
-    shiny::div(
-      style = "padding: 0 15px",
-      # This panel is for the x-axis range controls when in logarithmic mode
-      shiny::conditionalPanel(
-        condition = "input.logarithmic",
-        shiny::tags$label(
-          class = "control-label", "X Axis Range (log10 scale):"
-        ),
-        shiny::div(
-          style = "display: flex; align-items: center; gap: 8px",
-          shiny::numericInput(
-            inputId = shiny::NS(id, "x_range_log_min"),
-            label = NULL, value = -5, step = 0.1, width = "80px"
-          ),
-          shiny::div(
-            style = "flex: 1",
-            shiny::sliderInput(
-              inputId = shiny::NS(id, "x_range_log"),
-              label = NULL,
-              min = -5, max = 5, value = c(-3, 3), step = 0.1,
-              width = "100%"
-            )
-          ),
-          shiny::numericInput(
-            inputId = shiny::NS(id, "x_range_log_max"),
-            label = NULL, value = 5, step = 0.1, width = "80px"
-          )
-        )
       ),
-      # This panel is for the x-axis range controls when in linear mode
-      shiny::conditionalPanel(
-        condition = "!input.logarithmic",
-        shiny::tags$label(class = "control-label", "X Axis Range:"),
-        shiny::div(
-          style = "display: flex; align-items: center; gap: 8px",
-          shiny::numericInput(
-            inputId = shiny::NS(id, "x_range_linear_min"),
-            label = NULL, value = 0, step = 1, width = "80px"
+      shiny::div(
+        style = "padding: 0 15px",
+        # This panel is for the x-axis range controls when in logarithmic mode
+        shiny::conditionalPanel(
+          condition = "input.logarithmic",
+          shiny::tags$label(
+            class = "control-label", "X Axis Range (log10 scale):"
           ),
           shiny::div(
-            style = "flex: 1",
-            shiny::sliderInput(
-              inputId = shiny::NS(id, "x_range_linear"),
-              label = NULL,
-              min = 0, max = 500, value = c(0, 300), step = 1,
-              width = "100%"
+            style = "display: flex; align-items: center; gap: 8px",
+            shiny::numericInput(
+              inputId = shiny::NS(id, "x_range_log_min"),
+              label = NULL, value = -5, step = 0.1, width = "80px"
+            ),
+            shiny::div(
+              style = "flex: 1",
+              shiny::sliderInput(
+                inputId = shiny::NS(id, "x_range_log"),
+                label = NULL,
+                min = -5, max = 5, value = c(-3, 3), step = 0.1,
+                width = "100%"
+              )
+            ),
+            shiny::numericInput(
+              inputId = shiny::NS(id, "x_range_log_max"),
+              label = NULL, value = 5, step = 0.1, width = "80px"
             )
-          ),
-          shiny::numericInput(
-            inputId = shiny::NS(id, "x_range_linear_max"),
-            label = NULL, value = 500, step = 1, width = "80px"
+          )
+        ),
+        # This panel is for the x-axis range controls when in linear mode
+        shiny::conditionalPanel(
+          condition = "!input.logarithmic",
+          shiny::tags$label(class = "control-label", "X Axis Range:"),
+          shiny::div(
+            style = "display: flex; align-items: center; gap: 8px",
+            shiny::numericInput(
+              inputId = shiny::NS(id, "x_range_linear_min"),
+              label = NULL, value = 0, step = 1, width = "80px"
+            ),
+            shiny::div(
+              style = "flex: 1",
+              shiny::sliderInput(
+                inputId = shiny::NS(id, "x_range_linear"),
+                label = NULL,
+                min = 0, max = 500, value = c(0, 300), step = 1,
+                width = "100%"
+              ),
+            ),
+            shiny::numericInput(
+              inputId = shiny::NS(id, "x_range_linear_max"),
+              label = NULL, value = 500, step = 1, width = "80px"
+            )
           )
         )
       )
