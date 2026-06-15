@@ -125,8 +125,13 @@ plot_render_safely <- function(fn) {
 #'   x_axis_label, y_axis_label, and x_axis_type fields.
 #' @param model_definitions The loaded model definitions object. If NULL, a
 #'   message plot prompting the user to upload data is returned.
-#' @param logarithmic If TRUE then plot with a logarithmic scale. Defaults
-#'   to TRUE.
+#' @param scale Character string controlling the y-axis scale.
+#'   \code{"log10"} applies a standard base-10 logarithmic transform (only
+#'   valid for strictly positive values). \code{"pseudo_log"} uses
+#'   \code{scales::transform_pseudo_log(sigma = 1, base = 10)}, a smooth
+#'   bijection through zero that handles negative values and approximates
+#'   \code{log10} for large magnitudes — suitable for absolute difference axes.
+#'   \code{"linear"} uses no transform. Defaults to \code{"log10"}.
 #' @param flip_coords If TRUE then flip the x and y axes. Defaults to FALSE.
 #' @param theme_args If not NULL then a named list of arguments to pass to
 #'   ggplot2::theme. Defaults to NULL.
@@ -152,7 +157,7 @@ plot_render_safely <- function(fn) {
 make_general_plot <- function(
   all_curve_data,
   model_definitions,
-  logarithmic = TRUE,
+  scale = c("log10", "pseudo_log", "linear"),
   flip_coords = FALSE,
   theme_args = NULL,
   plot_type = NULL,
@@ -186,17 +191,22 @@ make_general_plot <- function(
 
   tryCatch(
     {
-      # log10 vs identity transform
-      transform <- ifelse(logarithmic, "log10", "identity")
+      scale <- match.arg(scale)
 
-      # Add "(Logarithmic)" to y-axis label if required
-      ylabel <- ifelse(
-        logarithmic,
-        glue::glue("{curve_data$y_axis_label} (Logarithmic)"),
-        curve_data$y_axis_label
+      transform <- switch(scale,
+        log10      = "log10",
+        pseudo_log = scales::transform_pseudo_log(sigma = 1, base = 10),
+        linear     = "identity"
+      )
+
+      ylabel <- switch(scale,
+        log10      = glue::glue("{curve_data$y_axis_label} (Logarithmic)"),
+        pseudo_log = glue::glue("{curve_data$y_axis_label} (Signed Logarithmic)"),
+        linear     = curve_data$y_axis_label
       )
 
       # Set y limits from override or curve data
+      logarithmic <- scale != "linear"
       y_limits <- ylim_override
       if (is.null(y_limits)) {
         if (!is.null(curve_data[["ylim_logarithmic"]]) && logarithmic) {

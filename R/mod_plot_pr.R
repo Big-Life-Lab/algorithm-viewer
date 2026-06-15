@@ -121,7 +121,7 @@ plotPRServer <- function(
         make_general_plot(
           all_curve_data,
           model_definitions(),
-          logarithmic()
+          scale = if (logarithmic()) "log10" else "linear"
         )
       })
     })
