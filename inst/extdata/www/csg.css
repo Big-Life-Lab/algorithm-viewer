@@ -24,3 +24,13 @@ Styles for continuous_slider_group.R
   margin-top: 0;
   margin-bottom: 0;
 }
+
+.csg-edit-wrapper .shiny-input-container {
+  width: 60px !important;
+}
+
+.csg-edit-wrapper input[type="number"] {
+  font-size: 0.9em;
+  padding: 4px 5px;
+  height: auto;
+}
