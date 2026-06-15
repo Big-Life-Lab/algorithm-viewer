@@ -121,7 +121,8 @@ plotRRAvsBServer <- function(
             a_group = exposure_groups$a,
             b_group = exposure_groups$b
           )
-          cache_key <- list("rr_a_vs_b", model_data$model_id)
+          cache_key <-
+            list("rr_a_vs_b", model_data$model_id, input$display_mode)
           if (
             is_reusable_cached_data(
               cached_curves,
@@ -141,7 +142,8 @@ plotRRAvsBServer <- function(
             curve_data <- .calculate_rr_a_vs_b_curve(
               model_data = model_data,
               a_group = exposure_groups$a,
-              b_group = exposure_groups$b
+              b_group = exposure_groups$b,
+              input$display_mode
             )
 
             elapsed <- Sys.time() - tic
@@ -166,7 +168,7 @@ plotRRAvsBServer <- function(
 
         # The log-scale slider operates on the exponent (e.g. -3 to 3),
         # so convert back to actual axis limits by raising 10 to those values.
-        x_limits <- if (logarithmic()) {
+        x_limits <- if (input$logarithmic) {
           if (!is.null(input$x_range_log)) 10^input$x_range_log else NULL
         } else {
           input$x_range_linear
@@ -177,12 +179,16 @@ plotRRAvsBServer <- function(
         make_general_plot(
           all_curve_data,
           model_definitions(),
-          logarithmic(),
+          input$logarithmic,
           flip_coords = TRUE,
           theme_args = list(axis.title.y = ggplot2::element_blank()),
           plot_type = "point",
           extra_plot = extra_plot,
-          ylim_override = x_limits
+          ylim_override = x_limits,
+          show_reference_line = dplyr::case_when(
+            input$display_mode == "ad" ~ 0,
+            TRUE ~ 1
+          )
         )
       })
     })
@@ -202,13 +208,19 @@ plotRRAvsBServer <- function(
               style = "width: 100%;",
               shiny::tags$tr(
                 shiny::tags$td(
-                  style = "width: 15%; vertical-align: top",
+                  style = paste(
+                    "width: 15%; vertical-align: top;",
+                    "padding-right: 10px;"
+                  ),
                   shiny::tags$b(
                     paste0(model_title, ":")
                   )
                 ),
                 shiny::tags$td(
-                  style = "width: 28.33%; vertical-align: top",
+                  style = paste(
+                    "width: 28.33%; vertical-align: top;
+                    padding-right: 10px;"
+                  ),
                   paste0(
                     "Your estimated risk: ",
                     sprintf(format, a_pr * 100),
@@ -216,7 +228,10 @@ plotRRAvsBServer <- function(
                   )
                 ),
                 shiny::tags$td(
-                  style = "width: 28.33%; vertical-align: top",
+                  style = paste(
+                    "width: 28.33%; vertical-align: top;
+                    padding-right: 10px;"
+                  ),
                   paste0("Reference risk: ", sprintf(format, b_pr * 100), "%")
                 ),
                 shiny::tags$td(
@@ -234,7 +249,6 @@ plotRRAvsBServer <- function(
         )
       }
 
-      html[[length(html) + 1]] <- shiny::hr()
       html
     })
   })
@@ -268,7 +282,8 @@ plotRRAvsBServer <- function(
 .calculate_rr_a_vs_b_curve <- function(
   model_data,
   a_group,
-  b_group
+  b_group,
+  display_mode
 ) {
   # Get the x-axis label given the specified main label (eg. the predictor name)
   # and the specified sub labels (eg. the predictor categorical values)
@@ -368,27 +383,44 @@ plotRRAvsBServer <- function(
 
   # Calculate relative risk. We do not calculate RR for the first row,
   # which is always 1
-  rr <- dat[1, ] / dat[2:nrow(dat), ]
+  if (display_mode == "rr")
+    rr <- dat[1, ] / dat[2:nrow(dat), ]
+  else if (display_mode == "ad")
+    rr <- (dat[1, ] - dat[2:nrow(dat), ]) * 100
+  overall_rr <- dat[1, ] / dat[2, ]
   output_df <- data.frame(
     x = rr[2:length(rr)],
     RR = rr[2:length(rr)],
+    AD = rr[2:length(rr)],
     Model = cleanup_string(model_data$title),
     Label = unlist(row_names[3:nrow(dat)])
   )
 
   list(
     df = output_df,
-    overall_rr = rr[[1]],
+    overall_rr = overall_rr,
     a_pr = dat[1, ],
     b_pr = dat[2, ],
     model_id = model_data$model_id,
     x_axis_label = "Label",
-    y_axis_label = "Relative Risk",
-    title = "Relative Risk",
+    y_axis_label = dplyr::case_when(
+      display_mode == "rr" ~ "Relative Risk",
+      display_mode == "ad" ~ "Absolute Difference",
+      TRUE ~ "Unknown"
+    ),
+    title = dplyr::case_when(
+      display_mode == "rr" ~ "Relative Risk",
+      display_mode == "ad" ~ "Absolute Difference",
+      TRUE ~ "Unknown"
+    ),
     x_axis_type = "Categorical",
     aes_args = list(
       x = rlang::sym("Label"),
-      y = rlang::sym("RR")
+      y = rlang::sym(dplyr::case_when(
+        display_mode == "rr" ~ "RR",
+        display_mode == "ad" ~ "AD",
+        TRUE ~ "RR"
+      ))
     )
   )
 }
@@ -416,20 +448,82 @@ plotRRAvsBUI <- function(
   # x-range controls to this height, but this value is used to determine how
   # much extra space we have for the plot (once the height of the x-range
   # controls are taken into account)
-  x_range_controls_height <- 205 #75
+  plot_remove_extra_height <- 245
 
   shiny::tagList(
-      shiny::div(
+    shiny::div(
       style = glue::glue(
         "width: 100%; overflow-x: visible; overflow-y: scroll; ",
         "height: calc(100vh - {external_height}px)"
       ),
       shiny::br(),
       shiny::uiOutput(shiny::NS(id, "info")),
+      shiny::hr(),
+      shiny::div(
+        style = "margin-bottom: 5px;",
+        class = "a_vs_b-controls",
+        shiny::tags$style(shiny::HTML("
+          .a_vs_b-controls .a_vs_b-show-mode-container .selectize-control {
+            width: max-content !important;
+            min-width: 150px; /* Prevents it from shrinking too small */
+          }
+          .a_vs_b-controls .a_vs_b-show-mode-container .selectize-input {
+            width: max-content !important;
+            padding-right: 50px;
+          }
+          .a_vs_b-controls .a_vs_b-show-mode-container .form-group {
+            margin-bottom: 0;
+          }
+          .a_vs_b-controls .checkbox {
+            margin-top: 0;
+          }
+        ")),
+        shiny::tags$table(
+          style = "width: 100%",
+          shiny::tags$tr(
+            shiny::tags$td(
+              style = "width: 50%; padding: 0px 10px 0px 0;",
+              shiny::tags$table(
+                style = "width: 100%;",
+                shiny::tags$tr(
+                  shiny::tags$td(
+                    style = paste(
+                      "padding-right: 10px; width: 1px;",
+                      "white-space: nowrap;"
+                    ),
+                    "Show:"
+                  ),
+                  shiny::tags$td(
+                    class = "a_vs_b-show-mode-container",
+                    style = "max-width: 100%; padding-right: 0 10px;",
+                    shiny::selectInput(
+                      inputId = shiny::NS(id, "display_mode"),
+                      label = NULL,
+                      choices = c(
+                        "Relative Risk" = "rr",
+                        "Absolute Difference" = "ad"
+                      )
+                    )
+                  )
+                )
+              )
+            ),
+            shiny::tags$td(
+              style = "width: 50%",
+              shiny::checkboxInput(
+                shiny::NS(id, "logarithmic"),
+                "Logarithmic",
+                value = TRUE
+              )
+            )
+          )
+        )
+      ),
+
       plotly::plotlyOutput(
         shiny::NS(id, "plot"),
         height = glue::glue(
-          "calc(100vh - {external_height + x_range_controls_height}px)"
+          "calc(100vh - {external_height + plot_remove_extra_height}px)"
         )
       ),
       shiny::div(
@@ -437,6 +531,7 @@ plotRRAvsBUI <- function(
         # This panel is for the x-axis range controls when in logarithmic mode
         shiny::conditionalPanel(
           condition = "input.logarithmic",
+          ns = shiny::NS(id),
           shiny::tags$label(
             class = "control-label", "X Axis Range (log10 scale):"
           ),
@@ -464,6 +559,7 @@ plotRRAvsBUI <- function(
         # This panel is for the x-axis range controls when in linear mode
         shiny::conditionalPanel(
           condition = "!input.logarithmic",
+          ns = shiny::NS(id),
           shiny::tags$label(class = "control-label", "X Axis Range:"),
           shiny::div(
             style = "display: flex; align-items: center; gap: 8px",
