@@ -11,7 +11,7 @@ NULL
 # If a plot wants to fill up the height of the page, without causing overflow
 # at the bottom (and hence scrolling), then a plot's height should be
 # \code{calc(100vh - {.external_height}px)}
-.external_height <- 170
+.external_height <- 160
 
 #' Create Error Modal Dialog
 #'
@@ -94,6 +94,18 @@ app_server <- function(input, output, session) {
   # Used by the select_yaml_ok observer to validate the user's YAML selection
   # against the specific directory for that upload (not the shared tempdir()).
   upload_temp_dir <- NULL
+
+  # Delete the extracted contents of the most-recent archive upload (if any).
+  # Called when a new archive upload replaces it (the old algorithm is being
+  # discarded, so its files are no longer needed) and when the session ends,
+  # so extracted uploads don't accumulate on disk in a long-running server.
+  cleanup_upload_temp_dir <- function() {
+    if (!is.null(upload_temp_dir)) {
+      unlink(upload_temp_dir, recursive = TRUE)
+      upload_temp_dir <<- NULL
+    }
+  }
+  session$onSessionEnded(cleanup_upload_temp_dir)
 
   # Stores the reference group predictor values keyed by model ID.
   # These match the values that are shown in the reference groups UI.
@@ -330,17 +342,17 @@ app_server <- function(input, output, session) {
   })
 
   # Show/hide settings sub-tabs based on the active main tab
-  observeEvent(input$main_tabs, {
+  shiny::observeEvent(input$main_tabs, {
     hideable_tabs <- c("a_vs_b", "reference_groups")
     if (input$main_tabs %in% c("a_vs_b")) {
-      showTab(
+      shiny::showTab(
         "settings_tabs", "a_vs_b",
         select = input$settings_tabs %in% hideable_tabs
       )
-      hideTab("settings_tabs", "reference_groups")
+      shiny::hideTab("settings_tabs", "reference_groups")
     } else {
-      hideTab("settings_tabs", "a_vs_b")
-      showTab(
+      shiny::hideTab("settings_tabs", "a_vs_b")
+      shiny::showTab(
         "settings_tabs", "reference_groups",
         select = input$settings_tabs %in% hideable_tabs
       )
@@ -437,6 +449,9 @@ app_server <- function(input, output, session) {
       # An archive — extract into a per-upload directory so that concurrent
       # uploads from different sessions don't share or overwrite each other's
       # files, and so the YAML selection check below is scoped to this upload.
+      # The previous upload's directory (if any) is deleted first; the
+      # algorithm it backed is replaced below, so its files are obsolete.
+      cleanup_upload_temp_dir()
       temp_dir_path <- tempfile("upload_")
       dir.create(temp_dir_path, recursive = TRUE)
       upload_temp_dir <<- temp_dir_path
@@ -509,8 +524,21 @@ app_server <- function(input, output, session) {
           show_no = FALSE
         ))
       } else {
+        # Validate against the upload directory just like the multi-file
+        # branch above: archive entry names come from the archive itself, so
+        # don't trust them to be safe relative paths.
         config_file <- file.path(temp_dir_path, config_files[[1]])
-        load_model_definitions(config_file)
+        if (is_file_descendant_of(config_file, temp_dir_path)) {
+          load_model_definitions(config_file)
+        } else {
+          shiny::showModal(errorModal(
+            "Error Loading Data",
+            paste0(
+              "The YAML configuration file in your archive points outside ",
+              "of the allowed directory structure. No models were loaded."
+            )
+          ))
+        }
       }
     }
   }
