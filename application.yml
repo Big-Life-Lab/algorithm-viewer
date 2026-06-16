@@ -13,7 +13,7 @@ proxy:
   users:
     - name: biglifelab
       password: password
-      goups: scientist
+      groups: scientist
   docker:
     port-range-start: 20000
   specs:
