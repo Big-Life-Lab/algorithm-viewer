@@ -75,6 +75,36 @@ plotRRAvsBServer <- function(
       priority = 10000
     )
 
+    # Dynamically size the plot container based on the number of predictor rows.
+    # Uses CSS max() so the plot fills the viewport when rows are few, and
+    # expands (triggering the outer scrollable div) when rows are many.
+    output$plot_container <- shiny::renderUI({
+      curve_data <- curve_data_rv()
+
+      # Pixels per displayed row in the plot (ie per predictor)
+      px_per_row      <- 26
+      # Extra height in the plot, to take into account things like the
+      # title, axis labels, etc
+      base_overhead   <- 120
+      # Minimum height of the plot
+      min_fallback_px <- 300
+
+      # Calculate number of rows
+      n_rows <- if (!is.null(curve_data) && length(curve_data) > 0) {
+        max(sapply(curve_data, function(cd) nrow(cd$df)))
+      } else {
+        0L
+      }
+
+      # Create the height string
+      height_str <- paste0(
+        max(min_fallback_px, n_rows * px_per_row + base_overhead),
+        "px"
+      )
+
+      plotly::plotlyOutput(session$ns("plot"), height = height_str)
+    })
+
     # Make the plot
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
@@ -435,12 +465,6 @@ plotRRAvsBUI <- function(
   id,
   external_height
 ) {
-  # This is the height of the x-range controls in pixels. We do not set the
-  # x-range controls to this height, but this value is used to determine how
-  # much extra space we have for the plot (once the height of the x-range
-  # controls are taken into account)
-  plot_remove_extra_height <- 245
-
   shiny::tagList(
     shiny::div(
       style = glue::glue(
@@ -511,12 +535,7 @@ plotRRAvsBUI <- function(
         )
       ),
 
-      plotly::plotlyOutput(
-        shiny::NS(id, "plot"),
-        height = glue::glue(
-          "calc(100vh - {external_height + plot_remove_extra_height}px)"
-        )
-      ),
+      shiny::uiOutput(shiny::NS(id, "plot_container")),
       shiny::div(
         style = "padding: 0 15px",
         shiny::conditionalPanel(
