@@ -39,9 +39,6 @@ NULL
 #' @keywords internal
 plotRRAvsBServer <- function(
   id,
-  predictor,
-  interaction_predictor,
-  logarithmic,
   selected_models,
   exposure_groups,
   model_definitions

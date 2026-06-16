@@ -367,9 +367,6 @@ app_server <- function(input, output, session) {
   create_all_plot_servers <- function() {
     plotRRAvsBServer(
       "rr_a_vs_b_plot",
-      shiny::reactive(input$predictor),
-      shiny::reactive(input$interaction_predictor),
-      shiny::reactive(input$logarithmic),
       selected_models,
       a_vs_b_groups,
       model_definitions
