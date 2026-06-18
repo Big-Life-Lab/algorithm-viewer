@@ -77,12 +77,19 @@ plotRRAvsBServer <- function(
         model_definitions()
         # Clear the cached curve data, since they are no longer valid.
         clear_cached_data(cached_curves)
+        # Clear the curve data
+        curve_data_rv(NULL)
+        # Clear sub plot predictor
+        sub_plot_predictor(NULL)
       },
       priority = 10000
     )
 
     output$sub_plot_instructions <- shiny::renderUI({
-      div_style <- "width: 100%; height: 300px; display: table-cell; vertical-align: middle; text-align: center;"
+      div_style <- paste(
+        "width: 100%; height: 300px; display: table-cell;",
+        "vertical-align: middle; text-align: center;"
+      )
 
       if (is.null(sub_plot_predictor())) {
         html <- shiny::div(
@@ -93,6 +100,14 @@ plotRRAvsBServer <- function(
       }
 
       model_data <- selected_models()
+      if (is.null(model_data) || length(model_data) == 0) {
+        html <- shiny::div(
+          style = div_style,
+          "No model selected."
+        )
+        return(html)
+      }
+
       model_data <- model_data[[names(model_data)[[1]]]]
       predictor_label <- get_variable_label(
         model_data,
@@ -118,8 +133,15 @@ plotRRAvsBServer <- function(
     })
 
     output$sub_plot <- plotly::renderPlotly({
-      if (is.null(model_definitions()) || is.null(exposure_groups$a) || is.null(sub_plot_predictor())) {
-        return(make_message_plot("Click a row in the main plot above to see a predictor's relative risk plot."))
+      if (
+        is.null(model_definitions()) ||
+        is.null(exposure_groups$a) ||
+        is.null(sub_plot_predictor())
+      ) {
+        return(make_message_plot(paste(
+          "Click a row in the main plot above to see a",
+          "predictor's relative risk plot."
+        )))
       }
 
       plot_render_safely(function() {
@@ -248,17 +270,35 @@ plotRRAvsBServer <- function(
       plotly::plotlyOutput(session$ns("plot"), height = height_str)
     })
 
+    # Local copy of the main plot's click event, used to drive the sub plot.
+    #
+    # Why this exists: plotly::event_data() caches the last click and keeps
+    # replaying it on every reactive invalidation, even after the plot is
+    # redrawn. Reading it directly would re-fire a stale click (e.g. selecting
+    # a predictor again) whenever the plot updates. Copying it into our own
+    # reactiveVal lets us consume the click once and then reset it to NULL,
+    # so a given click is only ever acted on a single time.
+    click_data <- shiny::reactiveVal(NULL)
+
+    # Mirror plotly's click event into our reactiveVal as clicks come in.
     shiny::observe({
-      click_data <- plotly::event_data(
+      click_data(plotly::event_data(
         "plotly_click",
         source = main_plot_source
-      )
-      if (is.null(click_data)) {
+      ))
+    })
+
+    # Act on a click: find the predictor for the clicked point and update the
+    # sub plot, then clear click_data so this click isn't processed again.
+    shiny::observe({
+      data <- click_data()
+
+      if (is.null(data)) {
         return()
       }
 
-      for (i in seq_len(nrow(click_data))) {
-        row <- click_data[i, ]
+      for (i in seq_len(nrow(data))) {
+        row <- data[i, ]
         curve_number <- row$curveNumber + 1
         point_number <- row$pointNumber + 1
 
@@ -270,6 +310,10 @@ plotRRAvsBServer <- function(
           break()
         }
       }
+
+      # Reset so the same (now-consumed) click won't be replayed on the next
+      # reactive invalidation.
+      click_data(NULL)
     })
 
     # Make the plot
@@ -572,18 +616,16 @@ plotRRAvsBServer <- function(
     x = df
   )
 
-  # Calculate relative risk.
+  # Calculate relative risk and absolute difference.
   # dat[1, ] is group A
   # dat[2, ] is group B
-  if (display_mode == "rr")
-    rr <- dat[1, ] / dat[2:nrow(dat), ]
-  else if (display_mode == "ad")
-    rr <- (dat[1, ] - dat[2:nrow(dat), ]) * 100
+  rr <- dat[1, ] / dat[2:nrow(dat), ]
+  ad <- (dat[1, ] - dat[2:nrow(dat), ]) * 100
   overall_rr <- dat[1, ] / dat[2, ]
   output_df <- data.frame(
-    x = rr[2:length(rr)],
+    # x = rr[2:length(rr)],
     RR = rr[2:length(rr)],
-    AD = rr[2:length(rr)],
+    AD = ad[2:length(ad)],
     predictor = unlist(predictors[3:length(predictors)]),
     Model = cleanup_string(model_data$title),
     Label = unlist(row_names[3:nrow(dat)])
@@ -613,6 +655,11 @@ plotRRAvsBServer <- function(
         display_mode == "rr" ~ "RR",
         display_mode == "ad" ~ "AD",
         TRUE ~ "RR"
+      )),
+      other = rlang::sym(dplyr::case_when(
+        display_mode == "rr" ~ "AD",
+        display_mode == "ad" ~ "RR",
+        TRUE ~ "AD"
       ))
     )
   )
