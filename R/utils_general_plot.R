@@ -149,6 +149,10 @@ plot_render_safely <- function(fn) {
 #'   y = show_reference_line. An example usage would be to set
 #'   show_reference_line = 1 to show where a null-effect would be on the plot
 #'   for a relative risk or odds ratio plot. Defaults to 1.
+#' @param source A character string passed to \code{plotly::ggplotly} as the
+#'   \code{source} argument. This identifies the plot so that
+#'   \code{plotly::event_data} can be used to handle click events on the plot.
+#'   Defaults to "A".
 #'
 #' @return A plotly object for rendering in the UI.
 #'
@@ -163,7 +167,8 @@ make_general_plot <- function(
   plot_type = NULL,
   extra_plot = NULL,
   ylim_override = NULL,
-  show_reference_line = 1
+  show_reference_line = 1,
+  source = "A"
 ) {
   if (is.null(model_definitions)) {
     # No algorithm file has been loaded
@@ -291,12 +296,6 @@ make_general_plot <- function(
           )
       }
 
-      if (!is.null(extra_plot)) {
-        for (cur_p in extra_plot) {
-          p <- p + cur_p
-        }
-      }
-
       # Add general options to the plot
       ref_line <- if (!is.null(show_reference_line)) {
         ggplot2::geom_hline(yintercept = show_reference_line, linetype = "dashed", color = "gray50")
@@ -333,13 +332,20 @@ make_general_plot <- function(
         p <- p + ggplot2::coord_cartesian(ylim = y_limits)
       }
 
+      if (!is.null(extra_plot)) {
+        for (cur_p in extra_plot) {
+          p <- p + cur_p
+        }
+      }
+
       # Generate and return the Plotly plot from the ggplot2.
       # Suppress hline traces (labelled "yintercept" by ggplotly) from the
       # unified tooltip; "skip" excludes them entirely unlike "none".
-      plotly::ggplotly(p) |>
+      plotly::ggplotly(p, source = source) |>
         (\(plt) {
           hline_traces <- which(vapply(plt$x$data, function(tr) {
-            isTRUE(grepl("yintercept", tr$text, fixed = TRUE))
+            isTRUE(grepl("yintercept", tr$text, fixed = TRUE)) ||
+            isTRUE(grepl("hidden_", tr$text, fixed = TRUE))
           }, logical(1)))
           if (length(hline_traces) > 0) {
             plt <- plotly::style(plt, hoverinfo = "skip", traces = hline_traces)

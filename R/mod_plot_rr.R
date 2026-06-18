@@ -169,11 +169,13 @@ plotRRServer <- function(
   predictor,
   model_data,
   predictor_allowable_values = NULL,
-  reference_group = NULL
+  reference_group = NULL,
+  target_group = NULL
 ) {
   predictor_allowable_values <- predictor_allowable_values %||%
     model_data$predictor_allowable_values[[predictor]]
   reference_group <- reference_group %||% model_data$reference_group
+  target_group <- target_group %||% reference_group
 
   predictor_label <- get_variable_label_and_units(
     model_data, predictor,
@@ -183,32 +185,36 @@ plotRRServer <- function(
     model_data, predictor,
     escape_html = TRUE
   )
+  predictor_target_value <- target_group[[predictor]]
   predictor_reference_value <- reference_group[[predictor]]
-  output_rows <- length(predictor_allowable_values)
+  modified_rows <- length(predictor_allowable_values)
 
-  # Create the input matrix (duplicate reference_group for each
-  # value in predictor_allowable_values, set the predictor to the
-  # predictor_allowable_values, then add an extra unmodified reference group
-  # to the end)
-  df <- data.frame(reference_group)
-  df <- df[rep(1, output_rows + 1), ]
-  df[predictor] <- append(predictor_allowable_values, predictor_reference_value)
+  # Create the input matrix:
+  # - First row is target_group (to calculate overall_rr)
+  # - Next rows is target_group, with the predictor value set to each
+  #   of the values in predictor_allowable_values (ie one change per row).
+  # - Last row is reference_group
+  df <- data.frame(target_group)
+  df <- df[rep(1, modified_rows + 1), ]
+  df[nrow(df) + 1, ] <- reference_group
+  df[predictor] <- c(predictor_target_value, predictor_allowable_values, predictor_reference_value)
   rownames(df) <- seq_len(nrow(df))
 
   # Run the pipeline with the input matrix and calculate the relative risk
   # The relative risk is predicted_risk / ref_predicted_risk
-  # Note that the reference group is located at row output_rows + 1
+  # Note that the reference group is located at row modified_rows + 1
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
     x = df
   )
 
   predicted_col <- colnames(dat)[[1]]
-  rr <- dat[[predicted_col]] / dat[[predicted_col]][output_rows + 1]
+  rr <- dat[[predicted_col]] / dat[[predicted_col]][nrow(dat)]
+  overall_rr <- rr[[1]]
 
   labels <- convert_df_variable_to_label(
     df, model_data, predictor, predictor
-  )[[predictor]][1:output_rows]
+  )[[predictor]][2:(modified_rows + 1)]
 
   if (is_variable_categorical(model_data, predictor)) {
     ref_label <- get_variable_label_from_value(
@@ -221,8 +227,8 @@ plotRRServer <- function(
 
   # Create the DataFrame of relative risks
   output_df <- data.frame(
-    x = predictor_allowable_values[1:output_rows],
-    RR = rr[1:output_rows],
+    x = predictor_allowable_values,
+    RR = rr[2:(modified_rows + 1)],
     Model = cleanup_string(model_data$title),
     Comparison = glue::glue(
       "{predictor_label_no_units} ({labels} vs {ref_label})"
@@ -240,6 +246,7 @@ plotRRServer <- function(
     x_axis_label = predictor_label,
     y_axis_label = "Relative Risk",
     title = predictor_label,
+    overall_rr = overall_rr,
     x_axis_type = ifelse(
       is_variable_categorical(model_data, predictor),
       "Categorical",

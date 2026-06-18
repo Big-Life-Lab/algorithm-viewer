@@ -50,6 +50,15 @@ plotRRAvsBServer <- function(
 
     curve_data_rv <- reactiveVal(NULL)
 
+    # The source for the main plot, used as the source parameter to
+    # plotly::ggplotly() so that we can handle click events using
+    # plotly::event_data()
+    main_plot_source <- shiny::NS(id, "main_plot")
+
+    # The predictor to use for the sub plot. This is equal to the predictor of
+    # the last clicked row
+    sub_plot_predictor <- reactiveVal(NULL)
+
     range_rr_log    <- rangeSelectorServer("x_range_rr_log",    "logarithmic")
     range_rr_linear <- rangeSelectorServer("x_range_rr_linear", "linear")
     range_ad_log    <- rangeSelectorServer("x_range_ad_log",    "logarithmic")
@@ -71,6 +80,143 @@ plotRRAvsBServer <- function(
       },
       priority = 10000
     )
+
+    output$sub_plot_instructions <- shiny::renderUI({
+      div_style <- "width: 100%; height: 300px; display: table-cell; vertical-align: middle; text-align: center;"
+
+      if (is.null(sub_plot_predictor())) {
+        html <- shiny::div(
+          style = div_style,
+          "No predictor selected."
+        )
+        return(html)
+      }
+
+      model_data <- selected_models()
+      model_data <- model_data[[names(model_data)[[1]]]]
+      predictor_label <- get_variable_label(
+        model_data,
+        sub_plot_predictor(),
+        escape_html = TRUE
+      )
+      
+      shiny::div(
+        style = div_style,
+        paste0(
+          "This subplot shows the relative risk of you vs the ",
+          "reference group, as you take on all values of the predictor '",
+          predictor_label,
+          "'."
+        ),
+        shiny::br(),
+        shiny::br(),
+        paste0(
+          "Click another row in the main plot to change the predictor ",
+          "displayed in the subplot."  
+        )
+      )
+    })
+
+    output$sub_plot <- plotly::renderPlotly({
+      if (is.null(model_definitions()) || is.null(exposure_groups$a) || is.null(sub_plot_predictor())) {
+        return(make_message_plot("Click a row in the main plot above to see a predictor's relative risk plot."))
+      }
+
+      plot_render_safely(function() {
+        all_curve_data <- list()
+        extra_plot <- list()
+
+        # Go through all selected_models and calculate the RR curves
+        # We concatenate them (with bind_rows) to show one curve per model
+        for (model_data in selected_models()) {
+          group_a <- exposure_groups$a
+          group_b <-  exposure_groups$b
+
+          # Check if we can use the cached old data for the current model
+          model_params <- list(
+            predictor = sub_plot_predictor(),
+            interaction_predictor = NULL,
+            group_a = group_a,
+            group_b = group_b
+          )
+          cache_key <- list(
+            "sub_plot",
+            model_data$model_id,
+            sub_plot_predictor()
+          )
+          if (
+            is_reusable_cached_data(
+              cached_curves,
+              cache_key,
+              model_params
+            )
+          ) {
+            # Reuse the old data
+            curve_data <- get_cached_data(cached_curves, cache_key)
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+          } else {
+            tic <- Sys.time()
+
+            # Calculate the RR curve for the model
+            curve_data <- .calculate_rr_curve(
+              sub_plot_predictor(),
+              model_data,
+              target_group = group_a,
+              reference_group = group_b
+            )
+
+            elapsed <- Sys.time() - tic
+            message(paste0(
+              "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed
+            ))
+
+            all_curve_data[[length(all_curve_data) + 1]] <- curve_data
+
+            # Save the data to our cache
+            set_cached_data(
+              cached_curves,
+              cache_key,
+              model_params,
+              curve_data
+            )
+          }
+
+          # Add a dot at the user's value for the main predictor
+          if (is_variable_categorical(model_data, sub_plot_predictor())) {
+            user_label <- get_variable_label_from_value(
+              model_data,
+              sub_plot_predictor(),
+              group_a[[sub_plot_predictor()]]
+            )
+          } else {
+            user_label <- group_a[[sub_plot_predictor()]]
+          }
+          
+          df_overlay <- data.frame(
+            hidden_x = user_label,
+            hidden_y = curve_data$overall_rr
+          )
+          extra_plot[[length(extra_plot) + 1]] <- ggplot2::geom_point(
+            data = df_overlay,
+            ggplot2::aes(x = hidden_x, y = hidden_y),
+            color = model_data$model_color,
+            size = 3,
+            shape = 19,
+            inherit.aes = FALSE
+          )
+        }
+
+        make_general_plot(
+          all_curve_data,
+          model_definitions(),
+          extra_plot = extra_plot,
+          scale = dplyr::case_when(
+            input$logarithmic   ~ "log10",
+            TRUE                ~ "linear"
+          ),
+        )
+      })
+    })
 
     # Dynamically size the plot container based on the number of predictor rows.
     # Uses CSS max() so the plot fills the viewport when rows are few, and
@@ -102,6 +248,30 @@ plotRRAvsBServer <- function(
       plotly::plotlyOutput(session$ns("plot"), height = height_str)
     })
 
+    shiny::observe({
+      click_data <- plotly::event_data(
+        "plotly_click",
+        source = main_plot_source
+      )
+      if (is.null(click_data)) {
+        return()
+      }
+
+      for (i in seq_len(nrow(click_data))) {
+        row <- click_data[i, ]
+        curve_number <- row$curveNumber + 1
+        point_number <- row$pointNumber + 1
+
+        curve_data <- curve_data_rv()[[curve_number]]
+        point_data <- curve_data$df[point_number, ]
+        predictor <- point_data$predictor
+        if (!is.null(predictor)) {
+          sub_plot_predictor(predictor)
+          break()
+        }
+      }
+    })
+
     # Make the plot
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
@@ -112,7 +282,6 @@ plotRRAvsBServer <- function(
       }
 
       plot_render_safely(function() {
-        extra_plot <- list()
         all_curve_data <- list()
 
         # Go through all models and calculate the A vs B curves
@@ -201,15 +370,16 @@ plotRRAvsBServer <- function(
           flip_coords = TRUE,
           theme_args = list(axis.title.y = ggplot2::element_blank()),
           plot_type = "point",
-          extra_plot = extra_plot,
           ylim_override = x_limits,
           show_reference_line = dplyr::case_when(
             input$display_mode == "ad" ~ 0,
             TRUE ~ 1
-          )
+          ),
+          source = main_plot_source
         )
       })
     })
+
     output$info <- shiny::renderUI({
       html <- list()
       for (curve_data in curve_data_rv()) {
@@ -343,10 +513,12 @@ plotRRAvsBServer <- function(
   # First row is the unmodified A group
   rows[[length(rows) + 1]] <- a_group
   row_names[[length(row_names) + 1]] <- "A"
+  predictors[[length(predictors) + 1]] <- ""
 
   # Second row is the unmodified B group
   rows[[length(rows) + 1]] <- b_group
   row_names[[length(row_names) + 1]] <- "B"
+  predictors[[length(predictors) + 1]] <- ""
 
   for (idx in seq_along(names(a_group))) {
     predictor <- names(a_group)[[idx]]
@@ -360,6 +532,7 @@ plotRRAvsBServer <- function(
     cur_ref_group <- a_group
     cur_ref_group[[predictor]] <- b_group[[predictor]]
     rows[[length(rows) + 1]] <- cur_ref_group
+    predictors[[length(predictors) + 1]] <- predictor
 
     # Create the row name (description of the row)
     if (is_variable_categorical(model_data, predictor)) {
@@ -399,8 +572,9 @@ plotRRAvsBServer <- function(
     x = df
   )
 
-  # Calculate relative risk. We do not calculate RR for the first row,
-  # which is always 1
+  # Calculate relative risk.
+  # dat[1, ] is group A
+  # dat[2, ] is group B
   if (display_mode == "rr")
     rr <- dat[1, ] / dat[2:nrow(dat), ]
   else if (display_mode == "ad")
@@ -410,6 +584,7 @@ plotRRAvsBServer <- function(
     x = rr[2:length(rr)],
     RR = rr[2:length(rr)],
     AD = rr[2:length(rr)],
+    predictor = unlist(predictors[3:length(predictors)]),
     Model = cleanup_string(model_data$title),
     Label = unlist(row_names[3:nrow(dat)])
   )
@@ -470,24 +645,29 @@ plotRRAvsBUI <- function(
       ),
       shiny::br(),
       shiny::uiOutput(shiny::NS(id, "info")),
-      shiny::hr(),
+      shiny::hr(style = "margin-bottom: 17px;"),
       shiny::div(
         style = "margin-bottom: 5px;",
         class = "a_vs_b-controls",
         shiny::tags$style(shiny::HTML("
+          /* Width of the 'Show' dropdown box (the actual dropdown window) */
           .a_vs_b-controls .a_vs_b-show-mode-container .selectize-control {
             width: max-content !important;
             min-width: 150px; /* Prevents it from shrinking too small */
           }
+          /* Width of the 'Show' dropdown edit box */
           .a_vs_b-controls .a_vs_b-show-mode-container .selectize-input {
             width: max-content !important;
-            padding-right: 50px;
+            padding-right: 50px; /* Add padding so the dropdown arrow doesn't
+                                    overlap the text */
           }
+          /* Remove bottom margin from controls (eg. the 'Show' dropdown edit
+             box) to make sure vertical alignment is good for the text */
           .a_vs_b-controls .a_vs_b-show-mode-container .form-group {
             margin-bottom: 0;
           }
           .a_vs_b-controls .checkbox {
-            margin-top: 0;
+            margin-top: 15px;
           }
         ")),
         shiny::tags$table(
@@ -560,6 +740,22 @@ plotRRAvsBUI <- function(
           rangeSelectorUI(
             shiny::NS(id, "x_range_ad_linear"), "linear",
             min = -100, max = 100, value = c(-100, 100)
+          )
+        )
+      ),
+
+      shiny::fluidPage(
+        shiny::fluidRow(
+          shiny::column(
+            width = 9,
+            plotly::plotlyOutput(
+              shiny::NS(id, "sub_plot"),
+              height = 300
+            )
+          ),
+          shiny::column(
+            width = 3,
+            shiny::uiOutput(shiny::NS(id, "sub_plot_instructions"))
           )
         )
       )
