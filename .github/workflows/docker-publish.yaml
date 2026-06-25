@@ -12,7 +12,7 @@
 # repo's Packages settings. If private, the instance must `docker login ghcr.io`
 # with a token that has read:packages.
 
-name: Build and publish Docker image
+name: Docker Image
 
 on:
   workflow_dispatch:
