@@ -48,7 +48,7 @@ plotRRAvsBServer <- function(
     # already been calculated
     cached_curves <- initialize_cached_data()
 
-    curve_data_rv <- reactiveVal(NULL)
+    curve_data_rv <- shiny::reactiveVal(NULL)
 
     # The source for the main plot, used as the source parameter to
     # plotly::ggplotly() so that we can handle click events using
@@ -57,7 +57,7 @@ plotRRAvsBServer <- function(
 
     # The predictor to use for the sub plot. This is equal to the predictor of
     # the last clicked row
-    sub_plot_predictor <- reactiveVal(NULL)
+    sub_plot_predictor <- shiny::reactiveVal(NULL)
 
     range_rr_log    <- rangeSelectorServer("x_range_rr_log",    "logarithmic")
     range_rr_linear <- rangeSelectorServer("x_range_rr_linear", "linear")
@@ -472,7 +472,7 @@ plotRRAvsBServer <- function(
                   shiny::HTML(paste0(sprintf(format, overall_rr), "&#215;")),
                   paste0(
                     " (",
-                    ifelse(delta_pr < 0, "-", "+"),
+                    ifelse(delta_pr < 0, "", "+"),
                     sprintf(format, delta_pr * 100), " pts)"
                   )
                 )
