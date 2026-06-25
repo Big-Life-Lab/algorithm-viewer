@@ -46,7 +46,7 @@ package_versions_ui <- function(
   # $title (descriptive title to show for the package) and $package
   # (R package to get the version of eg. "model.parameters.pipeline")
   make_packages_html <- function(packages) {
-    v <- tagList()
+    v <- shiny::tagList()
     for (info in packages) {
       if (length(v) > 0) v[[length(v) + 1]] <- shiny::br()
       v[[length(v) + 1]] <- paste0(

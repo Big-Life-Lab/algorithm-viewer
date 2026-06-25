@@ -505,6 +505,11 @@ plotRRAvsBServer <- function(
 #' @param b_group A named list of predictor values representing the
 #'   B (reference) group profile. This group's predicted risk is used
 #'   as the denominator for all relative risk calculations.
+#' @param display_mode A string selecting which measure is the primary
+#'   plotted value: \code{"rr"} for relative risk or \code{"ad"} for absolute
+#'   difference. Both measures are always computed; this only controls which is
+#'   used as the primary value (with the other exposed alongside it) and the
+#'   axis and title labels.
 #'
 #' @return A named list of curve data that can be passed to
 #'   \code{\link{make_general_plot}}.
