@@ -1,0 +1,78 @@
+# Builds the application Docker image and pushes it to the GitHub Container
+# Registry (GHCR). The EC2 instance then just `docker pull`s the result
+# (see ec2-setup-nano.sh), avoiding a memory-heavy build on the t3.nano.
+#
+# The published image is:
+#   ghcr.io/<owner>/algorithm-viewer:latest
+#   ghcr.io/<owner>/algorithm-viewer:<branch-or-tag>
+#   ghcr.io/<owner>/algorithm-viewer:sha-<short-sha>
+#
+# No extra secrets are required: GITHUB_TOKEN is granted packages:write below.
+# After the first publish, set the package visibility (public/private) in the
+# repo's Packages settings. If private, the instance must `docker login ghcr.io`
+# with a token that has read:packages.
+
+name: Build and publish Docker image
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [proto2]
+    tags: ["v*"]
+    # Only rebuild when something that affects the image changes.
+    paths:
+      - "R/**"
+      - "inst/**"
+      - "DESCRIPTION"
+      - "NAMESPACE"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "app.R"
+      - ".github/workflows/docker-publish.yaml"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Lowercases the image name (GHCR requires lowercase) and derives tags.
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=ref,event=branch
+            type=ref,event=tag
+            type=sha,prefix=sha-
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
