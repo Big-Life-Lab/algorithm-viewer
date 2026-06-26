@@ -80,7 +80,7 @@ plot_additional_controls_dropdown <- function(id, label, choices, num_columns) {
           paste0(label, ":")
         ),
         shiny::tags$td(
-          style = "max-width: 100%; padding: 0 10px;",
+          style = "max-width: 100%;",
           shiny::selectInput(
             inputId = id,
             label = NULL,

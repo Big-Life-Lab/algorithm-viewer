@@ -34,11 +34,11 @@ make sure vertical alignment is good for the text */
 }
 
 /* Add padding between top-level td (ie. columns in the additional controls) */
-.plot-additional-controls > table > tr > td {
+.plot-additional-controls > table > tbody > tr > td {
   padding: 0px 10px 0px 0px;
 }
 
 /* Remove padding from last top-level td (ie. last column in the additional controls) */
-.plot-additional-controls > table > tr > td:last {
+.plot-additional-controls > table > tbody > tr > td:last {
   padding: 0px 0px 0px 0;
 }
