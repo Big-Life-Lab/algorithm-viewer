@@ -228,73 +228,6 @@ app_server <- function(input, output, session) {
     )
   })
 
-  # Populate UI for "interaction_predictor" dropdown
-  shiny::observe({
-    if (!has_model_definitions()) {
-      shiny::updateSelectInput(
-        session,
-        "interaction_predictor",
-        choices = character(0),
-        selected = character(0)
-      )
-      return()
-    }
-
-    # Create list of all possible choices (from all models)
-    predictor_choices <-
-      gather_predictor_choices(model_definitions()$models)
-
-    # If at least one predictor is available, then add the empty predictor and
-    # select it
-    if (length(predictor_choices) > 0) {
-      new_list <- list()
-      new_list[[config_get_empty_selection()]] <- config_get_empty_selection()
-      predictor_choices <- c(new_list, predictor_choices)
-      selected <- config_get_empty_selection()
-    } else {
-      # No predictors, so select nothing
-      selected <- character(0)
-    }
-
-    shiny::updateSelectInput(
-      session,
-      "interaction_predictor",
-      choices = predictor_choices,
-      selected = selected
-    )
-  })
-
-  # Populate UI for the "predictor" dropdown
-  shiny::observe({
-    if (!has_model_definitions()) {
-      shiny::updateSelectInput(
-        session,
-        "predictor",
-        choices = character(0),
-        selected = character(0)
-      )
-      return()
-    }
-
-    # Create list of all possible choices (from all models)
-    predictor_choices <-
-      gather_predictor_choices(model_definitions()$models)
-
-    # If at least one predictor is available then select the first one
-    if (length(predictor_choices) > 0) {
-      selected <- predictor_choices[[names(predictor_choices)[[1]]]]
-    } else {
-      selected <- character(0)
-    }
-
-    shiny::updateSelectInput(
-      session,
-      "predictor",
-      choices = predictor_choices,
-      selected = selected
-    )
-  })
-
   # Populate the UI for the preloaded "algorithms" dropdown
   shiny::observe({
     if (config_has_algorithms()) {
@@ -373,27 +306,18 @@ app_server <- function(input, output, session) {
     )
     plotRRServer(
       "rr_plot",
-      shiny::reactive(input$predictor),
-      shiny::reactive(input$interaction_predictor),
-      shiny::reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
       model_definitions
     )
     plotORServer(
       "or_plot",
-      shiny::reactive(input$predictor),
-      shiny::reactive(input$interaction_predictor),
-      shiny::reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
       model_definitions
     )
     plotPRServer(
       "pr_plot",
-      shiny::reactive(input$predictor),
-      shiny::reactive(input$interaction_predictor),
-      shiny::reactive(input$logarithmic),
       selected_models,
       selected_reference_groups,
       model_definitions

@@ -698,69 +698,21 @@ plotRRAvsBUI <- function(
       shiny::br(),
       shiny::uiOutput(shiny::NS(id, "info")),
       shiny::hr(style = "margin-bottom: 17px;"),
-      shiny::div(
-        style = "margin-bottom: 5px;",
-        class = "a_vs_b-controls",
-        shiny::tags$style(shiny::HTML("
-          /* Width of the 'Show' dropdown box (the actual dropdown window) */
-          .a_vs_b-controls .a_vs_b-show-mode-container .selectize-control {
-            width: max-content !important;
-            min-width: 150px; /* Prevents it from shrinking too small */
-          }
-          /* Width of the 'Show' dropdown edit box */
-          .a_vs_b-controls .a_vs_b-show-mode-container .selectize-input {
-            width: max-content !important;
-            padding-right: 50px; /* Add padding so the dropdown arrow doesn't
-                                    overlap the text */
-          }
-          /* Remove bottom margin from controls (eg. the 'Show' dropdown edit
-             box) to make sure vertical alignment is good for the text */
-          .a_vs_b-controls .a_vs_b-show-mode-container .form-group {
-            margin-bottom: 0;
-          }
-          .a_vs_b-controls .checkbox {
-            margin-top: 15px;
-          }
-        ")),
-        shiny::tags$table(
-          style = "width: 100%",
-          shiny::tags$tr(
-            shiny::tags$td(
-              style = "width: 50%; padding: 0px 10px 0px 0;",
-              shiny::tags$table(
-                style = "width: 100%;",
-                shiny::tags$tr(
-                  shiny::tags$td(
-                    style = paste(
-                      "padding-right: 10px; width: 1px;",
-                      "white-space: nowrap;"
-                    ),
-                    "Show:"
-                  ),
-                  shiny::tags$td(
-                    class = "a_vs_b-show-mode-container",
-                    style = "max-width: 100%; padding-right: 0 10px;",
-                    shiny::selectInput(
-                      inputId = shiny::NS(id, "display_mode"),
-                      label = NULL,
-                      choices = c(
-                        "Relative Risk" = "rr",
-                        "Absolute Difference" = "ad"
-                      )
-                    )
-                  )
-                )
-              )
+      plot_additional_controls_container(
+        plot_additional_controls_dropdown(
+          id = shiny::NS(id, "display_mode"),
+          label = "Show",
+          choices = c(
+              "Relative Risk" = "rr",
+              "Absolute Difference" = "ad"
             ),
-            shiny::tags$td(
-              style = "width: 50%",
-              shiny::checkboxInput(
-                shiny::NS(id, "logarithmic"),
-                "Logarithmic",
-                value = TRUE
-              )
-            )
-          )
+          num_columns = 2
+        ),
+        plot_additional_controls_checkbox(
+          id = shiny::NS(id, "logarithmic"),
+          label = "Logarithmic",
+          value = TRUE,
+          num_columns = 2
         )
       ),
 

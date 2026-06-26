@@ -14,13 +14,6 @@ NULL
 #'
 #' @param id Character string. The Shiny module namespace ID (must match the
 #'   ID used in \code{\link{plotPRUI}}).
-#' @param predictor A reactive expression returning the currently selected
-#'   predictor variable name (character string).
-#' @param interaction_predictor A reactive expression returning the currently
-#'   selected interaction predictor variable name. Accepted for interface
-#'   consistency with the other plot servers but not used in PR calculations.
-#' @param logarithmic A reactive expression returning a logical indicating
-#'   whether to use a logarithmic y-axis scale.
 #' @param selected_models A reactive expression returning the list of model
 #'   data objects to plot curves for. This is a subset of
 #'   \code{model_definitions()$models}.
@@ -36,9 +29,6 @@ NULL
 #' @keywords internal
 plotPRServer <- function(
   id,
-  predictor,
-  interaction_predictor,
-  logarithmic,
   selected_models,
   selected_reference_groups,
   model_definitions
@@ -54,9 +44,21 @@ plotPRServer <- function(
         model_definitions()
         # Clear the cached curve data, since they are no longer valid.
         clear_cached_data(cached_curves)
+        # Populate controls
+        populate_controls()
       },
       priority = 10000
     )
+
+    populate_controls <- function() {
+      # Populate UI for "predictor" dropdown
+      populate_dropdown_predictors(
+        session,
+        id = "predictor",
+        models = model_definitions()$models,
+        empty = is.null(model_definitions())
+      )
+    }
 
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
@@ -77,10 +79,10 @@ plotPRServer <- function(
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
-            predictor = predictor(),
+            predictor = input$predictor,
             reference_group = predictor_values
           )
-          cache_key <- list("pr", model_data$model_id, predictor())
+          cache_key <- list("pr", model_data$model_id, input$predictor)
           if (
             is_reusable_cached_data(
               cached_curves,
@@ -96,7 +98,7 @@ plotPRServer <- function(
 
             # Calculate the PR curve for the model
             curve_data <- .calculate_pr_curve(
-              predictor(),
+              input$predictor,
               model_data,
               reference_group = predictor_values
             )
@@ -121,7 +123,7 @@ plotPRServer <- function(
         make_general_plot(
           all_curve_data,
           model_definitions(),
-          scale = if (logarithmic()) "log10" else "linear"
+          scale = if (input$logarithmic) "log10" else "linear"
         )
       })
     })
@@ -244,9 +246,26 @@ plotPRUI <- function(
 ) {
   shiny::tagList(
     shiny::br(),
+    plot_additional_controls_container(
+      plot_additional_controls_dropdown(
+        id = shiny::NS(id, "predictor"),
+        label = "Predictor",
+        choices = c(
+            "Relative Risk" = "rr",
+            "Absolute Difference" = "ad"
+          ),
+        num_columns = 2
+      ),
+      plot_additional_controls_checkbox(
+        id = shiny::NS(id, "logarithmic"),
+        label = "Logarithmic",
+        value = TRUE,
+        num_columns = 2
+      )
+    ),
     plotly::plotlyOutput(
       shiny::NS(id, "plot"),
-      height = glue::glue("calc(100vh - {external_height}px)")
+      height = glue::glue("calc(100vh - {external_height + plot_additional_controls_height()}px)")
     )
   )
 }

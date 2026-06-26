@@ -14,14 +14,6 @@ NULL
 #'
 #' @param id Character string. The Shiny module namespace ID (must match the
 #'   ID used in \code{\link{plotORUI}}).
-#' @param predictor A reactive expression returning the currently selected
-#'   predictor variable name (character string).
-#' @param interaction_predictor A reactive expression returning the currently
-#'   selected interaction predictor variable name. Returns
-#'   \code{config_get_empty_selection()} when no interaction predictor is
-#'   selected.
-#' @param logarithmic A reactive expression returning a logical indicating
-#'   whether to use a logarithmic y-axis scale.
 #' @param selected_models A reactive expression returning the list of model
 #'   data objects to plot curves for. This is a subset of
 #'   \code{model_definitions()$models}.
@@ -37,9 +29,6 @@ NULL
 #' @keywords internal
 plotORServer <- function(
   id,
-  predictor,
-  interaction_predictor,
-  logarithmic,
   selected_models,
   selected_reference_groups,
   model_definitions
@@ -55,9 +44,27 @@ plotORServer <- function(
         model_definitions()
         # Clear the cached curve data, since they are no longer valid.
         clear_cached_data(cached_curves)
+        # Populate controls
+        populate_controls()
       },
       priority = 10000
     )
+
+    populate_controls <- function() {
+      # Populate UI for "predictor" and "interaction_predictor" dropdowns
+      populate_dropdown_predictors(
+        session,
+        id = "predictor",
+        models = model_definitions()$models,
+        empty = is.null(model_definitions())
+      )
+      populate_dropdown_interaction_predictors(
+        session,
+        id = "interaction_predictor",
+        models = model_definitions()$models,
+        empty = is.null(model_definitions())
+      )
+    }
 
     output$plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
@@ -77,15 +84,15 @@ plotORServer <- function(
 
           # Check if we can use the cached old data for the current model
           model_params <- list(
-            predictor = predictor(),
-            interaction_predictor = interaction_predictor(),
+            predictor = input$predictor,
+            interaction_predictor = input$interaction_predictor,
             reference_group = predictor_values
           )
           cache_key <- list(
             "or",
             model_data$model_id,
-            predictor(),
-            interaction_predictor()
+            input$predictor,
+            input$interaction_predictor
           )
           if (
             is_reusable_cached_data(
@@ -102,18 +109,18 @@ plotORServer <- function(
 
             # Calculate the OR curve for the model
             if (
-              length(interaction_predictor()) == 0 ||
-              interaction_predictor() == config_get_empty_selection()
+              length(input$interaction_predictor) == 0 ||
+              input$interaction_predictor == config_get_empty_selection()
             ) {
               curve_data <- .calculate_or_curve(
-                predictor(),
+                input$predictor,
                 model_data,
                 reference_group = predictor_values
               )
             } else {
               curve_data <- .calculate_or_curve_interaction(
-                predictor(),
-                interaction_predictor(),
+                input$predictor,
+                input$interaction_predictor,
                 model_data,
                 reference_group = predictor_values
               )
@@ -139,7 +146,7 @@ plotORServer <- function(
         make_general_plot(
           all_curve_data,
           model_definitions(),
-          scale = if (logarithmic()) "log10" else "linear"
+          scale = if (input$logarithmic) "log10" else "linear"
         )
       })
     })
@@ -422,9 +429,35 @@ plotORUI <- function(
 ) {
   shiny::tagList(
     shiny::br(),
+    plot_additional_controls_container(
+      plot_additional_controls_dropdown(
+        id = shiny::NS(id, "predictor"),
+        label = "Predictor",
+        choices = c(
+            "Relative Risk" = "rr",
+            "Absolute Difference" = "ad"
+          ),
+        num_columns = 3
+      ),
+      plot_additional_controls_dropdown(
+        id = shiny::NS(id, "interaction_predictor"),
+        label = "Interaction Predictor",
+        choices = c(
+            "Relative Risk" = "rr",
+            "Absolute Difference" = "ad"
+          ),
+        num_columns = 3
+      ),
+      plot_additional_controls_checkbox(
+        id = shiny::NS(id, "logarithmic"),
+        label = "Logarithmic",
+        value = TRUE,
+        num_columns = 3
+      )
+    ),
     plotly::plotlyOutput(
       shiny::NS(id, "plot"),
-      height = glue::glue("calc(100vh - {external_height}px)")
+      height = glue::glue("calc(100vh - {external_height + plot_additional_controls_height()}px)")
     )
   )
 }

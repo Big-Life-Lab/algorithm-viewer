@@ -1,0 +1,43 @@
+/*
+Styles applied to the .plot-additional-controls containers with config options for each plot.
+eg. Logarithmic checkbox, predictor dropdown, interaction predictor dropdown, etc.
+Add the class .plot-additional-controls to the containing element (eg. a div)
+*/
+
+.plot-additional-controls {
+  margin-bottom: 12px;
+  /* text-align: center; */
+}
+
+/* Width of the 'Show' dropdown box (the actual dropdown window) */
+.plot-additional-controls .selectize-control {
+  width: max-content !important;
+  min-width: 150px;       /* Prevents it from shrinking too small */
+}
+
+/* Width of the 'Show' dropdown edit box */
+.plot-additional-controls .selectize-input {
+  width: max-content !important;
+  padding-right: 50px;    /* Add padding so the dropdown arrow doesn't overlap the text */
+}
+
+/* Remove bottom margin from controls (eg. the 'Show' dropdown edit box) to
+make sure vertical alignment is good for the text */
+.plot-additional-controls .form-group {
+  margin-bottom: 0;
+}
+
+/* For vertically centering checkboxes and radio buttons */
+.plot-additional-controls .checkbox, .plot-additional-controls .radio {
+  margin: 8px 0;
+}
+
+/* Add padding between top-level td (ie. columns in the additional controls) */
+.plot-additional-controls > table > tr > td {
+  padding: 0px 10px 0px 0px;
+}
+
+/* Remove padding from last top-level td (ie. last column in the additional controls) */
+.plot-additional-controls > table > tr > td:last {
+  padding: 0px 0px 0px 0;
+}

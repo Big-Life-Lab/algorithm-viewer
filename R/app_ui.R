@@ -7,29 +7,6 @@
 #' @keywords internal
 NULL
 
-#' Build a Stylesheet Link Tag with a Content-Hash Cache Buster
-#'
-#' Creates a \code{<link rel="stylesheet">} tag whose href carries a query
-#' string derived from the file's contents, so browsers re-fetch the
-#' stylesheet whenever it changes, without manual "?N" version bumps.
-#'
-#' @param href Character string. The stylesheet path relative to the
-#'   resource prefix registered in \code{app_ui} (e.g. "www/csg.css", which
-#'   maps to inst/extdata/www/csg.css).
-#'
-#' @return A \code{shiny.tag} link element.
-#'
-#' @noRd
-#' @keywords internal
-.stylesheet_link <- function(href) {
-  file <- system.file("extdata", href, package = utils::packageName())
-  if (nzchar(file)) {
-    hash <- substr(digest::digest(file = file), 1, 8)
-    href <- paste0(href, "?", hash)
-  }
-  shiny::tags$link(rel = "stylesheet", href = href)
-}
-
 app_ui <- function(request) {
   # Allow browser access to files in the www directory (eg. images, favicons)
   shiny::addResourcePath(
@@ -63,10 +40,12 @@ app_ui <- function(request) {
       )
     ),
     shiny::tags$head(
-      # Styles for categorical_radio_table.R
-      .stylesheet_link("www/crt.css"),
-      # Styles for continuous_slider_group.R
-      .stylesheet_link("www/csg.css")
+      # Styles for mod_categorical_radio_table.R
+      stylesheet_link("www/crt.css"),
+      # Styles for mod_continuous_slider_group.R
+      stylesheet_link("www/csg.css"),
+      # Styles for utils_plot_additional_controls.R
+      stylesheet_link("www/plot-additional-controls.css")
     ),
     shiny::tags$style(shiny::HTML("
       /* Removes width of the controls in the sidebar so that they take up the
@@ -123,38 +102,20 @@ app_ui <- function(request) {
                 )
               ),
               shiny::div(
-                shiny::hr(),
+                shiny::hr(
+                  style = ifelse(
+                    config_allow_algorithms_selection() ||
+                      config_allow_file_uploads(),
+                    "",
+                    "display: none"
+                  )
+                ),
                 shiny::checkboxGroupInput(
                   inputId = "selected_model_ids",
                   label = "Models:"
                 )
               ),
-              shiny::hr(
-                style = ifelse(
-                  config_allow_algorithms_selection() ||
-                    config_allow_file_uploads(),
-                  "",
-                  "display: none"
-                )
-              ),
 
-              # Predictor selection (will be populated dynamically)
-              shiny::selectInput(
-                inputId = "predictor",
-                label = "Predictor:",
-                choices = NULL
-              ),
-
-              # Interaction predictor selection (will be populated dynamically)
-              shiny::selectInput(
-                inputId = "interaction_predictor",
-                label = "Interaction Predictor:",
-                choices = NULL
-              ),
-              shiny::hr(),
-
-              # Log or non-log scale
-              shiny::checkboxInput("logarithmic", "Logarithmic", value = TRUE),
               shiny::hr(),
 
               # Algorithm Viewer version number
