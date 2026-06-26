@@ -55,7 +55,6 @@ individuals.
 ```text
 algorithm-viewer/
 ├── R/                                       # R source files
-│   ├── app_global.R                         # Global Shiny options (plot formatting, upload size)
 │   ├── app_server.R                         # Main Shiny server function
 │   ├── app_ui.R                             # Main Shiny UI function
 │   ├── run_app.R                            # Package entry point (run_app())
@@ -65,6 +64,7 @@ algorithm-viewer/
 │   ├── fct_model_definitions_utils.R        # Model definition helper functions
 │   ├── mod_categorical_radio_table.R        # Categorical radio button table module
 │   ├── mod_continuous_slider_group.R        # Continuous slider group module
+│   ├── mod_range_selector.R                 # Axis range selector module (min/slider/max, log or linear)
 │   ├── mod_plot_or.R                        # Odds ratio plot module
 │   ├── mod_plot_pr.R                        # Predicted risk plot module
 │   ├── mod_plot_rr.R                        # Relative risk plot module
@@ -72,9 +72,12 @@ algorithm-viewer/
 │   ├── mod_predictor_controls.R             # Per-predictor control UI module
 │   ├── mod_predictor_grouped_controls.R     # Multi-model predictor controls module
 │   ├── utils_general_plot.R                 # Shared plot utilities
+│   ├── utils_plot_additional_controls.R     # Per-plot control row (predictor dropdowns, log checkbox)
+│   ├── utils_html.R                         # HTML/CSS helpers (cache-busting stylesheet links)
 │   ├── utils_jsonschema.R                   # JSON Schema validation error formatting
 │   ├── utils_make_error.R                   # Typed error condition constructor
 │   ├── utils_make_string_values_unique.R    # Utility for deduplicating string values
+│   ├── utils_meta.R                         # Package version display UI
 │   ├── utils_path.R                         # File path helpers
 │   └── utils_url.R                          # URL parsing and construction
 ├── inst/extdata/
