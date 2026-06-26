@@ -1,12 +1,13 @@
 /*
 Styles applied to the .plot-additional-controls containers with config options for each plot.
 eg. Logarithmic checkbox, predictor dropdown, interaction predictor dropdown, etc.
-Add the class .plot-additional-controls to the containing element (eg. a div)
+Add the class .plot-additional-controls to the containing element (eg. a div).
+The class is added automatically by plot_additional_controls_container in
+utils_plot_additional_controls.R.
 */
 
 .plot-additional-controls {
   margin-bottom: 12px;
-  /* text-align: center; */
 }
 
 /* Width of the 'Show' dropdown box (the actual dropdown window) */
