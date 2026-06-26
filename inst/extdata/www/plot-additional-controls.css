@@ -6,24 +6,18 @@ The class is added automatically by plot_additional_controls_container in
 utils_plot_additional_controls.R.
 */
 
+/* Top-level container */
 .plot-additional-controls {
   margin-bottom: 12px;
 }
 
-/* Width of the 'Show' dropdown box (the actual dropdown window) */
-.plot-additional-controls .selectize-control {
-  width: max-content !important;
-  min-width: 150px;       /* Prevents it from shrinking too small */
-}
-
-/* Width of the 'Show' dropdown edit box */
+/* Style for selectInput */
 .plot-additional-controls .selectize-input {
-  width: max-content !important;
-  padding-right: 50px;    /* Add padding so the dropdown arrow doesn't overlap the text */
+  width: max-content;
+  padding-right: 40px;    /* Add padding so the dropdown arrow doesn't overlap the text */
 }
 
-/* Remove bottom margin from controls (eg. the 'Show' dropdown edit box) to
-make sure vertical alignment is good for the text */
+/* Remove bottom margin from controls */
 .plot-additional-controls .form-group {
   margin-bottom: 0;
 }
@@ -33,12 +27,12 @@ make sure vertical alignment is good for the text */
   margin: 8px 0;
 }
 
-/* Add padding between top-level td (ie. columns in the additional controls) */
+/* Add horizontal padding between top-level td (ie. the main columns) */
 .plot-additional-controls > table > tbody > tr > td {
   padding: 0px 10px 0px 0px;
 }
 
-/* Remove padding from last top-level td (ie. last column in the additional controls) */
+/* Remove horizontal padding from last top-level td (ie. the last column) */
 .plot-additional-controls > table > tbody > tr > td:last {
   padding: 0px 0px 0px 0;
 }
