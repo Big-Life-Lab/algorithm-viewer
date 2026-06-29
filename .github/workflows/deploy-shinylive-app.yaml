@@ -18,7 +18,7 @@
 # When deploying to GitHub Pages, be sure to have the appropriate write
 # permissions for your token (`pages` and `id-token`).
 
-name: Deploy Shiny App
+name: Deploy Shinylive App
 
 on:
   # Manually trigger the workflow
