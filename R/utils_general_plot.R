@@ -361,7 +361,11 @@ make_general_plot <- function(
           }
           plt
         })() |>
-        plotly::layout(hovermode = hovermode)
+        plotly::layout(hovermode = hovermode) |>
+        # Register the click event so plotly::event_data("plotly_click", ...)
+        # can retrieve it without emitting an "event ... is not registered"
+        # warning.
+        plotly::event_register("plotly_click")
     },
     error = function(e) {
       message(conditionMessage(e))

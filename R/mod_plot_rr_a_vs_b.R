@@ -53,11 +53,6 @@ plotRRAvsBServer <- function(
     # the user's risk, reference risk, and overall RR are found)
     curve_data_rv <- shiny::reactiveVal(NULL)
 
-    # The source for the main plot, used as the source parameter to
-    # plotly::ggplotly() so that we can handle click events using
-    # plotly::event_data()
-    main_plot_source <- shiny::NS(id, "main_plot")
-
     # The predictor to use for the sub plot. This is equal to the predictor of
     # the last clicked row
     sub_plot_predictor <- shiny::reactiveVal(NULL)
@@ -319,7 +314,7 @@ plotRRAvsBServer <- function(
         "px"
       )
 
-      plotly::plotlyOutput(session$ns("plot"), height = height_str)
+      plotly::plotlyOutput(session$ns("main_plot"), height = height_str)
     })
 
     # Local copy of the main plot's click event, used to drive the sub plot.
@@ -334,9 +329,13 @@ plotRRAvsBServer <- function(
 
     # Mirror plotly's click event into our reactiveVal as clicks come in.
     shiny::observe({
+      # Gate on curve_data_rv() so event_data() is only read after the main
+      # plot has rendered and curve data is available.
+      shiny::req(curve_data_rv())
+
       click_data(plotly::event_data(
         "plotly_click",
-        source = main_plot_source
+        source = shiny::NS(id, "main_plot")
       ))
     })
 
@@ -368,8 +367,8 @@ plotRRAvsBServer <- function(
       click_data(NULL)
     })
 
-    # Make the plot
-    output$plot <- plotly::renderPlotly({
+    # Make the main plot
+    output$main_plot <- plotly::renderPlotly({
       if (is.null(model_definitions())) {
         return(make_general_plot(
           NULL,
@@ -471,7 +470,7 @@ plotRRAvsBServer <- function(
             input$display_mode == "ad" ~ 0,
             TRUE ~ 1
           ),
-          source = main_plot_source
+          source = shiny::NS(id, "main_plot")
         )
       })
     })
