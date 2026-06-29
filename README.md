@@ -3,6 +3,7 @@
 <!-- badges: start -->
 [![R-CMD-check.yaml](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml)
 [![Docker Image](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/docker-publish.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/docker-publish.yaml)
+[![Deploy Shiny App](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/deploy-shiny-app.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/deploy-shiny-app.yaml)
 <!-- badges: end -->
 
 An R Shiny application for visualizing health risk prediction algorithms,
