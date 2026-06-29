@@ -496,15 +496,19 @@ plotRRAvsBServer <- function(
 
 #' Calculate Relative Risk Curve: A vs B
 #'
-#' Builds a curve dataset comparing the relative risk of the A group
-#' against the B reference group across all categorical predictors in
-#' the model. For each categorical predictor, a row is added for every possible
-#' value of that predictor (with the A group otherwise held fixed).
-#' Continuous predictors are omitted from the per-predictor rows because they
-#' do not vary between the A and B groups and would be redundant;
-#' their contribution is captured in the overall "A vs B" row.
-#' Relative risks are computed by running the model pipeline on all rows and
-#' dividing each row's predicted risk by the B group's predicted risk.
+#' Builds a dataset that decomposes the difference between the A group and the
+#' B (reference) group into per-predictor contributions. One row is added for
+#' every predictor in the model (both categorical and continuous): that row is
+#' the A group with only that single predictor swapped to its B value, holding
+#' all other A values fixed. The unmodified A and B groups are also evaluated so
+#' the overall A-vs-B comparison and each group's predicted risk can be reported.
+#'
+#' The model pipeline is run on all rows at once. For each per-predictor row,
+#' the relative risk is the A group's predicted risk divided by that row's
+#' predicted risk, and the absolute difference is the same subtraction times
+#' 100 (percentage points); both measures therefore isolate the effect of
+#' swapping that one predictor to its B value. The overall relative risk is the
+#' A group's predicted risk divided by the B group's predicted risk.
 #'
 #' @param model_data A model definition named list as returned by the model
 #'   definitions utilities.

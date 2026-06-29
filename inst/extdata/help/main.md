@@ -93,30 +93,40 @@ immediately. Click **Reset** to restore a model's defaults.
 
 ### Me vs Ref Tab (Plot)
 
-Compares a personal risk profile ("Me") against a configurable reference
-profile ("Ref") and explores what-if scenarios for categorical variables.
+Compares a personal risk profile ("Me") against a reference profile ("Ref")
+and breaks down which predictors drive the difference between them. Both
+profiles are set in the sidebar (see below).
 
-The plot is arranged in rows:
+**Summary panel (top).** For each selected model, a line shows:
 
-- **Overall (first row)** &mdash; the relative risk of the Me profile versus
-  the Ref profile using the exact values set in the sidebar. A value greater
-  than 1 means higher risk than the reference; a value less than 1 means lower
-  risk.
-- **What-if rows (all other rows)** &mdash; one row for each alternative level
-  of every categorical variable. Each row asks "what if this variable in my
-  profile were changed to this level?" All other Me values remain unchanged;
-  the Ref profile is always unchanged.
+- **Your estimated risk** &mdash; the predicted risk of the Me profile.
+- **Reference risk** &mdash; the predicted risk of the Ref profile.
+- **Overall RR** &mdash; the Me risk divided by the Ref risk (e.g. `1.5×`),
+  followed by the absolute difference in percentage points (e.g. `+8.0 pts`).
 
-Two vertical lines are drawn on the plot:
+**Show.** The dropdown chooses what the main plot measures for each predictor:
 
-- **Solid line (RR&nbsp;=&nbsp;1)** &mdash; no difference from the reference.
-- **Dotted line (overall baseline)** &mdash; the Overall relative risk for each
-  model, coloured to match that model. Points to the right of this line
-  indicate levels that would increase risk above the current Me profile; points
-  to the left indicate levels that would decrease it.
+- **Relative Risk** &mdash; ratio of risks (1 means no difference).
+- **Absolute Difference** &mdash; difference in risk in percentage points
+  (0 means no difference).
 
-Hover over any point to see the exact relative risk and, for what-if rows, the
-current Me value being replaced.
+**Main plot.** A horizontal chart with one row per predictor. Each row isolates
+that single predictor's contribution: it compares the full Me profile against
+the Me profile with *only that predictor* swapped to its Ref value, holding
+everything else at the Me values. The row label shows the predictor name and
+its `Ref → Me` change. When multiple models are selected, each is drawn in its
+own colour. A reference line marks no difference (Relative Risk&nbsp;=&nbsp;1,
+or Absolute Difference&nbsp;=&nbsp;0). Hover over any point for exact values.
+
+**Logarithmic** toggles the value axis between a log scale (helpful when values
+span a wide range) and a linear scale. The **X Axis Range** slider below the
+plot constrains the visible value range; separate ranges apply to each
+Show / scale combination.
+
+**Drill-down subplot.** Click any row in the main plot to load the subplot at
+the bottom. It shows the relative risk of Me versus Ref as the clicked
+predictor takes on all of its values, with a dot marking the current Me value.
+Click another row to change the predictor shown.
 
 ---
 
@@ -124,14 +134,13 @@ current Me value being replaced.
 
 Sets the predictor values for both the "Me" (individual) and "Ref" (reference)
 profiles used in the Me vs Ref plot. Controls are built from the first selected
-model.
+model and shown together in a single compact panel.
 
-- **Continuous variables** &mdash; two stacked sliders sharing the same range:
-  the top slider ("Me") controls the individual value; the bottom slider
-  ("Ref") controls the reference value.
-- **Categorical variables** &mdash; a compact table with a column of radio
-  buttons for "Me" and a separate column of radio buttons for "Ref". The two
-  columns are independent, so the same level can be selected for both.
+- **Continuous variables** &mdash; two sliders sharing the same range, labelled
+  "Me" and "Ref", each with an editable number box for typing an exact value.
+- **Categorical variables** &mdash; a radio-button table with a "Me" column and
+  a "Ref" column. The two columns are independent, so the same level can be
+  selected for both.
 
 Both profiles are initialised to the first model's default reference group
 values. Click **Reset** to restore all controls to those defaults.
