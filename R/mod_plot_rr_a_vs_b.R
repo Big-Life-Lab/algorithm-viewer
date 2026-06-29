@@ -329,14 +329,21 @@ plotRRAvsBServer <- function(
 
     # Mirror plotly's click event into our reactiveVal as clicks come in.
     shiny::observe({
-      # Gate on curve_data_rv() so event_data() is only read after the main
-      # plot has rendered and curve data is available.
-      shiny::req(curve_data_rv())
-
-      click_data(plotly::event_data(
+      data <- plotly::event_data(
         "plotly_click",
         source = shiny::NS(id, "main_plot")
-      ))
+      )
+
+      # Skip if curve_data_rv is not available. We do this after calling
+      # plotly::event_data, to make sure we will always react to the
+      # click events (calling plotly::event_data will register us to
+      # receive the clicks). If we called shiny::req first, then if
+      # curve_data_rv is not available, we will never reach the call
+      # to event_data. We isolate curve_data_rv so that we only respond
+      # to click events (and not updates to curve_data_rv)
+      shiny::req(isolate(curve_data_rv()))
+
+      click_data(data)
     })
 
     # Act on a click: find the predictor for the clicked point and update the
