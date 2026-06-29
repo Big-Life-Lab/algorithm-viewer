@@ -23,9 +23,9 @@ name: Deploy app
 on:
   # Manually trigger the workflow
   workflow_dispatch:
-  # Trigger on push to `proto` branch
+  # Trigger on push to `proto` or `proto2` branch
   push:
-    branches: [proto]
+    branches: [proto, proto2]
   # Trigger on pull request to all branches (but do not deploy to gh-pages)
   pull_request:
 

@@ -48,6 +48,9 @@ plotRRAvsBServer <- function(
     # already been calculated
     cached_curves <- initialize_cached_data()
 
+    # List of all the calculated curve data, including the RR and AD values.
+    # Used for accessing click data and rendering the info panel (where
+    # the user's risk, reference risk, and overall RR are found)
     curve_data_rv <- shiny::reactiveVal(NULL)
 
     # The source for the main plot, used as the source parameter to
@@ -85,6 +88,8 @@ plotRRAvsBServer <- function(
       priority = 10000
     )
 
+    # Instructions panel (tell the user what the subplot is showing, and to
+    # click the main plot to select a different predictor for the subplot)
     output$sub_plot_instructions <- shiny::renderUI({
       div_style <- paste(
         "width: 100%; height: 300px; display: table-cell;",
@@ -240,9 +245,8 @@ plotRRAvsBServer <- function(
       })
     })
 
-    # Dynamically size the plot container based on the number of predictor rows.
-    # Uses CSS max() so the plot fills the viewport when rows are few, and
-    # expands (triggering the outer scrollable div) when rows are many.
+    # Create and dynamically size the plot container based on the number of
+    # predictor rows.
     output$plot_container <- shiny::renderUI({
       curve_data <- curve_data_rv()
 
@@ -424,9 +428,12 @@ plotRRAvsBServer <- function(
       })
     })
 
+    # The info section showing "Your estimated risk", "Reference risk",
+    # and "Overall RR"
     output$info <- shiny::renderUI({
       html <- list()
       for (curve_data in curve_data_rv()) {
+        # Gather all data
         model_id <- curve_data[["model_id"]]
         model_title <- selected_models()[[model_id]][["title"]]
         a_pr <- curve_data[["a_pr"]]
@@ -434,6 +441,7 @@ plotRRAvsBServer <- function(
         delta_pr <- a_pr - b_pr
         overall_rr <- curve_data[["overall_rr"]]
 
+        # Create the HTML
         format <- "%.1f"
         html[[length(html) + 1]] <- shiny::div(
             shiny::tags$table(

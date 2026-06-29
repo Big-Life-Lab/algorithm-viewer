@@ -51,6 +51,14 @@ plotORServer <- function(
     )
 
     populate_controls <- function() {
+      # Freeze so dependents don't trigger with the old values in the inputs.
+      # If these inputs are attempted to be accessed during the current frame,
+      # the access will raise a silent exception (like req(FALSE)) and stop
+      # execution momentarily for the current flush cycle (but will then be
+      # re-triggered with the new input values).
+      shiny::freezeReactiveValue(input, "predictor")
+      shiny::freezeReactiveValue(input, "interaction_predictor")
+      
       # Populate UI for "predictor" and "interaction_predictor" dropdowns
       populate_dropdown_predictors(
         session,
@@ -67,6 +75,9 @@ plotORServer <- function(
     }
 
     output$plot <- plotly::renderPlotly({
+      shiny::req(input$predictor)
+      input$interaction_predictor
+
       if (is.null(model_definitions())) {
         return(make_general_plot(
           NULL,
@@ -433,19 +444,13 @@ plotORUI <- function(
       plot_additional_controls_dropdown(
         id = shiny::NS(id, "predictor"),
         label = "Predictor",
-        choices = c(
-            "Relative Risk" = "rr",
-            "Absolute Difference" = "ad"
-          ),
+        choices = c(),
         num_columns = 3
       ),
       plot_additional_controls_dropdown(
         id = shiny::NS(id, "interaction_predictor"),
         label = "Interaction Predictor",
-        choices = c(
-            "Relative Risk" = "rr",
-            "Absolute Difference" = "ad"
-          ),
+        choices = c(),
         num_columns = 3
       ),
       plot_additional_controls_checkbox(
