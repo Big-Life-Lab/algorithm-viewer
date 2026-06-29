@@ -343,9 +343,18 @@ make_general_plot <- function(
       # unified tooltip; "skip" excludes them entirely unlike "none".
       plotly::ggplotly(p, source = source) |>
         (\(plt) {
+          # geom_point layers (eg the user-value dots) become scatter traces
+          # with a `mode` attribute. ggplotly leaks that attribute onto the
+          # bar traces, which triggers the harmless rendering warning:
+          # "'bar' objects don't have these attributes: 'mode'". Strip it.
+          plt$x$data <- lapply(plt$x$data, function(tr) {
+            if (isTRUE(tr$type == "bar")) tr$mode <- NULL
+            tr
+          })
+
           hline_traces <- which(vapply(plt$x$data, function(tr) {
-            isTRUE(grepl("yintercept", tr$text, fixed = TRUE)) ||
-            isTRUE(grepl("hidden_", tr$text, fixed = TRUE))
+            any(grepl("yintercept", tr$text, fixed = TRUE)) ||
+            any(grepl("hidden_", tr$text, fixed = TRUE))
           }, logical(1)))
           if (length(hline_traces) > 0) {
             plt <- plotly::style(plt, hoverinfo = "skip", traces = hline_traces)

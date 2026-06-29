@@ -152,6 +152,10 @@ plotRRAvsBServer <- function(
       plot_render_safely(function() {
         all_curve_data <- list()
         extra_plot <- list()
+        # Accumulate the user-value dots across models into one data frame so
+        # they can be drawn as a single, dodged geom_point layer below.
+        overlay_rows <- list()
+        predictor_is_categorical <- FALSE
 
         # Go through all selected_models and calculate the RR curves
         # We concatenate them (with bind_rows) to show one curve per model
@@ -209,7 +213,9 @@ plotRRAvsBServer <- function(
           }
 
           # Add a dot at the user's value for the main predictor
-          if (is_variable_categorical(model_data, sub_plot_predictor())) {
+          predictor_is_categorical <-
+            is_variable_categorical(model_data, sub_plot_predictor())
+          if (predictor_is_categorical) {
             user_label <- get_variable_label_from_value(
               model_data,
               sub_plot_predictor(),
@@ -218,19 +224,61 @@ plotRRAvsBServer <- function(
           } else {
             user_label <- group_a[[sub_plot_predictor()]]
           }
-          
-          df_overlay <- data.frame(
+
+          overlay_rows[[length(overlay_rows) + 1]] <- data.frame(
             hidden_x = user_label,
-            hidden_y = curve_data$overall_rr
+            hidden_y = curve_data$overall_rr,
+            # Must match df$Model in make_general_plot so the dots share the
+            # bars' grouping/dodge order.
+            Model = cleanup_string(model_data$title),
+            model_color = model_data$model_color,
+            stringsAsFactors = FALSE
           )
-          extra_plot[[length(extra_plot) + 1]] <- ggplot2::geom_point(
-            data = df_overlay,
-            ggplot2::aes(x = hidden_x, y = hidden_y),
-            color = model_data$model_color,
-            size = 3,
-            shape = 19,
-            inherit.aes = FALSE
-          )
+        }
+
+        # Draw the user-value dots as a single geom_point layer. For bar
+        # (categorical) plots the bars are dodged by Model, so the dots must be
+        # dodged with the same grouping and width (geom_col's default 0.9) to
+        # land in the centre of each model's bar. For line (continuous) plots
+        # no dodging is applied so each dot sits on its curve.
+        if (length(overlay_rows) > 0) {
+          overlay_df <- do.call(rbind, overlay_rows)
+          if (predictor_is_categorical) {
+            # Match the bar grouping order: make_general_plot factors df$Model
+            # by unique(df$Model), and overlay_rows are built in the same model
+            # order, so unique() here yields the same level order.
+            overlay_df$Model <-
+              factor(overlay_df$Model, levels = unique(overlay_df$Model))
+            extra_plot[[length(extra_plot) + 1]] <- ggplot2::geom_point(
+              data = overlay_df,
+              ggplot2::aes(
+                x = hidden_x,
+                y = hidden_y,
+                group = Model,
+                color = model_color
+              ),
+              size = 3,
+              shape = 19,
+              inherit.aes = FALSE,
+              position = ggplot2::position_dodge(width = 0.9)
+            )
+            # model_color already holds literal colours; the identity scale
+            # avoids clashing with the bars' fill scale and adds no legend.
+            extra_plot[[length(extra_plot) + 1]] <-
+              ggplot2::scale_color_identity()
+          } else {
+            extra_plot[[length(extra_plot) + 1]] <- ggplot2::geom_point(
+              data = overlay_df,
+              ggplot2::aes(x = hidden_x, y = hidden_y),
+              # No dodge here, so rows keep their order and a per-row colour
+              # vector aligns correctly. Set outside aes() to avoid a second
+              # colour scale clashing with the line plot's color = Model.
+              color = overlay_df$model_color,
+              size = 3,
+              shape = 19,
+              inherit.aes = FALSE
+            )
+          }
         }
 
         make_general_plot(
