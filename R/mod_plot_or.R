@@ -229,7 +229,8 @@ plotORServer <- function(
     (1 - dat[[predicted_col]][output_rows + 1]))
 
   labels <- convert_df_variable_to_label(
-    df, model_data, predictor, predictor
+    df, model_data, predictor, predictor,
+    escape_html = TRUE
   )[[predictor]][1:output_rows]
 
   if (is_variable_categorical(model_data, predictor)) {
@@ -333,7 +334,11 @@ plotORServer <- function(
   if (is_variable_categorical(model_data, interaction_predictor)) {
     cat_val <- reference_group[[interaction_predictor]]
 
-    # Advance cat_val to the next category
+    # A categorical interaction predictor has no "+1", so we compare each
+    # category against the *next* one in the allowable-values order. The modulo
+    # wrap is intentional: the last category is compared against the first, so
+    # every category contributes a comparison rather than dropping out. The
+    # tooltip on the "Interaction Predictor" dropdown documents this for users.
     allowable_values <- get_predictor_allowable_values(
       model_data, interaction_predictor
     )
@@ -451,7 +456,8 @@ plotORUI <- function(
         id = shiny::NS(id, "interaction_predictor"),
         label = "Interaction Predictor",
         choices = c(),
-        num_columns = 3
+        num_columns = 3,
+        tooltip = interaction_predictor_tooltip()
       ),
       plot_additional_controls_checkbox(
         id = shiny::NS(id, "logarithmic"),

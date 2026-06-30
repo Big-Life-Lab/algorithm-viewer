@@ -231,7 +231,8 @@ plotRRServer <- function(
   overall_rr <- rr[[1]]
 
   labels <- convert_df_variable_to_label(
-    df, model_data, predictor, predictor
+    df, model_data, predictor, predictor,
+    escape_html = TRUE
   )[[predictor]][2:(modified_rows + 1)]
 
   if (is_variable_categorical(model_data, predictor)) {
@@ -349,7 +350,11 @@ plotRRServer <- function(
     if (is_variable_categorical(model_data, interaction_predictor)) {
       cat_val <- reference_group[[interaction_predictor]]
 
-      # Advance cat_val to the next category
+      # A categorical interaction predictor has no "+1", so we compare each
+      # category against the *next* one in the allowable-values order. The
+      # modulo wrap is intentional: the last category is compared against the
+      # first, so every category contributes a comparison rather than dropping
+      # out. The tooltip on the "Interaction Predictor" dropdown documents this.
       allowable_values <- get_predictor_allowable_values(
         model_data, interaction_predictor
       )
@@ -466,7 +471,8 @@ plotRRUI <- function(
         id = shiny::NS(id, "interaction_predictor"),
         label = "Interaction Predictor",
         choices = c(),
-        num_columns = 3
+        num_columns = 3,
+        tooltip = interaction_predictor_tooltip()
       ),
       plot_additional_controls_checkbox(
         id = shiny::NS(id, "logarithmic"),

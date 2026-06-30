@@ -49,6 +49,25 @@ plot_additional_controls_container <- function(...) {
   )
 }
 
+#' Tooltip Text for the Interaction Predictor Dropdown
+#'
+#' Returns the help text shown for the "Interaction Predictor" dropdown,
+#' explaining how the interaction effect is computed. Defined once so the OR
+#' and RR plots stay in sync.
+#'
+#' @return A character string.
+#'
+#' @noRd
+#' @keywords internal
+interaction_predictor_tooltip <- function() {
+  paste0(
+    "Shows the effect of changing the interaction predictor while the x-axis ",
+    "predictor varies: a one-unit increase for a continuous interaction ",
+    "predictor, or a step to the next category for a categorical one (the ",
+    "last category wraps back to the first)."
+  )
+}
+
 #' Dropdown Cell for the Additional Controls Row
 #'
 #' Builds a table cell containing a labelled \code{selectInput}, sized to
@@ -59,13 +78,44 @@ plot_additional_controls_container <- function(...) {
 #' @param choices The choices passed to \code{shiny::selectInput}.
 #' @param num_columns Integer. The total number of control cells in the row,
 #'   used to compute the cell's width as an equal fraction.
+#' @param tooltip Character string, or \code{NULL} (default). When supplied, a
+#'   help icon is shown after the label that reveals this text on hover and on
+#'   click/tap (the icon is keyboard-focusable, so the text also shows on focus,
+#'   which is what a click triggers — see the \code{.apc-help} rules in
+#'   plot-additional-controls.css).
 #'
 #' @return A \code{shiny.tag} \code{<td>} element.
 #'
 #' @noRd
 #' @keywords internal
-plot_additional_controls_dropdown <- function(id, label, choices, num_columns) {
+plot_additional_controls_dropdown <- function(id,
+                                              label,
+                                              choices,
+                                              num_columns,
+                                              tooltip = NULL) {
   column_width <- 100 / num_columns
+  label_content <- if (!is.null(tooltip)) {
+    shiny::tagList(
+      paste0(label, ":"),
+      # Focusable wrapper: clicking/tapping the icon focuses this span, and the
+      # CSS reveals .apc-help-text on :hover, :focus and :focus-within. This
+      # gives a click-activated tooltip without any JS or Bootstrap dependency.
+      shiny::tags$span(
+        class = "apc-help",
+        tabindex = "0",
+        role = "button",
+        `aria-label` = tooltip,
+        shiny::icon("circle-question"),
+        shiny::tags$span(
+          class = "apc-help-text",
+          `aria-hidden` = "true",
+          tooltip
+        )
+      )
+    )
+  } else {
+    paste0(label, ":")
+  }
   shiny::tags$td(
     style = paste0("width: ", column_width, "%;"),
     shiny::tags$table(
@@ -77,7 +127,7 @@ plot_additional_controls_dropdown <- function(id, label, choices, num_columns) {
             "white-space: nowrap;",
             "font-weight: bold;"
           ),
-          paste0(label, ":")
+          label_content
         ),
         shiny::tags$td(
           style = "max-width: 100%;",
