@@ -514,3 +514,63 @@ gather_predictor_choices <- function(models) {
 
   predictor_choices
 }
+
+#' Combine Models into a Single Union Model
+#'
+#' Builds one synthetic model whose predictor set is the union of the predictors
+#' across all supplied models.
+#'
+#' Each predictor's metadata (\code{variables} row, \code{variable_details}
+#' rows, \code{predictor_allowable_values}, and \code{reference_group} value) is
+#' taken from the first model that declares it, matching the first-wins
+#' convention used by \code{gather_predictor_choices()} and enforced for shared
+#' predictors by \code{.validate_predictor_consistency()}. All other fields
+#' (e.g. \code{model_pipeline}) are inherited from the first model.
+#'
+#' @param models An unnamed or named list of model data objects.
+#'
+#' @return A single model data list spanning the union of predictors, or
+#'   \code{NULL} when \code{models} is empty.
+#'
+#' @noRd
+#' @keywords internal
+combine_models <- function(models) {
+  if (length(models) == 0) {
+    return(NULL)
+  }
+
+  combined <- models[[1]]
+
+  variables_rows <- list()
+  details_rows <- list()
+  allowable <- list()
+  reference <- list()
+
+  # The controls render one row per reference_group entry, so unioning over
+  # reference_group keys yields exactly the predictors that will get a control.
+  for (model_data in models) {
+    for (variable in names(model_data$reference_group)) {
+      if (variable %in% names(reference)) {
+        next # Already captured from an earlier model (first wins).
+      }
+      reference[[variable]] <- model_data$reference_group[[variable]]
+      allowable[[variable]] <-
+        model_data$predictor_allowable_values[[variable]]
+      variables_rows[[variable]] <-
+        model_data$variables[model_data$variables$variable == variable, ]
+      details_rows[[variable]] <-
+        model_data$variable_details[
+          model_data$variable_details$variable == variable,
+        ]
+    }
+  }
+
+  combined$reference_group <- reference
+  combined$predictor_allowable_values <- allowable
+  # bind_rows (rather than rbind) tolerates models whose variables /
+  # variable_details tables carry slightly different columns.
+  combined$variables <- dplyr::bind_rows(unname(variables_rows))
+  combined$variable_details <- dplyr::bind_rows(unname(details_rows))
+
+  combined
+}

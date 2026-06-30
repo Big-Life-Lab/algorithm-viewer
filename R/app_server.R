@@ -168,11 +168,15 @@ app_server <- function(input, output, session) {
     }
   })
 
-  # Model definitions for a vs b predictor control panel
+  # Model definitions for a vs b predictor control panel.
+  # The "Me" and "Ref" profiles are applied to every selected model, so the
+  # controls are built from a combined model spanning the union of predictors
+  # across all models (not just the first model, which could omit predictors
+  # unique to other models).
   a_vs_b_model_definitions <- shiny::reactive({
     if (has_model_definitions()) {
       defns <- model_definitions()
-      a_model <- defns$models[[names(defns$models)[[1]]]]
+      a_model <- combine_models(defns$models)
       b_model <- a_model
       a_model$model_id <- "a"
       b_model$model_id <- "b"

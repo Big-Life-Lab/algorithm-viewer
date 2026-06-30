@@ -198,12 +198,14 @@ plotRRAvsBServer <- function(
               b_value <- get_variable_label_from_value(
                 model_data,
                 sub_plot_predictor(),
-                b_value
+                b_value,
+                escape_html = TRUE
               )
               a_value <- get_variable_label_from_value(
                 model_data,
                 sub_plot_predictor(),
-                a_value
+                a_value,
+                escape_html = TRUE
               )
             }
             curve_data$subtitle <- list(
@@ -510,6 +512,12 @@ plotRRAvsBServer <- function(
         # Gather all data
         model_id <- curve_data[["model_id"]]
         model_title <- selected_models()[[model_id]][["title"]]
+        # Skip any curve whose model is no longer selected (curve_data_rv can
+        # briefly hold a model that was just deselected); without this guard the
+        # row would render an empty "title" as a bare ":".
+        if (is.null(model_title)) {
+          next
+        }
         a_pr <- curve_data[["a_pr"]]
         b_pr <- curve_data[["b_pr"]]
         delta_pr <- a_pr - b_pr
@@ -655,8 +663,18 @@ plotRRAvsBServer <- function(
   row_names[[length(row_names) + 1]] <- "B"
   predictors[[length(predictors) + 1]] <- ""
 
+  # a_group / b_group may contain predictors this particular model (model_data)
+  # does not use. Restrict the per-predictor rows to this model's own
+  # predictors: a foreign predictor is ignored by the pipeline (its row would be
+  # a meaningless RR of 1 with no resolvable label), so it should not be
+  # plotted.
+  model_predictors <- .get_model_predictors(model_data)
+
   for (idx in seq_along(names(a_group))) {
     predictor <- names(a_group)[[idx]]
+    if (!predictor %in% model_predictors) {
+      next
+    }
     predictor_label <- get_variable_label(
       model_data,
       predictor,
@@ -710,11 +728,11 @@ plotRRAvsBServer <- function(
   # Calculate relative risk and absolute difference.
   # dat[1, ] is group A
   # dat[2, ] is group B
-  rr <- dat[1, ] / dat[2:nrow(dat), ]
-  ad <- (dat[1, ] - dat[2:nrow(dat), ]) * 100
-  overall_rr <- dat[1, ] / dat[2, ]
+  predicted_col <- colnames(dat)[[1]]
+  rr <- dat[1, predicted_col] / dat[2:nrow(dat), predicted_col]
+  ad <- (dat[1, predicted_col] - dat[2:nrow(dat), predicted_col]) * 100
+  overall_rr <- dat[1, predicted_col] / dat[2, predicted_col]
   output_df <- data.frame(
-    # x = rr[2:length(rr)],
     RR = rr[2:length(rr)],
     AD = ad[2:length(ad)],
     predictor = unlist(predictors[3:length(predictors)]),
@@ -725,8 +743,8 @@ plotRRAvsBServer <- function(
   list(
     df = output_df,
     overall_rr = overall_rr,
-    a_pr = dat[1, ],
-    b_pr = dat[2, ],
+    a_pr = dat[1, predicted_col],
+    b_pr = dat[2, predicted_col],
     model_id = model_data$model_id,
     x_axis_label = "Label",
     y_axis_label = dplyr::case_when(

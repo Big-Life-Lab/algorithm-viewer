@@ -289,3 +289,68 @@ test_that("gather_predictor_choices keeps the first model's label", {
   choices <- algorithm.viewer:::gather_predictor_choices(models)
   expect_equal(names(choices)[choices == "age"], "Age")
 })
+
+# ── combine_models ───────────────────────────────────────────────────────────
+
+# Two models sharing age + smoking, where the second model additionally has a
+# "bmi" predictor that the first model lacks, and disagrees on the shared
+# predictors' reference values / allowable values.
+make_heterogeneous_models <- function() {
+  m1 <- make_synthetic_model_data()
+
+  m2 <- make_synthetic_model_data()
+  m2$model_id <- "m2"
+  m2$title <- "Model Two"
+  m2$variables <- rbind(
+    m2$variables,
+    data.frame(
+      variable = "bmi", label = "BMI", units = "kg/m^2",
+      variableType = "Continuous", role = "Predictor",
+      stringsAsFactors = FALSE
+    )
+  )
+  m2$variable_details <- rbind(
+    m2$variable_details,
+    data.frame(
+      variable = "bmi", recStart = "[15, 40]", recEnd = "copy",
+      catLabel = "", stringsAsFactors = FALSE
+    )
+  )
+  m2$predictor_allowable_values$bmi <- seq(15, 40)
+  m2$predictor_allowable_values$age <- seq(30, 90) # disagrees with m1
+  m2$reference_group <- list(age = 50, smoking = "2", bmi = 22)
+
+  list(m1 = m1, m2 = m2)
+}
+
+test_that("combine_models returns NULL for an empty model list", {
+  expect_null(algorithm.viewer:::combine_models(list()))
+})
+
+test_that("combine_models is a no-op for a single model", {
+  m1 <- make_synthetic_model_data()
+  combined <- algorithm.viewer:::combine_models(list(m1))
+  expect_equal(combined$reference_group, m1$reference_group)
+  expect_equal(
+    combined$predictor_allowable_values, m1$predictor_allowable_values
+  )
+})
+
+test_that("combine_models unions predictors across models", {
+  combined <- algorithm.viewer:::combine_models(make_heterogeneous_models())
+  # bmi (unique to the second model) must now be present, in first-seen order
+  # after the first model's predictors.
+  expect_equal(names(combined$reference_group), c("age", "smoking", "bmi"))
+  expect_equal(combined$reference_group$bmi, 22)
+  expect_equal(combined$predictor_allowable_values$bmi, seq(15, 40))
+  # bmi is rendered correctly because its metadata came along too.
+  expect_true(algorithm.viewer:::is_variable_continuous(combined, "bmi"))
+})
+
+test_that("combine_models takes shared predictors from the first model", {
+  combined <- algorithm.viewer:::combine_models(make_heterogeneous_models())
+  # The first model wins for predictors present in more than one model.
+  expect_equal(combined$reference_group$age, 40)
+  expect_equal(combined$reference_group$smoking, "1")
+  expect_equal(combined$predictor_allowable_values$age, seq(20, 100))
+})
