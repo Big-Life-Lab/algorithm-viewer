@@ -124,9 +124,12 @@ predictorGroupedControlsServer <- function(
     # Handle new model definitions: Destroy any old objects/observers/servers
     # and initialize the predictor_values for each model to the reference group.
     shiny::observe({
-      # Remove stale keys from any previously loaded algorithm before setting
-      # the new values, so consumers never see a mix of old and new model IDs.
-      # @TODO: This doesn't actually delete the keys, they just set them to NULL
+      # Clear values from any previously loaded algorithm before setting the new
+      # ones. reactiveValues offers no key deletion, so a stale model ID keeps
+      # its name with a NULL value; reading it (predictor_values[[id]]) then
+      # returns NULL, exactly as if it were absent. Every consumer indexes by the
+      # currently selected model IDs, so these emptied keys never surface — the
+      # NULL assignment is the correct and sufficient way to retire them.
       for (key in names(predictor_values)) {
         predictor_values[[key]] <- NULL
       }
