@@ -300,7 +300,7 @@ make_general_plot <- function(
       ref_line <- if (!is.null(show_reference_line)) {
         ggplot2::geom_hline(
           yintercept = show_reference_line,
-          linetype = "dashed"
+          linetype = "dashed",
           color = "gray50"
         )
       } else {
