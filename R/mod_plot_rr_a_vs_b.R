@@ -191,16 +191,25 @@ plotRRAvsBServer <- function(
               reference_group = group_b
             )
 
-            # Add the "Me" value to the subtitle
-            b_value <- group_a[[sub_plot_predictor()]]
+            # Add the "Me" and "Ref" values as subtitles
+            a_value <- group_a[[sub_plot_predictor()]]
+            b_value <- group_b[[sub_plot_predictor()]]
             if (is_variable_categorical(model_data, sub_plot_predictor())) {
               b_value <- get_variable_label_from_value(
                 model_data,
                 sub_plot_predictor(),
                 b_value
               )
+              a_value <- get_variable_label_from_value(
+                model_data,
+                sub_plot_predictor(),
+                a_value
+              )
             }
-            curve_data$subtitle <- paste0("Your Value = ", b_value)
+            curve_data$subtitle <- list(
+              paste0("Your value = ", a_value),
+              paste0("Reference value = ", b_value)
+            )
 
             elapsed <- Sys.time() - tic
             message(paste0(

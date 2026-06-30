@@ -309,17 +309,20 @@ make_general_plot <- function(
       p <- p +
         ggplot2::scale_y_continuous(transform = transform) +
         ref_line +
+        # title / subtitle are set on the Plotly title in the layout() call
+        # below, not here: ggplotly() drops the ggplot subtitle and the title
+        # is overwritten anyway, so we only set the axis labels.
         ggplot2::labs(
-          title = curve_data$title,
-          subtitle = curve_data$subtitle,
           x = curve_data$x_axis_label,
           y = ylabel
         ) +
         ggplot2::theme_minimal() +
+        # plot.title / plot.subtitle are intentionally not themed here: the
+        # ggplot title is replaced by the Plotly title in the layout() call
+        # below, so any plot.title styling would have no effect. axis.title
+        # is kept because ggplotly() does carry the axis labels over.
         ggplot2::theme(
           legend.position = "right",
-          plot.title = ggplot2::element_text(size = 14, face = "bold"),
-          plot.subtitle = ggplot2::element_text(size = 10, color = "darkgray"),
           axis.title = ggplot2::element_text(size = 11)
         )
 
@@ -344,15 +347,39 @@ make_general_plot <- function(
       }
 
       # ggplotly() drops the ggplot2 subtitle (it only carries the main
-      # title), so build a combined Plotly title that appends the subtitle
-      # as a smaller second line via HTML.
-      plotly_title <- curve_data$title
-      if (!is.null(curve_data$subtitle) && nzchar(curve_data$subtitle)) {
-        plotly_title <- glue::glue(
-          "{curve_data$title}<br>",
-          "<sup><span style='color:darkgray'>{curve_data$subtitle}</span></sup>"
+      # title), so build a combined Plotly title that appends the subtitle(s)
+      # as smaller extra lines via HTML.
+      #
+      # Plotly titles have no line-height control: the vertical gap created
+      # by <br> is driven by the title's *base* font size (set in layout()
+      # below), NOT by the <span> font sizes. We therefore set the base size
+      # small to tighten the gap, and carry the visible sizes in the spans.
+      plotly_title <- glue::glue(
+        "<span style='font-size:18px;'>{curve_data$title}</span>"
+      )
+      num_subtitles <- ifelse(
+        !is.null(curve_data$subtitle) && any(nzchar(curve_data$subtitle)),
+        length(curve_data$subtitle),
+        0
+      )
+      if (num_subtitles > 0) {
+        plotly_title <- paste0(
+          plotly_title,
+          "<br>",
+          "<span style='color:darkgray; font-size:12px;'>",
+          paste0(curve_data$subtitle, collapse = "<br>"),
+          "</span>"
         )
       }
+
+      # ggplotly() only reserves top-margin space for a title when the source
+      # ggplot has one; since the title is added in layout() below, we reserve
+      # that space ourselves or the title is clipped / overlaps the plot. Allow
+      # extra height for the extra lines when subtitle(s) are present. To avoid
+      # changes in layout, we make a heading with a single subtitle (which is
+      # the most common number of subtitles) the same height as a heading with
+      # no subtitle.
+      title_margin <- if (num_subtitles > 0) 55 + (num_subtitles-1) * 25 else 55
 
       # Generate and return the Plotly plot from the ggplot2.
       # Suppress hline traces (labelled "yintercept" by ggplotly) from the
@@ -377,7 +404,20 @@ make_general_plot <- function(
           }
           plt
         })() |>
-        plotly::layout(hovermode = hovermode, title = list(text = plotly_title)) |>
+        # The base title font size controls the <br> line spacing; keep it
+        # small so the title and subtitle lines sit close together. The
+        # visible text sizes come from the <span> styles in plotly_title.
+        plotly::layout(
+          hovermode = hovermode,
+          margin = list(t = title_margin),
+          title = list(
+            text = plotly_title,
+            font = list(size = 12),
+            x = 0,
+            xanchor = "left",
+            xref = "paper"
+          )
+        ) |>
         # Register the click event so plotly::event_data("plotly_click", ...)
         # can retrieve it without emitting an "event ... is not registered"
         # warning.
