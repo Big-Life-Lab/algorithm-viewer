@@ -256,7 +256,11 @@ config_get_algorithm_choices <- function() {
   # are the algorithm IDs
   choices <- .CONFIG$algorithms |>
     lapply(function(x) x$title)
-  choices <- stats::setNames(names(choices), unname(unlist(choices)))
+  # The names become the dropdown labels. Two algorithms can share a title, so
+  # disambiguate duplicates (e.g. "Model", "Model (2)") to keep every label
+  # distinct and the selection unambiguous.
+  titles <- make_string_values_unique(unname(unlist(choices)))
+  choices <- stats::setNames(names(choices), titles)
 
   choices
 }
