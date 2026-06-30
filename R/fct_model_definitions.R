@@ -80,9 +80,10 @@ NULL
 #' @noRd
 #' @keywords internal
 read_model_definitions <- function(file) {
+  # Normalize the file path
   tryCatch(
     {
-      file <- normalizePath(file)
+      file <- normalizePath(file, mustWork = TRUE)
     },
     error = function(e) {
       stop(htmltools::htmlEscape(paste0(
@@ -91,20 +92,17 @@ read_model_definitions <- function(file) {
       )))
     }
   )
-  
-  tryCatch(
-    {
-      schema_file <- system.file(
-        "extdata/schema/algorithm.schema.json",
-        package = utils::packageName()
-      )
-    },
-    error = function(e) {
-      stop("Could not find algorithm JSON schema file in package.")
-    }
-  )
 
-  info <- yaml::read_yaml(file)
+  # Get the JSON schema file, so we can validate the model definitions file.
+  schema_file <- system.file(
+    "extdata/schema/algorithm.schema.json",
+    package = utils::packageName()
+  )
+  if (!nzchar(schema_file)) {
+    stop("Could not find algorithm JSON schema file in package.")
+  }
+
+  # Load and validate the model definitions file
   tryCatch(
     {
       # Load and validate the file
@@ -119,7 +117,6 @@ read_model_definitions <- function(file) {
       ))
     }
   )
-
 
   root_dir <- dirname(file)
 
