@@ -9,10 +9,32 @@ proxy:
   port: 8080
   authentication: none                                # Use 'simple' to enable passwords in the 'users' section
   admin-groups: admins
-  # Example: 'simple' authentication configuration (if "authentication: simple" is set)
+  # Example: 'simple' authentication configuration (if "authentication: simple"
+  # is set).
+  #
+  # Do NOT hard-code real credentials here. ShinyProxy is a Spring Boot
+  # application, so it resolves ${ENV_VAR} placeholders from environment
+  # variables (with an optional ${ENV_VAR:default} fallback). Set a strong
+  # password via an environment variable before starting ShinyProxy, e.g.:
+  #
+  #   export SHINYPROXY_USERNAME=biglifelab
+  #   export SHINYPROXY_PASSWORD='a-strong-secret'
+  #
+  # With Docker, either forward the values already exported in your shell
+  # (the bare "-e NAME" form copies NAME's value from the host shell):
+  #
+  #   docker run -e SHINYPROXY_USERNAME -e SHINYPROXY_PASSWORD ... shinyproxy
+  #
+  # or set them inline with the "-e NAME=value" form:
+  #
+  #   docker run -e SHINYPROXY_USERNAME=biglifelab \
+  #              -e SHINYPROXY_PASSWORD='a-strong-secret' ... shinyproxy
+  #
+  # (or list them under `environment:` in docker-compose.yml). The values are
+  # then substituted below at startup and never committed in plain text.
   users:
-    - name: biglifelab
-      password: password
+    - name: ${SHINYPROXY_USERNAME:biglifelab}
+      password: ${SHINYPROXY_PASSWORD}
       groups: scientist
   docker:
     port-range-start: 20000
