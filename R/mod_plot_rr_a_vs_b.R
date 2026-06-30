@@ -191,6 +191,17 @@ plotRRAvsBServer <- function(
               reference_group = group_b
             )
 
+            # Add the "Me" value to the subtitle
+            b_value <- group_a[[sub_plot_predictor()]]
+            if (is_variable_categorical(model_data, sub_plot_predictor())) {
+              b_value <- get_variable_label_from_value(
+                model_data,
+                sub_plot_predictor(),
+                b_value
+              )
+            }
+            curve_data$subtitle <- paste0("Your Value = ", b_value)
+
             elapsed <- Sys.time() - tic
             message(paste0(
               "Elapsed time for RR curve ", model_data$model_id, ": ", elapsed

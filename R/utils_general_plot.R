@@ -298,7 +298,11 @@ make_general_plot <- function(
 
       # Add general options to the plot
       ref_line <- if (!is.null(show_reference_line)) {
-        ggplot2::geom_hline(yintercept = show_reference_line, linetype = "dashed", color = "gray50")
+        ggplot2::geom_hline(
+          yintercept = show_reference_line,
+          linetype = "dashed"
+          color = "gray50"
+        )
       } else {
         NULL
       }
@@ -307,6 +311,7 @@ make_general_plot <- function(
         ref_line +
         ggplot2::labs(
           title = curve_data$title,
+          subtitle = curve_data$subtitle,
           x = curve_data$x_axis_label,
           y = ylabel
         ) +
@@ -314,7 +319,7 @@ make_general_plot <- function(
         ggplot2::theme(
           legend.position = "right",
           plot.title = ggplot2::element_text(size = 14, face = "bold"),
-          plot.subtitle = ggplot2::element_text(size = 12),
+          plot.subtitle = ggplot2::element_text(size = 10, color = "darkgray"),
           axis.title = ggplot2::element_text(size = 11)
         )
 
@@ -336,6 +341,17 @@ make_general_plot <- function(
         for (cur_p in extra_plot) {
           p <- p + cur_p
         }
+      }
+
+      # ggplotly() drops the ggplot2 subtitle (it only carries the main
+      # title), so build a combined Plotly title that appends the subtitle
+      # as a smaller second line via HTML.
+      plotly_title <- curve_data$title
+      if (!is.null(curve_data$subtitle) && nzchar(curve_data$subtitle)) {
+        plotly_title <- glue::glue(
+          "{curve_data$title}<br>",
+          "<sup><span style='color:darkgray'>{curve_data$subtitle}</span></sup>"
+        )
       }
 
       # Generate and return the Plotly plot from the ggplot2.
@@ -361,7 +377,7 @@ make_general_plot <- function(
           }
           plt
         })() |>
-        plotly::layout(hovermode = hovermode) |>
+        plotly::layout(hovermode = hovermode, title = list(text = plotly_title)) |>
         # Register the click event so plotly::event_data("plotly_click", ...)
         # can retrieve it without emitting an "event ... is not registered"
         # warning.

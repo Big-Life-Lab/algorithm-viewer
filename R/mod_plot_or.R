@@ -397,15 +397,15 @@ plotORServer <- function(
     model_data, interaction_predictor,
     escape_html = TRUE
   )
-  title <- glue::glue(
-    "{predictor_label} [interaction = {interaction_predictor_label}]"
-  )
+  title <- predictor_label
+  subtitle <- paste0("Interaction = ", interaction_predictor_label)
 
   list(
     df = output_df,
     x_axis_label = predictor_label,
     y_axis_label = "Odds Ratio",
     title = title,
+    subtitle = subtitle,
     x_axis_type = ifelse(
       is_variable_categorical(model_data, predictor),
       "Categorical",
