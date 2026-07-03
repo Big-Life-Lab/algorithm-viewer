@@ -1,6 +1,13 @@
-# If TRUE then allow the user to upload their own algorithm files to view
-# Defaults to FALSE
-allow_file_uploads: TRUE
+# Preloaded algorithms. Can be selected from a list (if allow_algorithms_selection is TRUE)
+# or specified in the URL algorithm query parameter (if allow_algorithm_in_url is TRUE)
+# Defaults to NULL
+algorithms:
+  htnport-full:
+    title: "HTNPoRT Full Model"
+    file: models/htnport-full/htnport-full.yaml
+  htnport-reduced:
+    title: "HTNPoRT Reduced Model"
+    file: models/htnport-reduced/htnport-reduced.yaml
 
 # The initial algorithm file to load automatically by default on startup
 # Defaults to NULL
@@ -12,16 +19,9 @@ allow_file_uploads: TRUE
 # Defaults to NULL
 initial_algorithm_id: htnport-full
 
-# Preloaded algorithms. Can be selected from a list (if allow_algorithms_selection is TRUE)
-# or specified in the URL algorithm query parameter (if allow_algorithm_in_url is TRUE)
-# Defaults to NULL
-algorithms:
-  htnport-full:
-    title: "HTNPoRT Full Model"
-    file: models/htnport-full/htnport-full.yaml
-  htnport-reduced:
-    title: "HTNPoRT Reduced Model"
-    file: models/htnport-reduced/htnport-reduced.yaml
+# If TRUE then allow the user to upload their own algorithm files to view
+# Defaults to FALSE
+allow_file_uploads: TRUE
 
 # If TRUE, and there is at least one algorithm in the "algorithms" key,
 # then display a "Preloaded Algorithms" dropdown for the user to

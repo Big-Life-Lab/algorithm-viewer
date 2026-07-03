@@ -8,7 +8,33 @@
 
 An R Shiny application for visualizing health risk prediction algorithms,
 displaying various interactive plots including odds ratio, predicted risk
-curves, and relative risk.
+curves, and relative risk. The app plots algorithms that conform to the [Model
+Parameters](https://github.com/Big-Life-Lab/model-parameters/) format
+developed by Big Life Lab.
+
+## Quick Start
+
+**Requirements:** [R](https://www.r-project.org/) >= 4.1. All R package
+dependencies are installed automatically in the steps below.
+
+Install the package from GitHub and run the app:
+
+```r
+install.packages("remotes")
+remotes::install_github("Big-Life-Lab/algorithm-viewer")
+
+library(algorithm.viewer)
+run_app()
+```
+
+The app opens in your browser, preloaded with the example [Hypertension
+Population Risk Tool (HTNPoRT)](https://github.com/Big-Life-Lab/htnport)
+algorithm.
+
+That's all you need for a standard installation. The [Running the
+App](#running-the-app) section covers everything else: `run_app()` options,
+custom configurations, development mode, and running with Docker or
+ShinyProxy.
 
 ## About
 
@@ -21,21 +47,21 @@ The Algorithm Viewer enables users to examine the relationship between
 predictor variables and risk outcomes through interactive visualizations,
 making complex statistical models more accessible and interpretable.
 
-## Algorithm vs Model
+### Algorithm vs Model
 
 In the context of the Algorithm Viewer, an algorithm is a family of models that
 each perform a similar prediction, using the same set of inputs. A model is an
-instance of the algorithm that can be evaluated. For example, the Hypertension
-Population Risk Tool (HTNPoRT) is an algorithm for predicting risk of
-hypertension. Within HTNPoRT there are two models: one model to perform
-predictions for female individuals, and one for performing predictions for male
-individuals.
+instance of the algorithm that can be evaluated. For example, the [Hypertension
+Population Risk Tool (HTNPoRT)](https://github.com/Big-Life-Lab/htnport) is an
+algorithm for predicting risk of hypertension. Within HTNPoRT there are two
+models: one model to perform predictions for female individuals, and one for
+performing predictions for male individuals.
 
 ## Features
 
 ### Multiple Plot Types
 
-- Interactive plots for odds ratio, relative risk, and predicted risk.
+- Interactive plots for odds ratio, relative risk, and predicted risk
 - Support for both continuous and categorical predictors
 - Visualization of predictor interactions to understand combined effects
 
@@ -50,6 +76,143 @@ individuals.
 
 - Customize reference group values for each model
 - Adjust baseline predictor values using interactive controls
+
+## Running the App
+
+The [Quick Start](#quick-start) above is the standard way to install and run
+the app. This section covers the `run_app()` options and the other ways to
+install and run it. However you install the package, the required R package
+dependencies (listed in the [DESCRIPTION](DESCRIPTION) file) are installed
+automatically.
+
+### Parameters
+
+`run_app()` accepts the following parameters:
+
+| Parameter | Default | Description |
+| --------- | ------- | ----------- |
+| `config` | `NULL` | Path to a YAML configuration file. When `NULL`, the built-in example HTNPoRT configuration (`inst/extdata/config.yaml`) is used. |
+| `port` | `getOption("shiny.port")` | Port number for the Shiny server. |
+| `host` | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server. |
+
+Example — loading a custom app configuration (see
+[Configuration](#configuration) for the file format):
+
+```r
+library(algorithm.viewer)
+run_app(config = "path/to/my-config.yaml")
+```
+
+Example — running in Docker or hosting on your local network:
+
+```r
+run_app(host = "0.0.0.0", port = 3838)
+```
+
+### Installing from a Local Copy
+
+If you have cloned or downloaded this repository, you can install the package
+from your local copy instead of from GitHub:
+
+```r
+install.packages("remotes")
+remotes::install_local("path/to/algorithm-viewer")
+```
+
+Then load and run the app as in the [Quick Start](#quick-start).
+
+### Development Mode
+
+To run without installing (e.g. while actively editing source files), clone
+this repository and install the dependencies:
+
+```r
+install.packages(c("remotes", "devtools"))
+remotes::install_deps("path/to/algorithm-viewer", dependencies = TRUE)
+```
+
+Then, with your working directory at the root of the repository, load all
+source files and start the app:
+
+```r
+devtools::load_all()
+run_app()
+```
+
+To run the unit tests:
+
+```r
+devtools::test()
+```
+
+### With Docker
+
+From a clone of this repository, build and run using Docker Compose:
+
+```bash
+docker compose up --build
+```
+
+Or build and run manually:
+
+```bash
+docker build -t algorithm-viewer .
+docker run -p 3838:3838 algorithm-viewer
+```
+
+Then open <http://localhost:3838> in your browser.
+
+### With ShinyProxy
+
+ShinyProxy can serve the app as a multi-user deployment. A sample
+`application.yml` configuration file is included in the package root.
+
+This requires a Java runtime environment and Docker to be running. For details
+on installing these refer to the [ShinyProxy Getting Started
+Guide](https://www.shinyproxy.io/documentation/getting-started/).
+
+## Configuration
+
+The app uses two types of YAML files.
+
+### App Configuration
+
+The app configuration file is passed to `run_app(config = ...)`. It declares
+which algorithms are available and controls feature flags:
+
+```yaml
+# Algorithms available for selection or URL access
+algorithms:
+  my_algorithm:
+    title: My Algorithm
+    file: path/to/my-algorithm.yaml
+
+# Algorithm to load on startup (matches a key in algorithms)
+initial_algorithm_id: my_algorithm
+
+# Feature flags (all optional)
+allow_file_uploads: false       # allow users to upload their own algorithm
+allow_algorithms_selection: true # show a dropdown to switch algorithms
+allow_algorithm_in_url: true    # allow ?algorithm=<id> in the URL
+```
+
+For a working example, see the built-in configuration at
+[inst/extdata/config.yaml](inst/extdata/config.yaml).
+
+### Algorithm YAML
+
+Each algorithm is defined in its own YAML file, referenced from the app
+configuration above. The algorithm YAML specifies model metadata, data file
+paths, reference group defaults, and predictor allowable values. The data
+files it references are CSV files that conform to the [Model
+Parameters](https://github.com/Big-Life-Lab/model-parameters/) format
+developed by Big Life Lab, which specifies how input variables are transformed
+to obtain the final output values that are plotted.
+
+See the [Algorithm Viewer Configuration
+Specification](specs/CONFIG_SPECIFICATION.md) for the full algorithm YAML
+format, and [inst/extdata/models/](inst/extdata/models/) for the example
+HTNPoRT algorithm files.
 
 ## Project Structure
 
@@ -105,124 +268,6 @@ algorithm-viewer/
 └── DESCRIPTION                              # R package metadata and dependencies
 ```
 
-## Configuration
-
-The app uses two types of YAML files.
-
-### App Configuration
-
-The app configuration file is passed to `run_app(config = ...)`. It declares
-which algorithms are available and controls feature flags:
-
-```yaml
-# Algorithms available for selection or URL access
-algorithms:
-  my_algorithm:
-    title: My Algorithm
-    file: path/to/my-algorithm.yaml
-
-# Algorithm to load on startup (matches a key in algorithms)
-initial_algorithm_id: my_algorithm
-
-# Feature flags (all optional)
-allow_file_uploads: false       # allow users to upload their own algorithm
-allow_algorithms_selection: true # show a dropdown to switch algorithms
-allow_algorithm_in_url: true    # allow ?algorithm=<id> in the URL
-```
-
-### Algorithm YAML
-
-Each algorithm is defined in its own YAML file, referenced from the app
-configuration above. The algorithm YAML specifies model metadata, data file
-paths, reference group defaults, and predictor allowable values.
-
-See the [Algorithm Viewer Configuration
-Specification](specs/CONFIG_SPECIFICATION.md) for the full algorithm YAML
-format.
-
-## Running the App
-
-### Parameters
-
-`run_app()` accepts the following parameters:
-
-| Parameter | Default | Description |
-| --------- | ------- | ----------- |
-| `config` | `NULL` | Path to a YAML configuration file. When `NULL`, the built-in example HTNPoRT configuration (`inst/extdata/config.yaml`) is used. |
-| `port` | `getOption("shiny.port")` | Port number for the Shiny server. |
-| `host` | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server. |
-
-Example — loading a custom app configuration:
-
-```r
-library(algorithm.viewer)
-run_app(config = "path/to/my-config.yaml")
-```
-
-Example — running in Docker or hosting on your local network:
-
-```r
-run_app(host = "0.0.0.0", port = 3838)
-```
-
-### Locally
-
-Install the package from GitHub:
-
-```r
-remotes::install_github("Big-Life-Lab/algorithm-viewer")
-```
-
-Or install from a local copy of the repository:
-
-```r
-remotes::install_local("path/to/algorithm-viewer")
-```
-
-Then run the app:
-
-```r
-library(algorithm.viewer)
-run_app()
-```
-
-#### Development Mode
-
-To run without installing (e.g. while actively editing source files), make sure
-your working directory is at the root of the local repository, then load all
-source files and call `run_app()` directly:
-
-```r
-devtools::load_all()
-run_app()
-```
-
-### With Docker
-
-Build and run using Docker Compose:
-
-```bash
-docker compose up --build
-```
-
-Or build and run manually:
-
-```bash
-docker build -t algorithm-viewer .
-docker run -p 3838:3838 algorithm-viewer
-```
-
-Then open `http://localhost:3838` in your browser.
-
-### With ShinyProxy
-
-ShinyProxy can serve the app as a multi-user deployment. A sample
-`application.yml` configuration file is included in the package root.
-
-This requires a Java runtime environment and Docker to be running. For details
-on installing these refer to the [ShinyProxy Getting Started
-Guide](https://www.shinyproxy.io/documentation/getting-started/).
-
 ## Deployment
 
 The [Deployment Specification](specs/DEPLOYMENT.md) is a planning document that
@@ -231,23 +276,7 @@ including a public web application, a hosted algorithm showcase for sharing
 models via URL, and a local development tool for scientists building
 algorithms.
 
-## Requirements
-
-### R Version
-
-- R >= 4.1
-
-### Required Packages
-
-See the [DESCRIPTION](DESCRIPTION) file for a list of required packages.
-
-Install all dependencies:
-
-```r
-install.packages("remotes")
-remotes::install_deps(".")
-```
-
 ## License
 
-This project is developed by Project Big Life at The Ottawa Hospital.
+This project is developed by Project Big Life at The Ottawa Hospital and is
+released under the MIT License. See the [LICENSE](LICENSE) file for details.
