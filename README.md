@@ -255,16 +255,23 @@ algorithm-viewer/
 │   │   ├── algorithm.schema.json            # JSON Schema for algorithm YAML files
 │   │   └── config.schema.json               # JSON Schema for config YAML files
 │   └── www/                                 # Static web assets (CSS, favicons)
+├── man/                                     # Generated R documentation (roxygen2)
 ├── specs/
 │   ├── CONFIG_SPECIFICATION.md              # Configuration file specification
 │   ├── DEPLOYMENT.md                        # Deployment options planning document
+│   ├── DOCUMENTATION-PLAN.md                # Initial documentation plan
+│   ├── DOCUMENTATION-TOC.md                 # Documentation table-of-contents
+│   ├── DOCUMENTATION-WRITING-PLAN.md        # Documentation writing plan
 │   └── INDIVIDUAL_VS_REFERENCE_SPEC.md      # Individual vs reference predictor spec
 ├── tests/
-│   └── testthat/                            # Unit tests
+│   └── testthat/                            # Unit tests (+ helper-* fixtures)
+├── .github/workflows/                       # CI/CD (R CMD check, Docker publish, shinylive deploy)
 ├── app.R                                    # Shiny app wrapper (for deployment)
 ├── application.yml                          # ShinyProxy configuration
 ├── Dockerfile                               # Docker build instructions
 ├── docker-compose.yml                       # Docker Compose configuration
+├── _pkgdown.yml                             # pkgdown documentation site configuration
+├── NAMESPACE                                # Generated package namespace (roxygen2)
 └── DESCRIPTION                              # R package metadata and dependencies
 ```
 
