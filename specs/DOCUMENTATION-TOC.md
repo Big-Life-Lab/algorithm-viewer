@@ -17,6 +17,7 @@ Viewer documentation. It is based on the Divio documentation framework
   Repository
 - How to run the Algorithm Viewer as a Docker Container
 - How to run the Algorithm Viewer with ShinyProxy
+- How to use Watchtower to automatically update a web app when changes are made
 
 ## Discussions
 
