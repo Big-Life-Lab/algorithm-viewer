@@ -1,0 +1,141 @@
+# View your own algorithms in the Algorithm Viewer
+
+**Audience:** Anyone who has an algorithm in [Model
+Parameters](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-model-parameters.md)
+format and wants to view it, instead of the built-in HTNPoRT example.
+
+**Prerequisites:** The Algorithm Viewer installed and running
+([Installing](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-installing.md),
+[Running](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-running.md));
+an algorithm in Model Parameters format.
+
+------------------------------------------------------------------------
+
+## The one constraint to know first: the files must be local
+
+> **The Algorithm Viewer reads algorithm files from your local disk. It
+> cannot read an algorithm directly from a GitHub URL.**
+
+If your algorithm lives in a GitHub repository (as HTNPoRT does), you
+must **clone or download that repository to your computer first**, so
+that the viewer can read its model export CSVs and the other Model
+Parameters files from the filesystem. Pointing the viewer at a
+`https://github.com/...` address will not work.
+
+``` bash
+git clone https://github.com/your-org/your-algorithm.git
+```
+
+Everything below assumes the algorithm’s files are already on your local
+disk.
+
+## Two ways to load your own algorithm
+
+| Method                       | When to use it                                                                                      | Requires editing a config file? |
+|------------------------------|-----------------------------------------------------------------------------------------------------|---------------------------------|
+| **A. Upload through the UI** | Quick, one-off viewing of a single algorithm you can package as an archive.                         | No                              |
+| **B. A configuration file**  | You want the algorithm (or several) preloaded every time, or to control the viewer’s feature flags. | Yes                             |
+
+## Method A — Upload an algorithm archive
+
+This works only when the running installation permits uploads
+(`allow_file_uploads: TRUE` in its configuration — the built-in example
+enables it). If the upload control is not visible, the administrator has
+disabled it, and you must use Method B.
+
+1.  Package your algorithm as an archive — a `.zip`, `.tar`, or `.gz` —
+    containing the algorithm YAML file and all the Model Parameters CSVs
+    it references, with the same relative directory layout the YAML
+    expects.
+2.  In the running app, open the **Models** tab in the sidebar.
+3.  Next to **Upload Algorithm**, click **Browse** and select your
+    archive.
+4.  Once it loads, the algorithm name and version appear in the title
+    bar and its models are listed as checkboxes.
+
+The maximum upload size is 30 MB. Uploaded data is used only for your
+current session and is not persisted.
+
+## Method B — Point a configuration file at your algorithm
+
+This is the durable way to load one or more algorithms every time you
+start the app.
+
+### 1. Make sure the algorithm’s files are on disk
+
+As stated above, clone or download the algorithm so its YAML and CSV
+files exist locally. Note the path to the algorithm’s YAML definition
+file — for example:
+
+    /Users/you/projects/my-algorithm/my-algorithm.yaml
+
+If you do not yet have an algorithm YAML file, see [Add Algorithm Viewer
+configurations to your own Model Parameters
+repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md)
+for how to create one, and the [Algorithm configuration
+reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md)
+for its full format.
+
+### 2. Write an application configuration file
+
+Create a `config.yaml` that lists your algorithm(s). Paths in this file
+are resolved **relative to the config file’s own location**, so keep the
+config file near your algorithm files, or use absolute paths.
+
+``` yaml
+# my-config.yaml
+algorithms:
+  my-algorithm:
+    title: "My Algorithm"
+    file: my-algorithm/my-algorithm.yaml
+
+# Load this algorithm on startup (must match a key under 'algorithms')
+initial_algorithm_id: my-algorithm
+
+# Feature flags (all optional)
+allow_file_uploads: false        # hide the upload control
+allow_algorithms_selection: true # show the "Preloaded Algorithms" dropdown
+allow_algorithm_in_url: true     # allow ?algorithm=<id> in the URL
+```
+
+You can list as many algorithms under `algorithms:` as you like. The
+full format, including every field and its default, is documented in the
+[Application configuration
+reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md).
+
+### 3. Launch the app with your configuration
+
+Pass the path to your config file to
+[`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md):
+
+``` r
+library(algorithm.viewer)
+run_app(config = "path/to/my-config.yaml")
+```
+
+The app opens with your algorithm loaded instead of HTNPoRT.
+
+## Troubleshooting
+
+- **“File not found” or the algorithm fails to load.** A path in the
+  config or the algorithm YAML points somewhere that does not exist.
+  Remember that `file:` in the config and `model_export:` in the
+  algorithm YAML are resolved relative to *their own* file’s directory,
+  and that the referenced files must exist locally — not on GitHub.
+- **A validation error appears on startup.** The config file is checked
+  against a schema. The error message names the offending field;
+  cross-check it against the [Application configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md).
+- **The upload control is missing.** The installation has
+  `allow_file_uploads` set to `false`. Use Method B, or enable uploads
+  in the config.
+
+## Next steps
+
+- [Add Algorithm Viewer configurations to your own Model Parameters
+  repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md)
+  — set your repo up so it can be loaded directly.
+- [Application configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md)
+  and [Algorithm configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md).

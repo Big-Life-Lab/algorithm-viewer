@@ -1,0 +1,262 @@
+# Algorithm configuration
+
+**Audience:** Anyone writing the YAML file that defines an algorithm and
+its models.
+
+This page documents the **algorithm configuration** file — the YAML that
+defines one algorithm, its models, their data files, reference-group
+defaults, and predictor allowable values. It is the file referenced by
+`file:` in the [application
+configuration](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md),
+or uploaded through the app.
+
+Each algorithm file is validated against a JSON Schema
+(`inst/extdata/schema/algorithm.schema.json`); unknown fields are
+rejected.
+
+------------------------------------------------------------------------
+
+## File structure
+
+``` yaml
+meta:
+  algorithm: <string>
+  version: <string>
+
+models:
+  <model_id>:
+    title: <string>
+    model_export: <path>
+    model_color: <color>            # optional
+    reference_group:
+      <variable>: <value>
+      ...
+    predictor_allowable_values:     # optional
+      <variable>: <value_expression>
+      ...
+  _all_:                            # optional shared defaults
+    ...
+```
+
+The two required top-level keys are `meta` and `models`.
+
+## `meta`
+
+Algorithm metadata, displayed in the application title bar.
+
+| Field       | Type   | Required | Description                                         |
+|-------------|--------|----------|-----------------------------------------------------|
+| `algorithm` | string | Yes      | Name of the algorithm (e.g. `HTNPoRT Full`).        |
+| `version`   | string | Yes      | Version of the algorithm definition (e.g. `1.0.0`). |
+
+``` yaml
+meta:
+  algorithm: HTNPoRT Full
+  version: 1.0.0
+```
+
+## `models`
+
+A map of model entries. Each key is an arbitrary **model identifier**;
+define as many models as you need. The special key `_all_` is not a
+model — it supplies shared defaults (see
+[`_all_`](#the-_all_-shared-block) below).
+
+### Fields of a model entry
+
+| Field                        | Type   | Required | Description                                                                                             |
+|------------------------------|--------|----------|---------------------------------------------------------------------------------------------------------|
+| `title`                      | string | Yes      | Display name shown in radio buttons and headings.                                                       |
+| `model_export`               | path   | Yes      | Path (relative to this YAML file’s directory) to the model export CSV.                                  |
+| `reference_group`            | map    | Yes\*    | Default baseline values for each variable.                                                              |
+| `model_color`                | string | No       | Colour for this model’s plots. If omitted, a colour is assigned automatically from the viridis palette. |
+| `predictor_allowable_values` | map    | No       | Allowable values for specific predictors (x-axis values and control ranges).                            |
+
+\* `reference_group` is required for a usable model; it may be supplied
+on the model itself or inherited from `_all_`.
+
+``` yaml
+models:
+  female:
+    title: Female
+    model_export: ./female-full/HTNPoRT-full-female-model-export.csv
+    reference_group:
+      hwmdbmi: 14.9
+    predictor_allowable_values:
+      hwmdbmi:
+        seq:
+          from: 14.9
+          to: 49
+          by: 0.1
+```
+
+### `model_export`
+
+A path — relative to the algorithm YAML file’s own directory — to the
+model export CSV. This CSV catalogs all the data files the model needs
+and specifies how input variables are transformed into the plotted
+output values. Its format and the format of the files it references are
+part of the [Model
+Parameters](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-model-parameters.md)
+specification; see the [Model Parameters file
+documentation](https://big-life-lab.github.io/model-parameters/2-model-parameter-files.html).
+
+### `model_color`
+
+An optional colour for the model’s curves. Accepts a CSS hex colour (3,
+4, 6, or 8 hex digits, e.g. `#21908C` or `#440154FF`) or a CSS named
+colour (e.g. `red`, `steelblue`). If omitted, the viewer assigns a
+colour automatically from the viridis palette.
+
+### `reference_group`
+
+Default baseline (“reference patient”) values used as the reference
+point for odds ratio and relative risk calculations, and as the initial
+values of the sidebar controls. Each key is a variable name; each value
+is that variable’s baseline.
+
+- **Variable names** must match the variable names in the model’s
+  variables file.
+- **Continuous variables** take a numeric value within the allowable
+  range.
+- **Categorical variables** take the value that represents the category
+  as the *untransformed input* to the pipeline — an integer if the input
+  uses integer codes, a string if the input uses string categories.
+
+The values here are only defaults; users can change the reference group
+in the UI.
+
+``` yaml
+reference_group:
+  clc_age: 20        # age 20 as baseline
+  fmh_15: 2          # family-history category 2
+  hwmdbmi: 13.83     # BMI 13.83 as baseline
+  diabx: 2           # diabetes category 2
+```
+
+### `predictor_allowable_values`
+
+Defines the values shown on a plot’s x-axis and offered in the sidebar
+controls for a predictor. If omitted for a predictor, allowable values
+are derived from the model’s `variable-details.csv`. **Values specified
+here take precedence** over the CSV-derived ones. If the allowable
+values cannot be determined from `variable-details.csv`, they must be
+specified here. For categorical variables, use the same type (integer or
+string) expected as the untransformed pipeline input.
+
+Two forms are accepted:
+
+**1. A `seq` specification** — generates a numeric sequence, equivalent
+to R’s [`seq()`](https://rdrr.io/r/base/seq.html). Requires `from` and
+`to`; use *either* `by` (step size) *or* `length.out` (number of
+values), not both.
+
+``` yaml
+hwmdbmi:
+  # seq(from = 13, to = 49, by = 0.01) → 13.00, 13.01, ..., 49.00
+  seq:
+    from: 13
+    to: 49
+    by: 0.01
+clc_age:
+  # seq(from = 20, to = 79, length.out = 5) → 20.00, 34.75, 49.50, 64.25, 79.00
+  seq:
+    from: 20
+    to: 79
+    length.out: 5
+```
+
+**2. An explicit array** — an inline list of allowable values (numbers
+for continuous, numbers or strings for categorical).
+
+``` yaml
+diabx: [1, 2]
+fmh_15: [1, 2]
+```
+
+## The `_all_` shared block
+
+`_all_` is a special key under `models` that defines configuration
+**shared** by every model. Its values are merged into each named model,
+but a value already set on a model takes precedence over the one in
+`_all_`. `_all_` does not itself appear as a model in the UI.
+
+Merging applies to every key `_all_` defines — not only
+`predictor_allowable_values`. This lets you write shared reference-group
+values or allowable-value sequences once.
+
+``` yaml
+models:
+  male:
+    title: Male
+    model_export: ./HTNPoRT-male-model-export.csv
+    predictor_allowable_values:
+      hwmdbmi:
+        seq: { from: 13, to: 49, by: 0.01 }
+  female:
+    title: Female
+    model_export: ./HTNPoRT-female-model-export.csv
+    predictor_allowable_values:
+      hwmdbmi:
+        seq: { from: 13, to: 49, by: 0.01 }
+      clc_age:
+        seq: { from: 15, to: 85 }
+  _all_:
+    predictor_allowable_values:
+      clc_age:
+        seq: { from: 20, to: 80 }
+```
+
+Here `male` has no `clc_age` under `predictor_allowable_values`, so it
+inherits `clc_age: seq(20, 80)` from `_all_`. `female` already defines
+its own `clc_age`, so it keeps `seq(15, 85)` and does **not** inherit
+from `_all_`.
+
+**Inheritance rules:**
+
+- Settings in `_all_` are copied into each model.
+- Model-specific settings override `_all_` settings.
+
+## Complete example
+
+``` yaml
+meta:
+  algorithm: HTNPoRT
+  version: 1.0.0
+
+models:
+  male:
+    title: Male
+    model_export: ./HTNPoRT-male-model-export.csv
+    reference_group:
+      clc_age: 20
+      fmh_15: 2
+      hwmdbmi: 13.83
+      diabx: 2
+  female:
+    title: Female
+    model_export: ./HTNPoRT-female-model-export.csv
+    reference_group:
+      clc_age: 20
+      fmh_15: 2
+      hwmdbmi: 14.9
+      diabx: 2
+  _all_:
+    predictor_allowable_values:
+      hwmdbmi:
+        seq:
+          from: 13
+          to: 49
+          by: 0.01
+```
+
+## Related
+
+- [Application configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md)
+  — the file that references algorithm files.
+- [What is Model
+  Parameters?](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-model-parameters.md)
+  — the format the `model_export` files conform to.
+- [Add Algorithm Viewer configurations to your own Model Parameters
+  repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md).

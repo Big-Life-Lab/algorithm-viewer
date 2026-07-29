@@ -1,0 +1,147 @@
+# Application configuration
+
+**Audience:** Anyone writing the configuration file passed to
+[`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md).
+
+This page documents the **application configuration** file — the YAML
+file passed as `run_app(config = ...)` that declares which algorithms
+are available and sets the viewer’s feature flags. For the format of an
+individual algorithm’s definition, see the [Algorithm configuration
+reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md).
+
+The file is validated on startup against a JSON Schema
+(`inst/extdata/schema/config.schema.json`); unknown fields are rejected.
+When `config = NULL`, the built-in example at `inst/extdata/config.yaml`
+is used.
+
+------------------------------------------------------------------------
+
+## Top-level fields
+
+| Field                        | Type    | Required | Default | Description                                                                                                           |
+|------------------------------|---------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
+| `algorithms`                 | map     | No       | —       | Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.                    |
+| `initial_algorithm_file`     | string  | No       | —       | Path to an algorithm file to load on startup. If set, `initial_algorithm_id` is ignored.                              |
+| `initial_algorithm_id`       | string  | No       | —       | Key of an algorithm in `algorithms` to load on startup. Ignored if `initial_algorithm_file` is set.                   |
+| `allow_file_uploads`         | boolean | No       | `false` | If `true`, show the control that lets users upload their own algorithm archives.                                      |
+| `allow_algorithms_selection` | boolean | No       | `true`  | If `true` **and** at least one algorithm is defined, show a “Preloaded Algorithms” dropdown.                          |
+| `allow_algorithm_in_url`     | boolean | No       | `true`  | If `true` **and** algorithms are defined, allow selecting an algorithm via the `?algorithm=<id>` URL query parameter. |
+
+All fields are optional. A config file may legitimately define no
+algorithms at all (for example, an upload-only deployment with
+`allow_file_uploads: true`).
+
+## `algorithms`
+
+A map from an **algorithm identifier** (the key) to an entry describing
+a preloaded algorithm. Define as many as you like.
+
+| Field   | Type   | Required | Description                                          |
+|---------|--------|----------|------------------------------------------------------|
+| `title` | string | Yes      | Human-readable display name (shown in the dropdown). |
+| `file`  | string | Yes      | Path to the algorithm’s YAML definition file.        |
+
+``` yaml
+algorithms:
+  htnport-full:
+    title: "HTNPoRT Full Model"
+    file: models/htnport-full/htnport-full.yaml
+  htnport-reduced:
+    title: "HTNPoRT Reduced Model"
+    file: models/htnport-reduced/htnport-reduced.yaml
+```
+
+**Path resolution.** A relative `file:` path is resolved relative to the
+directory containing the config file itself. Absolute paths are used as
+given. The referenced files must exist on the local filesystem — the
+viewer does not read algorithm files from remote URLs.
+
+**Identifiers.** The key (e.g. `htnport-full`) is the value used in the
+`?algorithm=` URL parameter and in `initial_algorithm_id`. Titles may
+repeat; the dropdown disambiguates duplicate titles automatically, but
+keys must be unique (they are YAML map keys).
+
+## Choosing the startup algorithm
+
+The algorithm loaded on startup is resolved in this order:
+
+1.  `initial_algorithm_file`, if set (an explicit path).
+2.  otherwise `initial_algorithm_id`, if set (a key in `algorithms`).
+3.  otherwise the **first** algorithm defined in `algorithms`.
+
+If none of these yields a loadable file, the app starts without a
+preloaded algorithm (the user then uploads or selects one, if
+permitted).
+
+``` yaml
+# Load a specific preloaded algorithm on startup
+initial_algorithm_id: htnport-full
+```
+
+``` yaml
+# Or load an algorithm file directly (takes precedence over initial_algorithm_id)
+initial_algorithm_file: models/htnport-reduced/htnport-reduced.yaml
+```
+
+## Feature flags
+
+### `allow_file_uploads`
+
+Default `false`. When `true`, the **Upload Algorithm** control appears
+in the Models tab and users can load their own algorithm archives
+(`.zip`, `.tar`, `.gz`, up to 30 MB). Set it to `false` for a “showcase”
+deployment that exposes only the algorithms you bundled.
+
+### `allow_algorithms_selection`
+
+Default `true`. When `true` **and** `algorithms` contains at least one
+entry, the “Preloaded Algorithms” dropdown is shown so users can switch
+between the bundled algorithms. With no algorithms defined, there is
+nothing to select and the dropdown does not appear regardless of this
+flag.
+
+### `allow_algorithm_in_url`
+
+Default `true`. When `true` **and** algorithms are defined, a user can
+choose which preloaded algorithm to load by adding an `algorithm` query
+parameter to the URL, whose value is an algorithm identifier (a key in
+`algorithms`):
+
+    http://example.com/?algorithm=htnport-reduced
+
+This is the mechanism for linking directly to a specific algorithm —
+useful for publications and sharing.
+
+## Complete example
+
+The built-in configuration (`inst/extdata/config.yaml`):
+
+``` yaml
+algorithms:
+  htnport-full:
+    title: "HTNPoRT Full Model"
+    file: models/htnport-full/htnport-full.yaml
+  htnport-reduced:
+    title: "HTNPoRT Reduced Model"
+    file: models/htnport-reduced/htnport-reduced.yaml
+
+initial_algorithm_id: htnport-full
+
+allow_file_uploads: true
+allow_algorithms_selection: true
+allow_algorithm_in_url: true
+```
+
+## Related
+
+- [Algorithm configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md)
+  — the format of each file referenced under `algorithms`.
+- [View your own
+  algorithms](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.md)
+  — using a config file in practice.
+- [R API
+  reference](https://big-life-lab.github.io/algorithm-viewer/reference/index.md)
+  —
+  [`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
+  and its `config` argument.

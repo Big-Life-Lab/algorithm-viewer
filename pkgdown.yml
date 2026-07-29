@@ -1,0 +1,22 @@
+pandoc: 3.1.11
+pkgdown: 2.2.1
+pkgdown_sha: ~
+articles:
+  algorithm.viewer: algorithm.viewer.html
+  explanation-model-parameters: explanation-model-parameters.html
+  explanation-publications: explanation-publications.html
+  explanation-why: explanation-why.html
+  howto-add-viewer-configs: howto-add-viewer-configs.html
+  howto-docker: howto-docker.html
+  howto-shinyproxy: howto-shinyproxy.html
+  howto-view-your-algorithms: howto-view-your-algorithms.html
+  howto-watchtower: howto-watchtower.html
+  reference-algorithm-configuration: reference-algorithm-configuration.html
+  reference-app-configuration: reference-app-configuration.html
+  tutorial-htnport: tutorial-htnport.html
+  tutorial-installing: tutorial-installing.html
+  tutorial-running: tutorial-running.html
+last_built: 2026-07-29T22:51Z
+urls:
+  reference: https://big-life-lab.github.io/algorithm-viewer/reference
+  article: https://big-life-lab.github.io/algorithm-viewer/articles
