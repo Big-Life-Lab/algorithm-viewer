@@ -12,11 +12,11 @@ Viewer documentation. It is based on the Divio documentation framework
 
 ## How-To Guides
 
-- How to run the Algorithm Viewer as a Docker Container
-- How to run the Algorithm Viewer with ShinyProxy
 - How to view your own algorithms in the Algorithm Viewer
 - How to add Algorithm Viewer configurations to your own Model Parameters-based
   Repository
+- How to run the Algorithm Viewer as a Docker Container
+- How to run the Algorithm Viewer with ShinyProxy
 
 ## Discussions
 
