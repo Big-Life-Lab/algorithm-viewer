@@ -3,3 +3,4 @@ services:
     build: .
     ports:
       - "3838:3838"
+    restart: unless-stopped
