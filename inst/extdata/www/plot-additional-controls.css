@@ -1,0 +1,79 @@
+/*
+Styles applied to the .plot-additional-controls containers with config options for each plot.
+eg. Logarithmic checkbox, predictor dropdown, interaction predictor dropdown, etc.
+Add the class .plot-additional-controls to the containing element (eg. a div).
+The class is added automatically by plot_additional_controls_container in
+utils_plot_additional_controls.R.
+*/
+
+/* Top-level container */
+.plot-additional-controls {
+  margin-bottom: 12px;
+}
+
+/* Style for selectInput */
+.plot-additional-controls .selectize-input {
+  width: max-content;
+  padding-right: 40px;    /* Add padding so the dropdown arrow doesn't overlap the text */
+}
+
+/* Remove bottom margin from controls */
+.plot-additional-controls .form-group {
+  margin-bottom: 0;
+}
+
+/* For vertically centering checkboxes and radio buttons */
+.plot-additional-controls .checkbox, .plot-additional-controls .radio {
+  margin: 8px 0;
+}
+
+/* Add horizontal padding between top-level td (ie. the main columns) */
+.plot-additional-controls > table > tbody > tr > td {
+  padding: 0px 10px 0px 0px;
+}
+
+/* Remove horizontal padding from last top-level td (ie. the last column) */
+.plot-additional-controls > table > tbody > tr > td:last {
+  padding: 0px 0px 0px 0;
+}
+
+/*
+Click/hover help tooltip used by plot_additional_controls_dropdown (the help
+icon next to a dropdown label). The wrapper is keyboard-focusable, so clicking
+or tapping the icon focuses it and reveals the text; clicking elsewhere blurs
+it and hides the text again. No JavaScript required.
+*/
+.apc-help {
+  position: relative;
+  display: inline-block;
+  margin-left: 4px;
+  color: #888;
+  cursor: pointer;
+  outline: none;
+}
+
+.apc-help-text {
+  display: none;
+  position: absolute;
+  z-index: 1060;            /* sit above the plotly plot below the controls */
+  left: 0;
+  top: 100%;
+  margin-top: 6px;
+  width: 240px;
+  padding: 8px 10px;
+  background: #333;
+  color: #fff;
+  /* The label cell is bold and nowrap; reset both for readable tooltip text. */
+  font-weight: 400;
+  white-space: normal;
+  font-size: 12px;
+  line-height: 1.4;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.apc-help:hover .apc-help-text,
+.apc-help:focus .apc-help-text,
+.apc-help:focus-within .apc-help-text {
+  display: block;
+}

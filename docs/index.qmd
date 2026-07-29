@@ -1,6 +1,0 @@
----
-title: "Algorithm Viewer"
----
-
-Welcome to the documentation for the Algorithm Viewer project.
-

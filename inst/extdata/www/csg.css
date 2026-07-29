@@ -1,0 +1,36 @@
+/*
+Styles for continuous_slider_group.R
+*/
+
+.csg-sliders-grid {
+  display: grid;
+  /* grid-template-columns is set via inline style */
+  column-gap: 8px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.csg-group-label {
+  font-size: 0.9em;
+  white-space: nowrap;
+}
+
+.csg-slider-wrapper {
+  min-width: 0;
+}
+
+.csg-sliders-grid .shiny-input-container {
+  width: 100% !important;
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.csg-edit-wrapper .shiny-input-container {
+  width: 60px !important;
+}
+
+.csg-edit-wrapper input[type="number"] {
+  font-size: 0.9em;
+  padding: 4px 5px;
+  height: auto;
+}

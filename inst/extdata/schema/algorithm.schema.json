@@ -1,0 +1,166 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "$id": "algorithm.schema.json",
+  "title": "Algorithm Definition",
+  "description": "Schema for an algorithm definition YAML file, which specifies meta information and one or more statistical models.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["meta", "models"],
+  "properties": {
+    "meta": {
+      "type": "object",
+      "description": "Meta information about the algorithm.",
+      "additionalProperties": false,
+      "required": ["algorithm", "version"],
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "description": "Human-readable name of the algorithm.",
+          "examples": ["HTNPoRT Full", "HTNPoRT Reduced"]
+        },
+        "version": {
+          "type": "string",
+          "description": "Version of the algorithm definition.",
+          "examples": ["1.0.0"]
+        }
+      }
+    },
+    "models": {
+      "type": "object",
+      "description": "Map of model entries. Keys are arbitrary model identifiers. The special key '_all_' defines shared configuration that is merged into every other model (without overwriting values already set on the model).",
+      "minProperties": 1,
+      "properties": {
+        "_all_": {
+          "$ref": "#/$defs/shared_model_config",
+          "description": "Shared configuration applied to all models. Values here are copied to each named model unless that model already defines them."
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/model_entry"
+      }
+    }
+  },
+  "$defs": {
+    "seq_spec": {
+      "type": "object",
+      "description": "Parameters for R's seq() function. Must include 'from' and 'to'; use either 'by' (step size) or 'length.out' (number of values).",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {
+          "type": "number",
+          "description": "Start of the sequence."
+        },
+        "to": {
+          "type": "number",
+          "description": "End of the sequence."
+        },
+        "by": {
+          "type": "number",
+          "description": "Step size between values. May be negative when 'from' > 'to'. Mutually exclusive with 'length.out'.",
+          "not": {"enum": [0]}
+        },
+        "length.out": {
+          "type": "number",
+          "description": "Desired number of values in the sequence. Mutually exclusive with 'by'.",
+          "minimum": 1
+        }
+      }
+    },
+    "predictor_allowable_values": {
+      "type": "object",
+      "description": "Map of predictor variable names to their allowable input values. If omitted for a predictor, allowable values are derived from the variable-details CSV. Specified values take precedence over the CSV-derived ones.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "object",
+            "description": "A seq() specification that generates a numeric sequence.",
+            "additionalProperties": false,
+            "required": ["seq"],
+            "properties": {
+              "seq": {
+                "$ref": "#/$defs/seq_spec"
+              }
+            }
+          },
+          {
+            "type": "array",
+            "description": "An explicit list of allowable values. Use numbers for continuous variables and numbers or strings for categorical variables.",
+            "items": {
+              "oneOf": [
+                {"type": "number"},
+                {"type": "string"}
+              ]
+            },
+            "minItems": 1
+          }
+        ]
+      }
+    },
+    "reference_group": {
+      "type": "object",
+      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs (e.g. odds ratios). These set the initial slider/radio-button values in the UI.",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "type": "number",
+            "description": "Reference value for a continuous predictor variable."
+          },
+          {
+            "type": "string",
+            "description": "Reference value for a categorical predictor variable."
+          }
+        ]
+      }
+    },
+    "model_color": {
+      "type": "string",
+      "description": "Color used when displaying this model. Accepts CSS hex colors (e.g. '#440154FF', '#21908C') or CSS named colors (e.g. 'red'). If omitted, a color is assigned automatically from the viridis palette.",
+      "pattern": "^(#([0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})|[A-Za-z]+)$",
+      "examples": ["#440154FF", "#21908CFF", "red", "steelblue"]
+    },
+    "shared_model_config": {
+      "type": "object",
+      "description": "Configuration fields that can appear on an individual model or in the '_all_' shared block.",
+      "additionalProperties": false,
+      "properties": {
+        "predictor_allowable_values": {
+          "$ref": "#/$defs/predictor_allowable_values"
+        },
+        "reference_group": {
+          "$ref": "#/$defs/reference_group"
+        },
+        "model_color": {
+          "$ref": "#/$defs/model_color"
+        }
+      }
+    },
+    "model_entry": {
+      "type": "object",
+      "description": "A named model within the algorithm. Defines the display title, path to the model export CSV, and optional predictor configuration.",
+      "additionalProperties": false,
+      "required": ["title", "model_export"],
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "Human-readable display name for this model, shown in radio buttons and headings.",
+          "examples": ["Female", "Male"]
+        },
+        "model_export": {
+          "type": "string",
+          "description": "Relative path (from this YAML file's directory) to the model export CSV file.",
+          "examples": ["./female-full/HTNPoRT-full-female-model-export.csv"]
+        },
+        "model_color": {
+          "$ref": "#/$defs/model_color"
+        },
+        "predictor_allowable_values": {
+          "$ref": "#/$defs/predictor_allowable_values"
+        },
+        "reference_group": {
+          "$ref": "#/$defs/reference_group"
+        }
+      }
+    }
+  }
+}

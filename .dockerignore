@@ -1,0 +1,40 @@
+# Keep the Docker build context small and the image clean.
+#
+# NOTE: `*.md` only matches the build-context root (Docker patterns do not cross
+# `/`), so it drops README.md but KEEPS inst/extdata/help/main.md, which the app
+# loads at runtime. Do NOT change this to `**/*.md` — that would break in-app help.
+
+# Version control
+.git
+.gitignore
+
+# OS / editor / tooling cruft
+**/.DS_Store
+.vscode
+.claude
+.Rhistory
+.RData
+.Rproj.user
+*.Rproj
+
+# CI / deployment files (not needed inside the image)
+.github
+Dockerfile
+docker-compose.yml
+.dockerignore
+application.yml
+.markdownlint.json
+_pkgdown.yml
+
+# Root-level docs
+*.md
+
+# Build/dev outputs and non-runtime package dirs
+webr
+site
+docs
+doc
+Meta
+specs
+tests
+vignettes

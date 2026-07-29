@@ -1,0 +1,57 @@
+Package: algorithm.viewer
+Type: Package
+Title: Algorithm Viewer - Shiny Application for Visualizing Prediction Algorithms
+Version: 0.1.3
+Date: 2026-04-20
+Description: A Shiny web application for visualizing prediction algorithms.
+  Allows users to upload algorithm configurations, select models, adjust
+  reference groups, and interactively explore predictor relationships.
+License: MIT + file LICENSE
+Authors@R: c(
+  person(given = "Martin", 
+         family = "Wellman",
+         role = c("aut", "cre", "cph"),
+         email = "mwellman@ohri.ca")
+  )
+Depends:
+  R (>= 4.1)
+Imports:
+  archive,
+  cli,
+  digest,
+  dplyr,
+  ggplot2,
+  glue,
+  htmltools,
+  jsonlite,
+  markdown,
+  munsell,
+  pkgload,
+  plotly,
+  rjsoncons,
+  rlang,
+  R.utils,
+  scales,
+  shiny,
+  shinyjs,
+  stringr,
+  utils,
+  uuid,
+  viridis,
+  yaml,
+  model.parameters.pipeline
+Remotes:
+  model.parameters.pipeline=github::Big-Life-Lab/model-parameters-pipeline@v0.2.5-perf-alpha
+Suggests:
+  knitr,
+  rmarkdown,
+  testthat (>= 3.0.0),
+  withr
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Encoding: UTF-8
+LazyData: true
+URL: https://github.com/Big-Life-Lab/algorithm-viewer, https://big-life-lab.github.io/algorithm-viewer
+BugReports: https://github.com/Big-Life-Lab/algorithm-viewer/issues
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.3
