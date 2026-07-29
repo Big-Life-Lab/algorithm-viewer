@@ -7,22 +7,26 @@ models:
     title: Female
     model_export: ./female-reduced/HTNPoRT-reduced-female-model-export.csv
     reference_group:
-      clc_age: 20
-      fmh_15: 2
       hwmdbmi: 14.9
-      diabx: 2
+    predictor_allowable_values:
+      hwmdbmi:
+        seq:
+          from: 14.9
+          to: 49
+          by: 0.1
   male:
     title: Male
     model_export: ./male-reduced/HTNPoRT-reduced-male-model-export.csv
     reference_group:
-      clc_age: 20
-      fmh_15: 2
-      hwmdbmi: 13.83
-      diabx: 2
-  _all_:
+      hwmdbmi: 13.8
     predictor_allowable_values:
       hwmdbmi:
         seq:
-          from: 13
+          from: 13.8
           to: 49
-          by: 0.01
+          by: 0.1
+  _all_:
+    reference_group:
+      clc_age: 20
+      fmh_15: 2
+      diabx: 2
