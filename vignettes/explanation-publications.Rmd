@@ -1,0 +1,101 @@
+---
+title: "Including the Algorithm Viewer in publications: best practices"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Including the Algorithm Viewer in publications: best practices}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+**Audience:** Researchers who want to reference the Algorithm Viewer, or share a
+specific algorithm through it, in a paper or other publication.
+
+---
+
+## Two things you may want to cite
+
+When you use the Algorithm Viewer in connection with a publication, there are
+usually two distinct things a reader cares about, and they should be referenced
+separately:
+
+1. **The algorithm itself** — the model you developed or are describing. This is
+   the scientific artifact; cite it as you would any model (its own paper, DOI, or
+   repository).
+2. **The Algorithm Viewer** — the software used to visualize it. This is a tool
+   citation.
+
+Keeping them distinct means a reader can find and reuse your *algorithm*
+independently of the *viewer*, and vice versa.
+
+## Cite the software
+
+Reference the Algorithm Viewer by name, note that it was developed by Project Big
+Life at The Ottawa Hospital, and link to its repository:
+
+> Algorithm Viewer. Project Big Life, The Ottawa Hospital.
+> https://github.com/Big-Life-Lab/algorithm-viewer
+
+Record the **version** you used so the reference is reproducible — the version is
+shown in the app and recorded in the package `DESCRIPTION`. If the repository
+provides a `CITATION` file or a release DOI, prefer those.
+
+## Make the specific algorithm reproducible
+
+The value of citing the viewer is that a reader can *interactively explore the
+exact algorithm your paper describes*. To make that possible:
+
+- **Version the algorithm.** Set a clear `version` in the algorithm YAML's `meta`
+  block and reference that version in the paper, so readers explore the same model
+  you reported.
+- **Publish the algorithm's files.** Because the viewer reads files from disk
+  rather than from a URL, readers need the Model Parameters files to view the
+  algorithm locally. Deposit them somewhere durable — a tagged release of a
+  repository, or an archive with a DOI — and link to it. See
+  [Add Algorithm Viewer configurations to your own Model Parameters
+  repository](howto-add-viewer-configs.html).
+- **Pin the reference group.** The reference-group defaults determine what every
+  plot is calculated against. If your paper's figures assume a particular
+  reference patient, set those values in the algorithm YAML's `reference_group`
+  so readers start from the same baseline.
+
+## Referencing a hosted algorithm by URL
+
+If the algorithm is served from a hosted deployment that has URL-based selection
+enabled, you can link readers directly to it. With
+`allow_algorithm_in_url: true`, the algorithm is selected by a query parameter:
+
+```
+https://your-deployment.example.org/?algorithm=my-algorithm-id
+```
+
+where `my-algorithm-id` matches a key in the deployment's `algorithms`
+configuration. A URL like this is ideal for a paper: it takes a reader straight to
+an interactive view of your model with nothing to install. See the
+[Application configuration reference](reference-app-configuration.html) for the
+`allow_algorithm_in_url` and `algorithms` settings.
+
+> A centralized, citable hosting service for algorithms is part of the project's
+> roadmap (the "hosted algorithm showcase"). Until such a service is available at
+> a stable public URL, prefer citing a versioned, deposited copy of the algorithm
+> files plus the viewer software, so your reference does not depend on a
+> particular deployment staying online.
+
+## A reproducibility checklist
+
+Before submitting, confirm that a reader could reproduce your figures:
+
+- [ ] The Algorithm Viewer is cited, with the version you used.
+- [ ] The algorithm is cited as its own artifact.
+- [ ] The algorithm's Model Parameters files are deposited somewhere durable and
+      linked, with a specific version or tag.
+- [ ] The algorithm YAML records the `version` and the `reference_group` used for
+      your figures.
+- [ ] If you provide a hosted URL, it points at the correct algorithm id and the
+      deployment is expected to remain available.
+
+## Next steps
+
+- [Add Algorithm Viewer configurations to your own Model Parameters
+  repository](howto-add-viewer-configs.html).
+- [Application configuration reference](reference-app-configuration.html) — URL
+  selection and feature flags.

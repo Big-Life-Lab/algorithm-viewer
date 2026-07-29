@@ -1,0 +1,119 @@
+---
+title: "Run the Algorithm Viewer as a Docker container"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Run the Algorithm Viewer as a Docker container}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+**Audience:** Anyone who wants to run the Algorithm Viewer without installing R,
+or who wants a reproducible, self-contained deployment.
+
+**Prerequisites:** [Docker](https://docs.docker.com/get-docker/) installed and
+running. A local clone of the
+[algorithm-viewer repository](https://github.com/Big-Life-Lab/algorithm-viewer)
+(the Dockerfile builds the image from the repository contents).
+
+**What you will have at the end:** the viewer running in a container and
+reachable at `http://localhost:3838`.
+
+---
+
+## Why Docker
+
+The Docker image bundles R, all package dependencies, and the app into one
+self-contained environment. Nothing needs to be installed on the host except
+Docker itself, and the container behaves identically across Windows, macOS, and
+Linux.
+
+## Option A — Docker Compose (simplest)
+
+From the root of your clone of the repository:
+
+```bash
+docker compose up --build
+```
+
+This builds the image (the first build takes several minutes while R packages
+compile) and starts the container. The included
+[`docker-compose.yml`](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/docker-compose.yml)
+maps container port 3838 to host port 3838.
+
+Open <http://localhost:3838> in your browser.
+
+To stop it, press <kbd>Ctrl</kbd>+<kbd>C</kbd>, or from another terminal:
+
+```bash
+docker compose down
+```
+
+## Option B — Build and run manually
+
+If you prefer plain Docker commands:
+
+```bash
+docker build -t algorithm-viewer .
+docker run -p 3838:3838 algorithm-viewer
+```
+
+Then open <http://localhost:3838>.
+
+## What the container runs
+
+The image starts the app bound to all interfaces so it is reachable from outside
+the container, equivalent to:
+
+```r
+algorithm.viewer::run_app(
+  config = "/srv/shiny-server/algorithm-viewer/inst/extdata/config.yaml",
+  host = "0.0.0.0",
+  port = 3838
+)
+```
+
+By default it serves the built-in HTNPoRT configuration.
+
+## Serving your own algorithm
+
+To serve your own algorithm instead of HTNPoRT, make its files available inside
+the container and point the app at your config. The simplest approach is to mount
+a directory containing your config and algorithm files as a volume, then override
+the startup command to use your config. For example:
+
+```bash
+docker run -p 3838:3838 \
+  -v /path/to/your/algorithm:/data \
+  algorithm-viewer \
+  R -e "algorithm.viewer::run_app(config='/data/config.yaml', host='0.0.0.0', port=3838)"
+```
+
+Because the viewer reads files from disk, the mounted directory must contain the
+config file *and* every algorithm YAML and CSV it references, with the relative
+paths intact. See
+[View your own algorithms](howto-view-your-algorithms.html) and the
+[Application configuration reference](reference-app-configuration.html).
+
+## Changing the port
+
+The container listens on 3838. To expose it on a different host port, change the
+left side of the `-p` mapping. For example, to reach it at
+`http://localhost:8080`:
+
+```bash
+docker run -p 8080:3838 algorithm-viewer
+```
+
+## Using a prebuilt image
+
+The project publishes a Docker image via GitHub Actions (see the
+[docker-publish workflow](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/docker-publish.yaml)).
+If you want to run a published image rather than build it yourself, pull it from
+the project's container registry and run it with the same `-p 3838:3838` mapping.
+
+## Next steps
+
+- [Automatically update a deployed web app with Watchtower](howto-watchtower.html)
+  — keep a running container up to date when a new image is published.
+- [Run the Algorithm Viewer with ShinyProxy](howto-shinyproxy.html) — for
+  multi-user, container-per-session deployments.

@@ -1,0 +1,137 @@
+---
+title: "Add Algorithm Viewer configurations to your own Model Parameters repository"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Add Algorithm Viewer configurations to your own Model Parameters repository}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+**Audience:** Maintainers of a
+[Model Parameters](explanation-model-parameters.html)-based repository who want
+their algorithm to be loadable in the Algorithm Viewer.
+
+**Prerequisites:** A repository whose model export CSVs already conform to the
+Model Parameters format. Familiarity with the
+[Algorithm configuration reference](reference-algorithm-configuration.html)
+helps but is not required.
+
+**What you will have at the end:** an algorithm YAML file (and optionally an app
+config file) committed to your repository, so anyone who clones it can view your
+algorithm.
+
+---
+
+## What the viewer needs from your repository
+
+Your Model Parameters repository already contains the raw ingredients: the model
+export CSV(s) and the supporting variable and coefficient files they reference.
+To make it viewable, you add one small file — sometimes two:
+
+1. **An algorithm YAML file** (required). This is the bridge between the viewer
+   and your Model Parameters files: it names your algorithm, lists its models,
+   points at each model's export CSV, and sets the reference-group defaults.
+2. **An application config file** (optional). This lets someone launch the app
+   preloaded with your algorithm via `run_app(config = ...)`, and lets you set
+   feature flags. If you only need the algorithm YAML, users can load it through
+   the app's upload control or reference it from their own config.
+
+## Step 1 — Add the algorithm YAML file
+
+Create a YAML file in your repository — a good convention is to name it after the
+algorithm and place it near the model data, e.g. `my-algorithm/my-algorithm.yaml`.
+
+A minimal example for a two-model algorithm:
+
+```yaml
+meta:
+  algorithm: My Algorithm
+  version: 1.0.0
+
+models:
+  female:
+    title: Female
+    model_export: ./female/my-algorithm-female-model-export.csv
+    reference_group:
+      age: 40
+      bmi: 25
+  male:
+    title: Male
+    model_export: ./male/my-algorithm-male-model-export.csv
+    reference_group:
+      age: 40
+      bmi: 25
+```
+
+Key points:
+
+- **`model_export`** is a path *relative to the algorithm YAML file's own
+  directory*. It points at the Model Parameters model export CSV that catalogs
+  the model's data files.
+- **`reference_group`** sets the default baseline (the "reference patient") for
+  each model. Variable names must match those in your model's variables file.
+- Use the special **`_all_`** key to define values shared by every model, so you
+  do not repeat them. Model-specific values override `_all_`.
+- If the viewer cannot derive a predictor's allowable values from your
+  `variable-details.csv`, specify them under **`predictor_allowable_values`**.
+
+The full set of fields, inheritance rules, and the `predictor_allowable_values`
+formats are documented in the
+[Algorithm configuration reference](reference-algorithm-configuration.html).
+
+### Verify the file loads
+
+From a local clone of the repository, point the viewer at the algorithm YAML
+through a small config (see Step 2) or upload it through the UI, and confirm the
+models appear and the plots render. Because the viewer reads files from disk, do
+this from a local clone — not a GitHub URL.
+
+## Step 2 — (Optional) Add an application config file
+
+If you want people to launch the app preloaded with your algorithm, add a
+`config.yaml`:
+
+```yaml
+algorithms:
+  my-algorithm:
+    title: "My Algorithm"
+    file: my-algorithm/my-algorithm.yaml
+
+initial_algorithm_id: my-algorithm
+
+allow_file_uploads: false
+allow_algorithms_selection: true
+allow_algorithm_in_url: true
+```
+
+The `file:` path is resolved relative to the config file's location. Setting
+`allow_file_uploads: false` produces a "showcase" style deployment where visitors
+can only view the algorithm(s) you bundled — appropriate for sharing a specific
+model. See the
+[Application configuration reference](reference-app-configuration.html) for
+every field.
+
+Users then launch your algorithm with:
+
+```r
+run_app(config = "path/to/config.yaml")
+```
+
+## Step 3 — Document how to view it
+
+In your repository's README, tell users to:
+
+1. Clone the repository locally (the viewer needs the files on disk).
+2. Install the Algorithm Viewer
+   ([instructions](tutorial-installing.html)).
+3. Run `run_app(config = "path/to/your/config.yaml")`, or upload the algorithm
+   YAML through the app.
+
+## Next steps
+
+- [Algorithm configuration reference](reference-algorithm-configuration.html) —
+  the complete YAML format.
+- [View your own algorithms in the Algorithm Viewer](howto-view-your-algorithms.html)
+  — the loading workflow from the viewer's side.
+- Sharing your algorithm with readers of a paper?
+  [Including the Algorithm Viewer in publications](explanation-publications.html).

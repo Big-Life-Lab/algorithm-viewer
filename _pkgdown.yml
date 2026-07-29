@@ -1,3 +1,86 @@
 url: https://big-life-lab.github.io/algorithm-viewer/
 template:
   bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, tutorials, howto, explanation, reference]
+    right: [search, github]
+  components:
+    tutorials:
+      text: Tutorials
+      menu:
+      - text: Installing on your Computer
+        href: articles/tutorial-installing.html
+      - text: Running in your Web Browser
+        href: articles/tutorial-running.html
+      - text: Viewing the Built-in HTNPoRT Algorithm
+        href: articles/tutorial-htnport.html
+    howto:
+      text: How-to guides
+      menu:
+      - text: View your own algorithms
+        href: articles/howto-view-your-algorithms.html
+      - text: Add Viewer configs to your Model Parameters repo
+        href: articles/howto-add-viewer-configs.html
+      - text: Run as a Docker container
+        href: articles/howto-docker.html
+      - text: Run with ShinyProxy
+        href: articles/howto-shinyproxy.html
+      - text: Auto-update a web app with Watchtower
+        href: articles/howto-watchtower.html
+    explanation:
+      text: Explanation
+      menu:
+      - text: Why did we build the Algorithm Viewer?
+        href: articles/explanation-why.html
+      - text: Including the Viewer in publications
+        href: articles/explanation-publications.html
+      - text: What is Model Parameters?
+        href: articles/explanation-model-parameters.html
+    reference:
+      text: Reference
+      menu:
+      - text: Application configuration
+        href: articles/reference-app-configuration.html
+      - text: Algorithm configuration
+        href: articles/reference-algorithm-configuration.html
+      - text: '---------'
+      - text: R API
+        href: reference/index.html
+
+articles:
+- title: Overview
+  contents:
+  - algorithm.viewer
+- title: Tutorials
+  navbar: Tutorials
+  contents:
+  - tutorial-installing
+  - tutorial-running
+  - tutorial-htnport
+- title: How-to guides
+  navbar: How-to guides
+  contents:
+  - howto-view-your-algorithms
+  - howto-add-viewer-configs
+  - howto-docker
+  - howto-shinyproxy
+  - howto-watchtower
+- title: Explanation
+  navbar: Explanation
+  contents:
+  - explanation-why
+  - explanation-publications
+  - explanation-model-parameters
+- title: Reference
+  navbar: Reference
+  contents:
+  - reference-app-configuration
+  - reference-algorithm-configuration
+
+reference:
+- title: Running the application
+  desc: The package entry point.
+  contents:
+  - run_app

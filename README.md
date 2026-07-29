@@ -3,7 +3,7 @@
 <!-- badges: start -->
 [![R-CMD-check.yaml](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/R-CMD-check.yaml)
 [![Docker Image](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/docker-publish.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/docker-publish.yaml)
-[![Deploy Shinylive App](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/deploy-shinylive-app.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/deploy-shinylive-app.yaml)
+[![pkgdown](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/pkgdown.yaml/badge.svg)](https://github.com/Big-Life-Lab/algorithm-viewer/actions/workflows/pkgdown.yaml)
 <!-- badges: end -->
 
 An R Shiny application for visualizing health risk prediction algorithms,
@@ -35,6 +35,36 @@ That's all you need for a standard installation. The [Running the
 App](#running-the-app) section covers everything else: `run_app()` options,
 custom configurations, development mode, and running with Docker or
 ShinyProxy.
+
+## Documentation
+
+Full documentation lives at
+<https://big-life-lab.github.io/algorithm-viewer/>, organized following the
+[Divio](https://docs.divio.com/documentation-system/) framework:
+
+- **Tutorials** — [Installing](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-installing.html),
+  [Running](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-running.html),
+  and [Viewing the built-in HTNPoRT
+  algorithm](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-htnport.html)
+  (including how to interpret every plot).
+- **How-to guides** — [View your own
+  algorithms](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.html),
+  [add Viewer configs to a Model Parameters
+  repo](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.html),
+  run with [Docker](https://big-life-lab.github.io/algorithm-viewer/articles/howto-docker.html) /
+  [ShinyProxy](https://big-life-lab.github.io/algorithm-viewer/articles/howto-shinyproxy.html) /
+  [Watchtower](https://big-life-lab.github.io/algorithm-viewer/articles/howto-watchtower.html).
+- **Explanation** — [Why the Algorithm
+  Viewer](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-why.html),
+  [using it in
+  publications](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-publications.html),
+  and [what Model Parameters
+  is](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-model-parameters.html).
+- **Reference** —
+  [application configuration](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.html),
+  [algorithm configuration](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.html),
+  and the
+  [R API](https://big-life-lab.github.io/algorithm-viewer/reference/index.html).
 
 ## About
 

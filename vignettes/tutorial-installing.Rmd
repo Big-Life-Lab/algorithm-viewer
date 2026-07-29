@@ -1,0 +1,91 @@
+---
+title: "Installing the Algorithm Viewer on your Computer"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Installing the Algorithm Viewer on your Computer}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+**Audience:** Anyone who wants to run the Algorithm Viewer on their own
+computer.
+
+**Prerequisites:** [R](https://www.r-project.org/) version 4.1 or newer. You do
+**not** need to install any R package dependencies by hand — they are installed
+automatically in the steps below.
+
+**What you will have at the end:** the `algorithm.viewer` package installed and
+ready to launch.
+
+---
+
+## 1. Check your R version
+
+Open R (or RStudio) and run:
+
+```r
+R.version.string
+```
+
+You should see version `4.1.0` or higher. If R is older than 4.1, or you do not
+have R at all, download the latest version from
+[the R Project website](https://www.r-project.org/) and install it before
+continuing.
+
+## 2. Install the `remotes` package
+
+The Algorithm Viewer is distributed on GitHub rather than CRAN, so you install
+it with the `remotes` package. Install `remotes` first (you only ever need to do
+this once):
+
+```r
+install.packages("remotes")
+```
+
+## 3. Install the Algorithm Viewer
+
+Install the package straight from GitHub:
+
+```r
+remotes::install_github("Big-Life-Lab/algorithm-viewer")
+```
+
+This downloads the Algorithm Viewer and every R package it depends on, including
+the [Model Parameters
+Pipeline](https://github.com/Big-Life-Lab/model-parameters-pipeline) that
+evaluates the algorithms. The first install can take several minutes while those
+dependencies compile — this is normal.
+
+If you are prompted to update other packages during installation, updating is
+usually the safest choice, but you can skip the updates if you prefer to keep
+your current versions.
+
+## 4. Confirm the installation
+
+Load the package to confirm it installed correctly:
+
+```r
+library(algorithm.viewer)
+```
+
+If the command returns without an error, the Algorithm Viewer is installed.
+
+## Installing from a local copy (optional)
+
+If you have already cloned or downloaded the repository — for example, because
+you want to view an algorithm whose data files live inside that repository — you
+can install from the local folder instead of from GitHub:
+
+```r
+install.packages("remotes")
+remotes::install_local("path/to/algorithm-viewer")
+```
+
+Replace `path/to/algorithm-viewer` with the path to your local copy.
+
+## Next steps
+
+- [Running the Algorithm Viewer in your Web Browser](tutorial-running.html) —
+  launch the app and get oriented.
+- If you do not want to install R at all, you can instead
+  [run the Algorithm Viewer as a Docker container](howto-docker.html).
