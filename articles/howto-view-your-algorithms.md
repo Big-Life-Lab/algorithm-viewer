@@ -139,3 +139,7 @@ The app opens with your algorithm loaded instead of HTNPoRT.
   reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md)
   and [Algorithm configuration
   reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md).
+- [Add your own tab and
+  plots](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-tab-and-plots.md)
+  — for developers who want to extend the viewer with a new plot type,
+  not just load new data.

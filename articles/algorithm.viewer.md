@@ -32,6 +32,9 @@ Task-oriented recipes for people who already know the basics.
   Viewer](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.md)
 - [Add Algorithm Viewer configurations to your own Model Parameters
   repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md)
+- [Add your own tab and
+  plots](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-tab-and-plots.md)
+  — for developers extending the viewer with a new plot type.
 - [Run the Algorithm Viewer as a Docker
   container](https://big-life-lab.github.io/algorithm-viewer/articles/howto-docker.md)
 - [Run the Algorithm Viewer with

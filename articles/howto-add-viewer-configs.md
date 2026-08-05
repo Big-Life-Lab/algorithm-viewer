@@ -139,6 +139,9 @@ In your repository’s README, tell users to:
 - [View your own algorithms in the Algorithm
   Viewer](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.md)
   — the loading workflow from the viewer’s side.
+- [Add your own tab and
+  plots](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-tab-and-plots.md)
+  — for developers extending the viewer with a new plot type.
 - Sharing your algorithm with readers of a paper? [Including the
   Algorithm Viewer in
   publications](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-publications.md).

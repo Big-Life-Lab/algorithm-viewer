@@ -1,0 +1,318 @@
+# Add your own tab and plots
+
+**Audience:** Developers extending the Algorithm Viewer from source who
+want to add a new main-panel tab with its own plot — for example, a new
+curve type alongside the built-in Odds Ratio, Relative Risk, and
+Predicted Risk tabs.
+
+**Prerequisites:** A local clone of the Algorithm Viewer source and the
+ability to load it with `devtools::load_all()` /
+[`pkgload::load_all()`](https://pkgload.r-lib.org/reference/load_all.html).
+Familiarity with [Shiny
+modules](https://shiny.posit.co/r/articles/improve/modules/) and,
+ideally, `plotly` and `ggplot2`.
+
+**What you will have at the end:** a new `mod_plot_*.R` module, a new
+tab wired into the UI and server, and a plot that renders for the
+selected models.
+
+> **This is a code change, not a configuration change.** The plots are R
+> Shiny modules baked into the package, not something you declare in an
+> algorithm or app YAML file. Unlike [adding Viewer configurations to a
+> repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md),
+> this guide edits the R source and requires rebuilding the package. If
+> all you want is to load a different algorithm, you do **not** need
+> this guide — see [View your own
+> algorithms](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.md).
+
+------------------------------------------------------------------------
+
+## How a tab is put together
+
+Each plot tab is a self-contained [Shiny
+module](https://shiny.posit.co/r/articles/improve/modules/) living in
+its own `R/mod_plot_*.R` file, plus two lines that wire it in. The
+built-in tabs (`mod_plot_or.R`, `mod_plot_rr.R`, `mod_plot_pr.R`) all
+follow the same shape, and your new tab should too. A module has three
+parts:
+
+1.  **A UI function** (e.g. `plotORUI()`) — the controls and the plot
+    output that go inside the tab panel.
+2.  **A server function** (e.g. `plotORServer()`) — populates the
+    controls and renders the plot whenever the selected models or
+    reference groups change.
+3.  **One or more calculation functions** (e.g. `.calculate_or_curve()`)
+    — turn a model and a predictor into a data frame of points to plot.
+
+The server hands its calculated curves to the shared
+[`make_general_plot()`](https://big-life-lab.github.io/algorithm-viewer/reference/index.md)
+helper, so every tab shares one consistent plotting style, legend
+behaviour, and axis handling. Your job is mostly to produce the right
+data frame.
+
+There are four steps: **create the module**, **wire the UI**, **wire the
+server**, and (optionally) **add a sidebar control panel**.
+
+## Step 1 — Create the module file
+
+Create `R/mod_plot_myplot.R`. The skeleton below mirrors the built-in
+modules — copying `R/mod_plot_or.R` and adapting it is the fastest way
+to start.
+
+``` r
+#' My Custom Curve
+#'
+#' Functions for computing and rendering my custom curve.
+#'
+#' @name mod_plot_myplot
+#' @noRd
+#' @keywords internal
+NULL
+
+# ---- Server ----------------------------------------------------------------
+
+plotMyPlotServer <- function(
+  id,
+  selected_models,
+  selected_reference_groups,
+  model_definitions
+) {
+  shiny::moduleServer(id, function(input, output, session) {
+    # Cache curve data so we don't recompute curves that haven't changed.
+    cached_curves <- initialize_cached_data()
+
+    shiny::observe(
+      {
+        model_definitions()          # react to a newly loaded algorithm
+        clear_cached_data(cached_curves)
+        populate_controls()
+      },
+      priority = 10000
+    )
+
+    populate_controls <- function() {
+      shiny::freezeReactiveValue(input, "predictor")
+      populate_dropdown_predictors(
+        session,
+        id = "predictor",
+        models = model_definitions()$models,
+        empty = is.null(model_definitions())
+      )
+    }
+
+    output$plot <- plotly::renderPlotly({
+      shiny::req(input$predictor)
+
+      if (is.null(model_definitions())) {
+        return(make_general_plot(NULL, model_definitions()))
+      }
+
+      plot_render_safely(function() {
+        all_curve_data <- list()
+        for (model_data in selected_models()) {
+          predictor_values <-
+            selected_reference_groups()[[model_data$model_id]]
+          all_curve_data[[length(all_curve_data) + 1]] <-
+            .calculate_myplot_curve(
+              input$predictor,
+              model_data,
+              reference_group = predictor_values
+            )
+        }
+        make_general_plot(all_curve_data, model_definitions())
+      })
+    })
+  })
+}
+
+# ---- Curve calculation -----------------------------------------------------
+
+.calculate_myplot_curve <- function(
+  predictor,
+  model_data,
+  predictor_allowable_values = NULL,
+  reference_group = NULL
+) {
+  predictor_allowable_values <- predictor_allowable_values %||%
+    model_data$predictor_allowable_values[[predictor]]
+  reference_group <- reference_group %||% model_data$reference_group
+
+  predictor_label <- get_variable_label_and_units(
+    model_data, predictor,
+    escape_html = TRUE
+  )
+
+  # Build an input matrix, run it through the model pipeline, and derive
+  # whatever quantity your curve plots. See .calculate_or_curve() in
+  # R/mod_plot_or.R for a worked example.
+  df <- data.frame(reference_group)
+  df <- df[rep(1, length(predictor_allowable_values)), ]
+  df[[predictor]] <- predictor_allowable_values
+  rownames(df) <- seq_len(nrow(df))
+
+  dat <- model.parameters.pipeline::run_model_pipeline(
+    model_data$model_pipeline,
+    x = df
+  )
+  predicted_col <- colnames(dat)[[1]]
+
+  output_df <- data.frame(
+    x = predictor_allowable_values,
+    MyValue = dat[[predicted_col]],
+    Model = cleanup_string(model_data$title)
+  )
+  names(output_df)[1] <- predictor_label
+  output_df <- convert_df_variable_to_label(
+    output_df, model_data, predictor, predictor_label,
+    escape_html = TRUE
+  )
+
+  # The named list below is the contract make_general_plot() expects.
+  list(
+    df = output_df,
+    x_axis_label = predictor_label,
+    y_axis_label = "My Value",
+    title = predictor_label,
+    x_axis_type = ifelse(
+      is_variable_categorical(model_data, predictor),
+      "Categorical",
+      "Continuous"
+    ),
+    aes_args = list(
+      x = rlang::sym(predictor_label),
+      y = rlang::sym("MyValue")
+    )
+  )
+}
+
+# ---- UI --------------------------------------------------------------------
+
+plotMyPlotUI <- function(id, external_height) {
+  shiny::tagList(
+    shiny::br(),
+    plot_additional_controls_container(
+      plot_additional_controls_dropdown(
+        id = shiny::NS(id, "predictor"),
+        label = "Predictor",
+        choices = c(),
+        num_columns = 3
+      )
+    ),
+    plotly::plotlyOutput(
+      shiny::NS(id, "plot"),
+      height = glue::glue(
+        "calc(100vh - {external_height + plot_additional_controls_height()}px)"
+      )
+    )
+  )
+}
+```
+
+A few contracts to respect:
+
+- **The `id` must match** between `plotMyPlotUI()` and
+  `plotMyPlotServer()`, and the input IDs you build with
+  `shiny::NS(id, "predictor")` in the UI must match the
+  `input$predictor` / `populate_dropdown_predictors(id = "predictor")`
+  names in the server.
+- **The server function signature** takes `selected_models`,
+  `selected_reference_groups`, and `model_definitions` — all reactive
+  expressions supplied by `app_server()`. `selected_models()` is the
+  list of models the user has checked; `model_definitions()` is `NULL`
+  when no algorithm is loaded (handle that case, as above).
+- **The calculation function returns a named list** — the “curve data” —
+  with at least `df`, `x_axis_label`, `y_axis_label`, `title`,
+  `x_axis_type`, and `aes_args` (mapping plot aesthetics to columns of
+  `df` via
+  [`rlang::sym()`](https://rlang.r-lib.org/reference/sym.html)).
+  `make_general_plot()` binds every model’s `df` together and draws one
+  curve per model. Optional fields such as `subtitle` are also
+  supported.
+- **Wrap the render body in `plot_render_safely()`** so a computation
+  error surfaces as a message in the plot area instead of a broken tab,
+  and call `make_general_plot(NULL, ...)` early when no algorithm is
+  loaded.
+
+## Step 2 — Wire the tab into the UI
+
+In
+[`R/app_ui.R`](https://big-life-lab.github.io/algorithm-viewer/reference/index.md),
+add a [`shiny::tabPanel()`](https://rdrr.io/pkg/shiny/man/tabPanel.html)
+to the main-panel `tabsetPanel(id = "main_tabs", ...)`, next to the
+existing plot tabs:
+
+``` r
+shiny::tabPanel(
+  "My Plot",
+  value = "myplot",
+  icon = shiny::icon("chart-line"),
+  plotMyPlotUI("myplot", .external_height)
+),
+```
+
+- `value` is the tab’s internal id (used in URLs and in server logic);
+  keep it short and unique.
+- `plotMyPlotUI("myplot", ...)` uses the module id — remember it for
+  Step 3.
+- `.external_height` is a package-level constant that reserves vertical
+  space for the title and controls so the plot fills the viewport
+  without scrolling.
+
+## Step 3 — Wire the server
+
+In
+[`R/app_server.R`](https://big-life-lab.github.io/algorithm-viewer/reference/index.md),
+register the module server inside `create_all_plot_servers()` (called
+once when the page loads), passing the same reactives the other plot
+servers receive and the **same module id** as in Step 2:
+
+``` r
+plotMyPlotServer(
+  "myplot",
+  selected_models,
+  selected_reference_groups,
+  model_definitions
+)
+```
+
+That is the minimum needed for a working tab. Load the package with
+`devtools::load_all()`, run
+[`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md),
+load an algorithm, and your tab should render curves for the selected
+models.
+
+## Step 4 — (Optional) Add a sidebar control panel
+
+The dropdowns in Step 1 live *inside* the plot tab (via
+`plot_additional_controls_container()`), which is enough for most plots.
+If your plot instead needs its own settings panel in the **left
+sidebar** — as the “Reference” and “Me vs Ref” tabs do — add a matching
+[`shiny::tabPanel()`](https://rdrr.io/pkg/shiny/man/tabPanel.html) to
+the sidebar `tabsetPanel(id = "settings_tabs", ...)` in `R/app_ui.R`,
+wire its server, and (if it should show only while your tab is active)
+extend the `observeEvent(input$main_tabs, ...)` show/hide logic in
+`R/app_server.R`. Use the `a_vs_b` tab as a template for this pattern.
+
+## Step 5 — Tests and documentation
+
+- Add a test file `tests/testthat/test-mod_plot_myplot.R`, mirroring the
+  existing `test-mod_plot_curves.R`, to cover your calculation function.
+- Because the plot modules are internal (`@noRd`), they are not part of
+  the public R API; keep their roxygen docblocks accurate for future
+  maintainers.
+- If your tab changes how the app is used, update the [HTNPoRT
+  tutorial](https://big-life-lab.github.io/algorithm-viewer/articles/tutorial-htnport.md)
+  and the in-app Help (`inst/extdata/help/main.md`).
+
+## Next steps
+
+- [View your own algorithms in the Algorithm
+  Viewer](https://big-life-lab.github.io/algorithm-viewer/articles/howto-view-your-algorithms.md)
+  — if you only need to load different data, not add a plot.
+- [Algorithm configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md)
+  — the `model_data` fields (`reference_group`,
+  `predictor_allowable_values`, …) your calculation function reads.
+- [What is Model
+  Parameters?](https://big-life-lab.github.io/algorithm-viewer/articles/explanation-model-parameters.md)
+  — the pipeline (`run_model_pipeline()`) your curve calculation runs.
