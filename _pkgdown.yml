@@ -23,6 +23,8 @@ navbar:
         href: articles/howto-view-your-algorithms.html
       - text: Add Viewer configs to your Model Parameters repo
         href: articles/howto-add-viewer-configs.html
+      - text: Add your own tab and plots
+        href: articles/howto-add-tab-and-plots.html
       - text: Run as a Docker container
         href: articles/howto-docker.html
       - text: Run with ShinyProxy
@@ -64,6 +66,7 @@ articles:
   contents:
   - howto-view-your-algorithms
   - howto-add-viewer-configs
+  - howto-add-tab-and-plots
   - howto-docker
   - howto-shinyproxy
   - howto-watchtower

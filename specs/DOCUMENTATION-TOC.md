@@ -15,6 +15,7 @@ Viewer documentation. It is based on the Divio documentation framework
 - How to view your own algorithms in the Algorithm Viewer
 - How to add Algorithm Viewer configurations to your own Model Parameters-based
   Repository
+- How to add your own tab and plots
 - How to run the Algorithm Viewer as a Docker Container
 - How to run the Algorithm Viewer with ShinyProxy
 - How to use Watchtower to automatically update a web app when changes are made

@@ -136,3 +136,5 @@ The app opens with your algorithm loaded instead of HTNPoRT.
   loaded directly.
 - [Application configuration reference](reference-app-configuration.html) and
   [Algorithm configuration reference](reference-algorithm-configuration.html).
+- [Add your own tab and plots](howto-add-tab-and-plots.html) — for developers who
+  want to extend the viewer with a new plot type, not just load new data.

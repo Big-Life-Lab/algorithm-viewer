@@ -133,5 +133,7 @@ In your repository's README, tell users to:
   the complete YAML format.
 - [View your own algorithms in the Algorithm Viewer](howto-view-your-algorithms.html)
   — the loading workflow from the viewer's side.
+- [Add your own tab and plots](howto-add-tab-and-plots.html) — for developers
+  extending the viewer with a new plot type.
 - Sharing your algorithm with readers of a paper?
   [Including the Algorithm Viewer in publications](explanation-publications.html).

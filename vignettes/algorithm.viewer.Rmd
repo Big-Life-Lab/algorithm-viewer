@@ -34,6 +34,8 @@ Task-oriented recipes for people who already know the basics.
 
 - [View your own algorithms in the Algorithm Viewer](howto-view-your-algorithms.html)
 - [Add Algorithm Viewer configurations to your own Model Parameters repository](howto-add-viewer-configs.html)
+- [Add your own tab and plots](howto-add-tab-and-plots.html) — for developers
+  extending the viewer with a new plot type.
 - [Run the Algorithm Viewer as a Docker container](howto-docker.html)
 - [Run the Algorithm Viewer with ShinyProxy](howto-shinyproxy.html)
 - [Automatically update a deployed web app with Watchtower](howto-watchtower.html)

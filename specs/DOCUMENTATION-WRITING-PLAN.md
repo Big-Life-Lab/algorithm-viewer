@@ -68,31 +68,36 @@ interpreting the viewer" layer.
    Parameters-based repository** — for maintainers of a Model Parameters repo:
    add the config file(s) the viewer needs so the repo can be loaded in the
    viewer. Complements #4 (loading an algorithm) and the config-file references
-   (#11, #12). (Source: CONFIG_SPECIFICATION.md.)
-6. **How to run the Algorithm Viewer as a Docker Container** — (Source: Dockerfile,
+   (#12, #13). (Source: CONFIG_SPECIFICATION.md.)
+6. **How to add your own tab and plots** — for maintainers extending the viewer
+   with additional visualizations: define a new tab and the plots it contains via
+   the config file(s), so custom curves/charts appear alongside the built-in ones.
+   Builds on #5 (adding configs to a Model Parameters repo) and leans on the
+   Algorithm configuration reference (#13). (Source: CONFIG_SPECIFICATION.md.)
+7. **How to run the Algorithm Viewer as a Docker Container** — (Source: Dockerfile,
    docker-compose.yml, DEPLOYMENT.md.)
-7. **How to run the Algorithm Viewer with ShinyProxy** — (Source: application.yml,
+8. **How to run the Algorithm Viewer with ShinyProxy** — (Source: application.yml,
    DEPLOYMENT.md.)
-8. **How to use Watchtower to automatically update a web app when changes are
+9. **How to use Watchtower to automatically update a web app when changes are
    made** — for deployers running the viewer as a Docker container: use
    [Watchtower](https://containrrr.dev/watchtower/) to watch the deployed image
    and automatically pull + restart the container when a new image is pushed,
    keeping a live web app up to date without manual redeploys. Builds on the
-   Docker container guide (#6). (Source: DEPLOYMENT.md, docker-compose.yml.)
+   Docker container guide (#7). (Source: DEPLOYMENT.md, docker-compose.yml.)
 
 ## Phase 2 — Intent & scope (Discussions / Explanation)
 
 README-level "why" content. Draft after user docs exist so it can link into them.
 
-9. **Why did we build the Algorithm Viewer?** — purpose, use cases,
-   appropriate vs. not-appropriate uses, features, roadmap. (Source: README About.)
-10. **Including the Algorithm Viewer in Publications: Best Practices** — citation,
+10. **Why did we build the Algorithm Viewer?** — purpose, use cases,
+    appropriate vs. not-appropriate uses, features, roadmap. (Source: README About.)
+11. **Including the Algorithm Viewer in Publications: Best Practices** — citation,
     reproducibility, how to reference a specific algorithm/config.
-11. **What is Model Parameters?** — explain the [Model
+12. **What is Model Parameters?** — explain the [Model
     Parameters](https://github.com/Big-Life-Lab/model-parameters/) format that
     algorithms must conform to: what it is, why the viewer depends on it, and how
     it relates to an "algorithm." Foundational conceptual context that the HTNPoRT
-    tutorial (#3) and the Algorithm configuration reference (#13) both lean on —
+    tutorial (#3) and the Algorithm configuration reference (#14) both lean on —
     write it early in Phase 2 and link to it from those pages. (Source: README,
     model-parameters repo.)
 
@@ -101,14 +106,14 @@ README-level "why" content. Draft after user docs exist so it can link into them
 Drier, complete, generated-where-possible material. Written last in the user-doc
 priority tier but kept accurate as Phases 1–2 reveal gaps.
 
-12. **Application configuration** — the format of the
+13. **Application configuration** — the format of the
     `inst/extdata/config.yaml` file (preloaded algorithms, initial algorithm,
     upload/selection/URL flags).
-13. **Algorithm configuration** — the format of the algorithm config files,
+14. **Algorithm configuration** — the format of the algorithm config files,
     e.g. `inst/extdata/models/htnport-full/htnport-full.yaml` and
     `inst/extdata/models/htnport-reduced/htnport-reduced.yaml`. (Source:
     CONFIG_SPECIFICATION.md)
-14. **R API** — ensure roxygen docs on exported functions (`run_app()` etc.)
+15. **R API** — ensure roxygen docs on exported functions (`run_app()` etc.)
     are complete; let pkgdown generate the reference. Fill gaps in docblocks
     rather than hand-writing.
 
@@ -138,13 +143,14 @@ For each numbered deliverable, in order:
 | 3 | Viewing the Built-in HTNPoRT Algorithm | Tutorial | 1 |
 | 4 | View your own algorithms (incl. local-clone integration) | How-To | 1 |
 | 5 | Add Viewer configs to your own Model Parameters repo | How-To | 1 |
-| 6 | Run as a Docker Container | How-To | 1 |
-| 7 | Run with ShinyProxy | How-To | 1 |
-| 8 | Auto-update a web app with Watchtower | How-To | 1 |
-| 9 | Why did we build the Algorithm Viewer? | Explanation | 2 |
-| 10 | Including in Publications: Best Practices | Explanation | 2 |
-| 11 | What is Model Parameters? | Explanation | 2 |
-| 12 | Application configuration | Reference | 3 |
-| 13 | Algorithm configuration | Reference | 3 |
-| 14 | R API | Reference | 3 |
+| 6 | Add your own tab and plots | How-To | 1 |
+| 7 | Run as a Docker Container | How-To | 1 |
+| 8 | Run with ShinyProxy | How-To | 1 |
+| 9 | Auto-update a web app with Watchtower | How-To | 1 |
+| 10 | Why did we build the Algorithm Viewer? | Explanation | 2 |
+| 11 | Including in Publications: Best Practices | Explanation | 2 |
+| 12 | What is Model Parameters? | Explanation | 2 |
+| 13 | Application configuration | Reference | 3 |
+| 14 | Algorithm configuration | Reference | 3 |
+| 15 | R API | Reference | 3 |
 | — | Architecture / code exploration | Explanation | 4 (optional) |
