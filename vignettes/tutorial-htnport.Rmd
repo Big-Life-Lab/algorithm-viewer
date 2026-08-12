@@ -39,12 +39,18 @@ more (marital status, education, physical activity, smoking, sleep, and others);
 the reduced model uses a smaller subset. You do not need to memorize the
 variable codes — the viewer labels the controls for you.
 
-## The idea behind every plot: the reference patient
+## The idea behind most plots: the reference patient
 
-Every plot answers the same underlying question:
+The **Odds Ratio**, **Predicted Risk**, and **Relative Risk** tabs all answer the
+same underlying question:
 
 > *If I take a baseline "reference patient" and change **one** predictor across
 > its whole range, what happens to their predicted outcome?*
+
+(The **Me vs Ref** tab works differently — it compares two fully specified
+profiles instead of varying a single predictor, and it defines its own "Ref"
+profile rather than using the reference patient described here. See
+[The Me vs Ref tab](#the-me-vs-ref-tab) below.)
 
 The **reference patient** is defined in the **Reference** tab in the sidebar.
 Each model has its own set of controls: sliders for continuous variables (age,
@@ -58,8 +64,8 @@ varied along the x-axis. Every *other* predictor stays fixed at its reference
 value. This is why the reference patient matters: it is the "everything else" the
 plot holds constant.
 
-Try this now: set **Predictor** to **Age** and watch any of the plots redraw as
-a curve over age.
+Try this now: set **Predictor** to **Age** and watch the Odds Ratio, Predicted
+Risk, or Relative Risk plot redraw as a curve over age.
 
 ## The Odds Ratio tab
 
@@ -147,7 +153,9 @@ logistic models underneath.
 **What it shows.** A comparison of a **personal profile ("Me")** against a
 **reference profile ("Ref")**, broken down to show which predictors drive the
 difference between them. Unlike the other tabs — which vary one predictor across
-its full range — this tab compares two fully specified people.
+its full range — this tab compares two fully specified people. It also does not
+use the **Predictor** dropdown or the reference patient from the **Reference**
+tab: both profiles are set from this tab's own controls.
 
 **Setting the two profiles.** When this tab is active, the sidebar changes to a
 single panel with paired controls: a "Me" and a "Ref" value for every predictor.
