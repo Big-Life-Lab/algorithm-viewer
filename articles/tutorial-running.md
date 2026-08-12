@@ -46,9 +46,8 @@ The sidebar holds the controls, organized into tabs:
 
 - **Models** — choose which algorithm and which models are shown. Each
   selected model is drawn in its own colour so you can compare them on
-  the same axes. This tab also holds the **Logarithmic** scale checkbox
-  and, if the installation allows it, an **Upload Algorithm** control
-  and a **Preloaded Algorithms** dropdown.
+  the same axes. If the installation allows it, this tab also holds an
+  **Upload Algorithm** control and a **Preloaded Algorithms** dropdown.
 - **Reference** — sets the baseline “reference patient” that every plot
   is calculated against. Continuous variables (such as age or BMI) use
   sliders; categorical variables (such as diabetes status) use radio
@@ -65,8 +64,9 @@ top:
 - **Me vs Ref** — compare a personal profile against a reference
   profile.
 
-Above each plot are controls for choosing the **Predictor** on the
-x-axis and an optional **Interaction Predictor**.
+Each plot has its own row of controls above it — typically for choosing
+the **Predictor** on the x-axis, an optional **Interaction Predictor**,
+and a **Logarithmic** scale checkbox.
 
 The next tutorial explains what each plot means and how to read it.
 

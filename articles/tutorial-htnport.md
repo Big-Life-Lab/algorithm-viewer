@@ -82,10 +82,10 @@ hypertension than the young reference patient, all else being equal.
 **The Logarithmic checkbox.** Odds ratios are multiplicative — an odds
 ratio of 0.5 (half) and 2.0 (double) are “equal but opposite” changes,
 yet on a linear axis 2.0 looks four times further from 1.0 than 0.5
-does. The **Logarithmic** checkbox (in the Models tab) switches the
-y-axis to a log₁₀ scale, which places 0.5 and 2.0 an equal distance from
-1.0 and makes wide-ranging curves easier to read. Use the linear scale
-when the odds ratios stay close to 1.
+does. The **Logarithmic** checkbox (above the plot) switches the y-axis
+to a log₁₀ scale, which places 0.5 and 2.0 an equal distance from 1.0
+and makes wide-ranging curves easier to read. Use the linear scale when
+the odds ratios stay close to 1.
 
 ## The Interaction Predictor
 
