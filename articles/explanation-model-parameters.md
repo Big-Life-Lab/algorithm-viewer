@@ -59,10 +59,11 @@ names the algorithm, lists its models, and — through each model’s
 actually define that model.
 
     Algorithm (e.g. HTNPoRT)
-    ├── algorithm YAML  ── viewer-specific: titles, reference groups, allowable values
-    │    └── model_export ──▶ Model Parameters files (CSV) ── the actual model
-    ├── model: Female  ──▶ its own Model Parameters files
-    └── model: Male    ──▶ its own Model Parameters files
+    └── algorithm YAML ── viewer-specific: titles, reference groups, allowable values
+         ├── model: Female
+         │    └── model_export ──▶ Model Parameters files (CSV) ── the actual model
+         └── model: Male
+              └── model_export ──▶ Model Parameters files (CSV) ── the actual model
 
 So the algorithm YAML is *how the viewer finds and presents* the models,
 and Model Parameters is *what the models are*.
