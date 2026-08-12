@@ -74,9 +74,8 @@ The next tutorial explains what each plot means and how to read it.
 
 [`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
 accepts three arguments — `config` (the app configuration file), `port`,
-and `host`. For the defaults and full descriptions, see
-[`?run_app`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
-or the [`run_app()` reference
+and `host`. For the defaults and full descriptions, see the [`run_app()`
+reference
 page](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md).
 
 For example, to load your own configuration and serve the app on your
