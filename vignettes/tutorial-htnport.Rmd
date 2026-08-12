@@ -117,7 +117,6 @@ reference values.
 
 - The y-axis is a real probability. If the curve reads 8% at age 50, the model
   predicts an 8% chance of the outcome for a reference patient who is 50.
-- There is no "1.0 line" here — you are reading the risk directly, not a ratio.
 
 **Why it matters.** Odds ratios tell you about *relative* change but hide the
 *magnitude*. A predictor can double the odds (odds ratio 2.0) while moving the
