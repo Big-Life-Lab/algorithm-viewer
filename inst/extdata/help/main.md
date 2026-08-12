@@ -82,8 +82,18 @@ effect.
 
 ---
 
+### Sidebar Tabs
+
+The **Models** tab is always available in the left sidebar. The tab beside it
+holds the configuration options for the plot tab currently being displayed, and
+changes as you switch plots: **Reference** for the Odds Ratio, Relative Risk and
+Predicted Risk plots, and **Me vs Ref** for the Me vs Ref plot.
+
+---
+
 ### Reference Tab
 
+Shown in the sidebar for the Odds Ratio, Relative Risk and Predicted Risk plots.
 Adjusts the baseline values ("reference patient") used in all calculations.
 Each loaded model has its own set of controls with sliders for continuous
 variables and radio buttons for categorical variables. Changes take effect
@@ -132,9 +142,10 @@ Click another row to change the predictor shown.
 
 ### Me vs Ref Tab (Sidebar Controls)
 
-Sets the predictor values for both the "Me" (individual) and "Ref" (reference)
-profiles used in the Me vs Ref plot. Controls are built from the first selected
-model and shown together in a single compact panel.
+Shown in the sidebar, in place of the **Reference** tab, while the Me vs Ref plot
+is active. Sets the predictor values for both the "Me" (individual) and "Ref"
+(reference) profiles used in the Me vs Ref plot. Controls are built from the
+first selected model and shown together in a single compact panel.
 
 - **Continuous variables** &mdash; two sliders sharing the same range, labelled
   "Me" and "Ref", each with an editable number box for typing an exact value.

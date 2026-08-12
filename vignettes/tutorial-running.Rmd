@@ -45,16 +45,25 @@ The interface has two parts.
 
 ### The sidebar (left)
 
-The sidebar holds the controls, organized into tabs:
+The sidebar holds the controls, organized into tabs. **Models** is always
+available. The tab beside it provides the configuration options for whichever
+plot tab you are currently viewing, so it changes as you move between plots:
 
 - **Models** — choose which algorithm and which models are shown. Each selected
   model is drawn in its own colour so you can compare them on the same axes. If
   the installation allows it, this tab also holds an **Upload Algorithm** control
   and a **Preloaded Algorithms** dropdown.
-- **Reference** — sets the baseline "reference patient" that every plot is
-  calculated against. Continuous variables (such as age or BMI) use sliders;
-  categorical variables (such as diabetes status) use radio buttons. Click
-  **Reset** to restore a model's defaults.
+- **Reference** — shown for the **Odds Ratio**, **Relative Risk**, and
+  **Predicted Risk** plots. Sets the baseline "reference patient" that those
+  plots are calculated against. Continuous variables (such as age or BMI) use
+  sliders; categorical variables (such as diabetes status) use radio buttons.
+  Click **Reset** to restore a model's defaults.
+- **Me vs Ref** — shown when the **Me vs Ref** plot is active, in place of
+  **Reference**. Holds paired controls that set a "Me" and a "Ref" value for
+  every predictor.
+
+Switching plot tabs swaps this second sidebar tab for you, so you never have to
+hunt for the settings that belong to the plot on screen.
 
 ### The plot area (right)
 

@@ -7,7 +7,9 @@ models:
     title: Female
     model_export: ./female-reduced/HTNPoRT-reduced-female-model-export.csv
     reference_group:
-      hwmdbmi: 14.9
+      hwmdbmi: 
+        _notes_: This reference group is based 
+        _value_: 14.9
     predictor_allowable_values:
       hwmdbmi:
         seq:
@@ -15,18 +17,34 @@ models:
           to: 49
           by: 0.1
   male:
-    title: Male
-    model_export: ./male-reduced/HTNPoRT-reduced-male-model-export.csv
-    reference_group:
-      hwmdbmi: 13.8
-    predictor_allowable_values:
-      hwmdbmi:
-        seq:
-          from: 13.8
-          to: 49
-          by: 0.1
+    _notes_: Male notes
+    _value_:
+      title: Male
+      model_export: ./male-reduced/HTNPoRT-reduced-male-model-export.csv
+      reference_group:
+        hwmdbmi: 13.8
+        # hwmdbmi:
+        #   -
+        #     _notes_: Test
+        #     _value_: 3
+        #   - 2
+      predictor_allowable_values:
+        hwmdbmi:
+          _notes_: This is a note for hwmdbmi
+          _value_:
+            seq:
+              _notes_: Notes for seq
+              _value_:
+                from: 13.8
+                to: 49
+                by: 0.1
   _all_:
+    _notes_: Shared notes
     reference_group:
-      clc_age: 20
-      fmh_15: 2
+      clc_age:
+        _notes_: Age note
+        _value_: 20
+      fmh_15:
+        _notes_: FMH notes
+        _value_: 2
       diabx: 2
