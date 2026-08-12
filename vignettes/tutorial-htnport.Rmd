@@ -97,13 +97,13 @@ read. Use the linear scale when the odds ratios stay close to 1.
 ## The Interaction Predictor
 
 The **Interaction Predictor** dropdown (next to **Predictor**) is optional and
-affects the **Odds Ratio** plot only.
+affects the **Odds Ratio** and **Relative Risk** plots only.
 
 When you choose an interaction predictor, the plot shows how a **one-unit
-increase** in that second variable *modifies* the odds ratio of the primary
-predictor at each x-axis value. In other words, it visualizes whether two
-predictors amplify or dampen each other's effect, rather than acting
-independently.
+increase** in that second variable *modifies* the ratio (the odds ratio or the
+relative risk, depending on the tab) of the primary predictor at each x-axis
+value. In other words, it visualizes whether two predictors amplify or dampen
+each other's effect, rather than acting independently.
 
 Leave it set to `<empty>` if you only want to see a single predictor's effect.
 
