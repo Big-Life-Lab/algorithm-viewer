@@ -159,7 +159,7 @@
 <div class="section level2">
 <h2 id="running-the-app">Running the App<a class="anchor" aria-label="anchor" href="#running-the-app"></a>
 </h2>
-<p>The <a href="#quick-start">Quick Start</a> above is the standard way to install and run the app. This section covers the <code><a href="reference/run_app.html">run_app()</a></code> options and the other ways to install and run it. However you install the package, the required R package dependencies (listed in the <a href="DESCRIPTION">DESCRIPTION</a> file) are installed automatically.</p>
+<p>The <a href="#quick-start">Quick Start</a> above is the standard way to install and run the app. This section covers the <code><a href="reference/run_app.html">run_app()</a></code> options and the other ways to install and run it. However you install the package, the required R package dependencies (listed in the <a href="https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/DESCRIPTION" class="external-link">DESCRIPTION</a> file) are installed automatically.</p>
 <div class="section level3">
 <h3 id="parameters">Parameters<a class="anchor" aria-label="anchor" href="#parameters"></a>
 </h3>
@@ -234,13 +234,13 @@
 <span id="cb10-11"><a href="#cb10-11" tabindex="-1"></a><span class="fu">allow_file_uploads</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span><span class="co">       # allow users to upload their own algorithm</span></span>
 <span id="cb10-12"><a href="#cb10-12" tabindex="-1"></a><span class="fu">allow_algorithms_selection</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co"> # show a dropdown to switch algorithms</span></span>
 <span id="cb10-13"><a href="#cb10-13" tabindex="-1"></a><span class="fu">allow_algorithm_in_url</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span><span class="co">    # allow ?algorithm=&lt;id&gt; in the URL</span></span></code></pre></div>
-<p>For a working example, see the built-in configuration at <a href="inst/extdata/config.yaml">inst/extdata/config.yaml</a>.</p>
+<p>For a working example, see the built-in configuration at <a href="https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/inst/extdata/config.yaml" class="external-link">inst/extdata/config.yaml</a>.</p>
 </div>
 <div class="section level3">
 <h3 id="algorithm-yaml">Algorithm YAML<a class="anchor" aria-label="anchor" href="#algorithm-yaml"></a>
 </h3>
 <p>Each algorithm is defined in its own YAML file, referenced from the app configuration above. The algorithm YAML specifies model metadata, data file paths, reference group defaults, and predictor allowable values. Any value in the file may also carry free-text notes under a <code>_notes_</code> key, documenting where that value came from. The data files it references are CSV files that conform to the <a href="https://github.com/Big-Life-Lab/model-parameters/" class="external-link">Model Parameters</a> format developed by Big Life Lab, which specifies how input variables are transformed to obtain the final output values that are plotted.</p>
-<p>See the <a href="specs/CONFIG_SPECIFICATION.html">Algorithm Viewer Configuration Specification</a> for the full algorithm YAML format, and <a href="inst/extdata/models/">inst/extdata/models/</a> for the example HTNPoRT algorithm files.</p>
+<p>See the <a href="https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/specs/CONFIG_SPECIFICATION.md" class="external-link">Algorithm Viewer Configuration Specification</a> for the full algorithm YAML format, and <a href="https://github.com/Big-Life-Lab/algorithm-viewer/tree/main/inst/extdata/models" class="external-link">inst/extdata/models/</a> for the example HTNPoRT algorithm files.</p>
 </div>
 </div>
 <div class="section level2">
@@ -306,12 +306,12 @@
 <div class="section level2">
 <h2 id="deployment">Deployment<a class="anchor" aria-label="anchor" href="#deployment"></a>
 </h2>
-<p>The <a href="specs/DEPLOYMENT.html">Deployment Specification</a> is a planning document that discusses various deployment options we may want to implement in the future, including a public web application, a hosted algorithm showcase for sharing models via URL, and a local development tool for scientists building algorithms.</p>
+<p>The <a href="https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/specs/DEPLOYMENT.md" class="external-link">Deployment Specification</a> is a planning document that discusses various deployment options we may want to implement in the future, including a public web application, a hosted algorithm showcase for sharing models via URL, and a local development tool for scientists building algorithms.</p>
 </div>
 <div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a>
 </h2>
-<p>This project is developed by Project Big Life at The Ottawa Hospital and is released under the MIT License. See the <a href="LICENSE">LICENSE</a> file for details.</p>
+<p>This project is developed by Project Big Life at The Ottawa Hospital and is released under the MIT License. See the <a href="https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/LICENSE" class="external-link">LICENSE</a> file for details.</p>
 </div>
 </div>
   </main><aside class="col-md-3"><div class="links">
