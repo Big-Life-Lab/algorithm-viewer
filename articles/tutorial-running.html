@@ -167,37 +167,11 @@ it.</p>
 <div class="section level2">
 <h2 id="optional-run_app-options">3. Optional: <code>run_app()</code> options<a class="anchor" aria-label="anchor" href="#optional-run_app-options"></a>
 </h2>
-<p><code><a href="../reference/run_app.html">run_app()</a></code> accepts three arguments:</p>
-<table class="table">
-<colgroup>
-<col width="33%">
-<col width="33%">
-<col width="33%">
-</colgroup>
-<thead><tr class="header">
-<th>Argument</th>
-<th>Default</th>
-<th>Description</th>
-</tr></thead>
-<tbody>
-<tr class="odd">
-<td><code>config</code></td>
-<td><code>NULL</code></td>
-<td>Path to a YAML configuration file. When <code>NULL</code>, the
-built-in HTNPoRT configuration is used.</td>
-</tr>
-<tr class="even">
-<td><code>port</code></td>
-<td><code>getOption("shiny.port")</code></td>
-<td>Port for the Shiny server.</td>
-</tr>
-<tr class="odd">
-<td><code>host</code></td>
-<td><code>getOption("shiny.host", "127.0.0.1")</code></td>
-<td>Host address for the Shiny server.</td>
-</tr>
-</tbody>
-</table>
+<p><code><a href="../reference/run_app.html">run_app()</a></code> accepts three arguments — <code>config</code>
+(the app configuration file), <code>port</code>, and <code>host</code>.
+For the defaults and full descriptions, see <code><a href="../reference/run_app.html">?run_app</a></code> or the
+<a href="../reference/run_app.html"><code>run_app()</code> reference
+page</a>.</p>
 <p>For example, to load your own configuration and serve the app on your
 local network:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">

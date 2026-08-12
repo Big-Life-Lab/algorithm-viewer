@@ -73,13 +73,11 @@ The next tutorial explains what each plot means and how to read it.
 ## 3. Optional: `run_app()` options
 
 [`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
-accepts three arguments:
-
-| Argument | Default                                | Description                                                                                 |
-|----------|----------------------------------------|---------------------------------------------------------------------------------------------|
-| `config` | `NULL`                                 | Path to a YAML configuration file. When `NULL`, the built-in HTNPoRT configuration is used. |
-| `port`   | `getOption("shiny.port")`              | Port for the Shiny server.                                                                  |
-| `host`   | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server.                                                          |
+accepts three arguments — `config` (the app configuration file), `port`,
+and `host`. For the defaults and full descriptions, see
+[`?run_app`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
+or the [`run_app()` reference
+page](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md).
 
 For example, to load your own configuration and serve the app on your
 local network:

@@ -24,7 +24,8 @@ run_app(
 - port:
 
   Port number for the Shiny server. Defaults to
-  `getOption("shiny.port")`.
+  `getOption("shiny.port")`. If `NULL` (the default when the
+  `shiny.port` option is not set), a random available port is chosen.
 
 - host:
 
