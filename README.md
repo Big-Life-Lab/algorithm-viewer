@@ -112,8 +112,9 @@ performing predictions for male individuals.
 The [Quick Start](#quick-start) above is the standard way to install and run
 the app. This section covers the `run_app()` options and the other ways to
 install and run it. However you install the package, the required R package
-dependencies (listed in the [DESCRIPTION](DESCRIPTION) file) are installed
-automatically.
+dependencies (listed in the
+[DESCRIPTION](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/DESCRIPTION)
+file) are installed automatically.
 
 ### Parameters
 
@@ -224,7 +225,7 @@ allow_algorithm_in_url: true    # allow ?algorithm=<id> in the URL
 ```
 
 For a working example, see the built-in configuration at
-[inst/extdata/config.yaml](inst/extdata/config.yaml).
+[inst/extdata/config.yaml](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/inst/extdata/config.yaml).
 
 ### Algorithm YAML
 
@@ -239,9 +240,10 @@ developed by Big Life Lab, which specifies how input variables are transformed
 to obtain the final output values that are plotted.
 
 See the [Algorithm Viewer Configuration
-Specification](specs/CONFIG_SPECIFICATION.md) for the full algorithm YAML
-format, and [inst/extdata/models/](inst/extdata/models/) for the example
-HTNPoRT algorithm files.
+Specification](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/specs/CONFIG_SPECIFICATION.md)
+for the full algorithm YAML format, and
+[inst/extdata/models/](https://github.com/Big-Life-Lab/algorithm-viewer/tree/main/inst/extdata/models)
+for the example HTNPoRT algorithm files.
 
 ## Project Structure
 
@@ -306,13 +308,16 @@ algorithm-viewer/
 
 ## Deployment
 
-The [Deployment Specification](specs/DEPLOYMENT.md) is a planning document that
-discusses various deployment options we may want to implement in the future,
-including a public web application, a hosted algorithm showcase for sharing
-models via URL, and a local development tool for scientists building
-algorithms.
+The [Deployment
+Specification](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/specs/DEPLOYMENT.md)
+is a planning document that discusses various deployment options we may want
+to implement in the future, including a public web application, a hosted
+algorithm showcase for sharing models via URL, and a local development tool
+for scientists building algorithms.
 
 ## License
 
 This project is developed by Project Big Life at The Ottawa Hospital and is
-released under the MIT License. See the [LICENSE](LICENSE) file for details.
+released under the MIT License. See the
+[LICENSE](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/LICENSE)
+file for details.
