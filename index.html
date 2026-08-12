@@ -268,7 +268,7 @@
 <div class="section level3">
 <h3 id="algorithm-yaml">Algorithm YAML<a class="anchor" aria-label="anchor" href="#algorithm-yaml"></a>
 </h3>
-<p>Each algorithm is defined in its own YAML file, referenced from the app configuration above. The algorithm YAML specifies model metadata, data file paths, reference group defaults, and predictor allowable values. The data files it references are CSV files that conform to the <a href="https://github.com/Big-Life-Lab/model-parameters/" class="external-link">Model Parameters</a> format developed by Big Life Lab, which specifies how input variables are transformed to obtain the final output values that are plotted.</p>
+<p>Each algorithm is defined in its own YAML file, referenced from the app configuration above. The algorithm YAML specifies model metadata, data file paths, reference group defaults, and predictor allowable values. Any value in the file may also carry free-text notes under a <code>_notes_</code> key, documenting where that value came from. The data files it references are CSV files that conform to the <a href="https://github.com/Big-Life-Lab/model-parameters/" class="external-link">Model Parameters</a> format developed by Big Life Lab, which specifies how input variables are transformed to obtain the final output values that are plotted.</p>
 <p>See the <a href="specs/CONFIG_SPECIFICATION.html">Algorithm Viewer Configuration Specification</a> for the full algorithm YAML format, and <a href="inst/extdata/models/">inst/extdata/models/</a> for the example HTNPoRT algorithm files.</p>
 </div>
 </div>

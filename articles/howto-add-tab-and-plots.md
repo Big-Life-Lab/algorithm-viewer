@@ -215,11 +215,13 @@ A few contracts to respect:
   `shiny::NS(id, "predictor")` in the UI must match the
   `input$predictor` / `populate_dropdown_predictors(id = "predictor")`
   names in the server.
+
 - **The server function signature** takes `selected_models`,
   `selected_reference_groups`, and `model_definitions` — all reactive
   expressions supplied by `app_server()`. `selected_models()` is the
   list of models the user has checked; `model_definitions()` is `NULL`
   when no algorithm is loaded (handle that case, as above).
+
 - **The calculation function returns a named list** — the “curve data” —
   with at least `df`, `x_axis_label`, `y_axis_label`, `title`,
   `x_axis_type`, and `aes_args` (mapping plot aesthetics to columns of
@@ -228,10 +230,46 @@ A few contracts to respect:
   `make_general_plot()` binds every model’s `df` together and draws one
   curve per model. Optional fields such as `subtitle` are also
   supported.
+
 - **Wrap the render body in `plot_render_safely()`** so a computation
   error surfaces as a message in the plot area instead of a broken tab,
   and call `make_general_plot(NULL, ...)` early when no algorithm is
   loaded.
+
+- **Notes live outside the values they describe.** Any value in an
+  algorithm YAML file may carry free-text `_notes_` (see the [Algorithm
+  configuration
+  reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md)).
+  Those notes are stripped out of `model_definitions()$models` and
+  collected under `model_definitions()$notes`, so the model data your
+  calculation reads is never a `_notes_`/`_value_` pair. To show a note
+  next to a control, look it up with `get_notes()`, passing the same
+  keys that lead to the value:
+
+  ``` r
+  get_notes(
+    model_definitions(),
+    list("models", "male", "reference_group", "clc_age")
+  )
+  ```
+
+  A key may also be a number, addressing the value at that position
+  rather than by name — the way to reach the entries of a list, which
+  have no names of their own:
+
+  ``` r
+  get_notes(
+    model_definitions(),
+    list("models", "male", "predictor_allowable_values", "diabx", 2)
+  )
+  ```
+
+  Positions are 1-based and work for named values too
+  (`list("models", 1)` is the first model); mixed paths must be a
+  [`list()`](https://rdrr.io/r/base/list.html), since
+  [`c()`](https://rdrr.io/r/base/c.html) would coerce the numbers to
+  names. `get_notes()` returns `NULL` when the key path does not exist
+  or has no notes attached.
 
 ## Step 2 — Wire the tab into the UI
 

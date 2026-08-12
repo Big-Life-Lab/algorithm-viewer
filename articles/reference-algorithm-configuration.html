@@ -113,19 +113,21 @@ are rejected.</p>
 <span id="cb1-4"><a href="#cb1-4" tabindex="-1"></a></span>
 <span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
 <span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="at">  </span><span class="fu">&lt;model_id&gt;</span><span class="kw">:</span></span>
-<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> &lt;string&gt;</span></span>
-<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> &lt;path&gt;</span></span>
-<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="at">    </span><span class="fu">model_color</span><span class="kw">:</span><span class="at"> &lt;color&gt;</span><span class="co">            # optional</span></span>
-<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
-<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="at">      </span><span class="fu">&lt;variable&gt;</span><span class="kw">:</span><span class="at"> &lt;value&gt;</span></span>
-<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="at">      ...</span></span>
-<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="at">    </span><span class="fu">predictor_allowable_values</span><span class="kw">:</span><span class="co">     # optional</span></span>
-<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="at">      </span><span class="fu">&lt;variable&gt;</span><span class="kw">:</span><span class="at"> &lt;value_expression&gt;</span></span>
-<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="at">      ...</span></span>
-<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="at">  </span><span class="fu">_all_</span><span class="kw">:</span><span class="co">                            # optional shared defaults</span></span>
-<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="at">    ...</span></span></code></pre></div>
+<span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> &lt;string&gt;</span><span class="co">               # optional notes about this model</span></span>
+<span id="cb1-8"><a href="#cb1-8" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> &lt;string&gt;</span></span>
+<span id="cb1-9"><a href="#cb1-9" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> &lt;path&gt;</span></span>
+<span id="cb1-10"><a href="#cb1-10" tabindex="-1"></a><span class="at">    </span><span class="fu">model_color</span><span class="kw">:</span><span class="at"> &lt;color&gt;</span><span class="co">            # optional</span></span>
+<span id="cb1-11"><a href="#cb1-11" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb1-12"><a href="#cb1-12" tabindex="-1"></a><span class="at">      </span><span class="fu">&lt;variable&gt;</span><span class="kw">:</span><span class="at"> &lt;value&gt;</span></span>
+<span id="cb1-13"><a href="#cb1-13" tabindex="-1"></a><span class="at">      ...</span></span>
+<span id="cb1-14"><a href="#cb1-14" tabindex="-1"></a><span class="at">    </span><span class="fu">predictor_allowable_values</span><span class="kw">:</span><span class="co">     # optional</span></span>
+<span id="cb1-15"><a href="#cb1-15" tabindex="-1"></a><span class="at">      </span><span class="fu">&lt;variable&gt;</span><span class="kw">:</span><span class="at"> &lt;value_expression&gt;</span></span>
+<span id="cb1-16"><a href="#cb1-16" tabindex="-1"></a><span class="at">      ...</span></span>
+<span id="cb1-17"><a href="#cb1-17" tabindex="-1"></a><span class="at">  </span><span class="fu">_all_</span><span class="kw">:</span><span class="co">                            # optional shared defaults</span></span>
+<span id="cb1-18"><a href="#cb1-18" tabindex="-1"></a><span class="at">    ...</span></span></code></pre></div>
 <p>The two required top-level keys are <code>meta</code> and
-<code>models</code>.</p>
+<code>models</code>. Any value in the file may additionally carry
+free-text notes — see <a href="#notes-_notes_-and-_value_">Notes</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="meta">
@@ -289,6 +291,8 @@ group in the UI.</p>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a><span class="at">  </span><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">          # family-history category 2</span></span>
 <span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a><span class="at">  </span><span class="fu">hwmdbmi</span><span class="kw">:</span><span class="at"> </span><span class="fl">13.83</span><span class="co">     # BMI 13.83 as baseline</span></span>
 <span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a><span class="at">  </span><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span><span class="co">           # diabetes category 2</span></span></code></pre></div>
+<p>To record where a baseline value came from, attach
+<code>_notes_</code> to it — see <a href="#notes-_notes_-and-_value_">Notes</a>.</p>
 </div>
 <div class="section level3">
 <h3 id="predictor_allowable_values">
@@ -324,6 +328,15 @@ of values), not both.</p>
 values (numbers for continuous, numbers or strings for categorical).</p>
 <div class="sourceCode" id="cb6"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" tabindex="-1"></a><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">1</span><span class="kw">,</span><span class="at"> </span><span class="dv">2</span><span class="kw">]</span></span>
 <span id="cb6-2"><a href="#cb6-2" tabindex="-1"></a><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">1</span><span class="kw">,</span><span class="at"> </span><span class="dv">2</span><span class="kw">]</span></span></code></pre></div>
+<p>The values of an array are used together, as one set, so they are
+read as a single type: an array mixing whole and decimal numbers
+(<code>[18, 20.5, 23]</code>) is read as numbers, and one containing any
+string (<code>[1, "2"]</code>) is read entirely as strings. Give a
+categorical predictor’s values in the type its pipeline expects, and
+they will be left in that type.</p>
+<p>Either form may be annotated with <code>_notes_</code>, and an
+explicit array may be annotated value by value — see <a href="#notes-_notes_-and-_value_">Notes</a> and <a href="#annotating-individual-allowable-values">Annotating individual
+allowable values</a>.</p>
 </div>
 </div>
 <div class="section level2">
@@ -366,39 +379,289 @@ from <code>_all_</code>.</p>
 <ul>
 <li>Settings in <code>_all_</code> are copied into each model.</li>
 <li>Model-specific settings override <code>_all_</code> settings.</li>
+<li>Notes are inherited the same way as the values they annotate (see <a href="#notes-_notes_-and-_value_">Notes</a>).</li>
 </ul>
+</div>
+<div class="section level2">
+<h2 id="notes-_notes_-and-_value_">Notes (<code>_notes_</code> and <code>_value_</code>)<a class="anchor" aria-label="anchor" href="#notes-_notes_-and-_value_"></a>
+</h2>
+<p><strong>Any</strong> value in an algorithm configuration file may
+carry free-text notes, written under the key <code>_notes_</code>. Notes
+let you record where a value came from or why it was chosen — for
+example the study a reference group is based on, or the reason a BMI
+range stops at 49 — inside the configuration file itself, next to the
+value they describe.</p>
+<p>Notes are documentation only. They are stripped out of the
+configuration before it is used, so adding them never changes how an
+algorithm is loaded, computed, or plotted. The viewer keeps them
+separately so that they can be displayed in the UI beside the
+corresponding control (not yet implemented — at present notes are read
+and stored, but nothing in the interface shows them).</p>
+<div class="section level3">
+<h3 id="the-two-forms">The two forms<a class="anchor" aria-label="anchor" href="#the-two-forms"></a>
+</h3>
+<p>Notes can be written in either of two equivalent forms.</p>
+<p><strong>1. Beside the value</strong> — replace the value with a
+two-key object holding the notes under <code>_notes_</code> and the
+original value under <code>_value_</code>:</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="at">  </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Median BMI of the CCHS 2015 cohort.</span></span>
+<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a><span class="at">    </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="fl">14.9</span></span></code></pre></div>
+<p>This form works for <strong>every</strong> value, and is the only
+form available for values that are not objects — strings, numbers, and
+lists.</p>
+<p><strong>2. Inside the value</strong> — where the value is itself an
+object (a model, <code>meta</code>, a <code>reference_group</code>, a
+<code>seq</code> specification, …), add a <code>_notes_</code> key
+alongside its other keys:</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
+<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="at">  </span><span class="fu">male</span><span class="kw">:</span></span>
+<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Fitted on the male subsample only.</span></span>
+<span id="cb9-4"><a href="#cb9-4" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Male</span></span>
+<span id="cb9-5"><a href="#cb9-5" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-male-model-export.csv</span></span></code></pre></div>
+<p>The <code>_notes_</code> key annotates the object it appears in; it
+is never treated as one of that object’s own entries (it is not a model,
+not a predictor name, and not a <code>seq</code> parameter). The same
+model could equally be written in form 1:</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="at">  </span><span class="fu">male</span><span class="kw">:</span></span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Fitted on the male subsample only.</span></span>
+<span id="cb10-4"><a href="#cb10-4" tabindex="-1"></a><span class="at">    </span><span class="fu">_value_</span><span class="kw">:</span></span>
+<span id="cb10-5"><a href="#cb10-5" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Male</span></span>
+<span id="cb10-6"><a href="#cb10-6" tabindex="-1"></a><span class="at">      </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-male-model-export.csv</span></span></code></pre></div>
+<p>If a value is given notes in both forms at once, the ones written
+beside the value (form 1) win.</p>
+</div>
+<div class="section level3">
+<h3 id="where-notes-can-be-attached">Where notes can be attached<a class="anchor" aria-label="anchor" href="#where-notes-can-be-attached"></a>
+</h3>
+<p>Every level of the file accepts notes, including:</p>
+<table class="table">
+<colgroup>
+<col width="50%">
+<col width="50%">
+</colgroup>
+<thead><tr class="header">
+<th>Location</th>
+<th>Example</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>
+<code>meta</code> and its fields</td>
+<td><code>version: {_notes_: Bumped for the 2026 release, _value_: 1.0.0}</code></td>
+</tr>
+<tr class="even">
+<td>The <code>models</code> map</td>
+<td>a <code>_notes_</code> key directly under <code>models:</code>
+</td>
+</tr>
+<tr class="odd">
+<td>A single model</td>
+<td>see form 2 above</td>
+</tr>
+<tr class="even">
+<td>Any model field</td>
+<td>
+<code>title</code>, <code>model_export</code>,
+<code>model_color</code>
+</td>
+</tr>
+<tr class="odd">
+<td>A <code>reference_group</code>, and each variable in it</td>
+<td><code>clc_age: {_notes_: Youngest age in the cohort, _value_: 20}</code></td>
+</tr>
+<tr class="even">
+<td>A <code>predictor_allowable_values</code> map, and each variable in
+it</td>
+<td>see the example below</td>
+</tr>
+<tr class="odd">
+<td>Each value of an explicit list of allowable values</td>
+<td>see <a href="#annotating-individual-allowable-values">Annotating
+individual allowable values</a>
+</td>
+</tr>
+<tr class="even">
+<td>A <code>seq</code> specification, and each of its parameters</td>
+<td><code>by: {_notes_: 0.1 keeps the slider responsive, _value_: 0.1}</code></td>
+</tr>
+<tr class="odd">
+<td>The <code>_all_</code> shared block, and anything inside it</td>
+<td>see <a href="#notes-and-_all_">Notes and <code>_all_</code></a>
+</td>
+</tr>
+</tbody>
+</table>
+<p>A fuller example, annotating several levels at once:</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="at">  </span><span class="fu">female</span><span class="kw">:</span></span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Female model from Table 2 of the derivation paper.</span></span>
+<span id="cb11-4"><a href="#cb11-4" tabindex="-1"></a><span class="at">    </span><span class="fu">_value_</span><span class="kw">:</span></span>
+<span id="cb11-5"><a href="#cb11-5" tabindex="-1"></a><span class="at">      </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Female</span></span>
+<span id="cb11-6"><a href="#cb11-6" tabindex="-1"></a><span class="at">      </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-female-model-export.csv</span></span>
+<span id="cb11-7"><a href="#cb11-7" tabindex="-1"></a><span class="at">      </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb11-8"><a href="#cb11-8" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Reference patient agreed on with the clinical team.</span></span>
+<span id="cb11-9"><a href="#cb11-9" tabindex="-1"></a><span class="at">        </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb11-10"><a href="#cb11-10" tabindex="-1"></a><span class="at">          </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Median BMI of the female cohort.</span></span>
+<span id="cb11-11"><a href="#cb11-11" tabindex="-1"></a><span class="at">          </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="fl">14.9</span></span>
+<span id="cb11-12"><a href="#cb11-12" tabindex="-1"></a><span class="at">      </span><span class="fu">predictor_allowable_values</span><span class="kw">:</span></span>
+<span id="cb11-13"><a href="#cb11-13" tabindex="-1"></a><span class="at">        </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb11-14"><a href="#cb11-14" tabindex="-1"></a><span class="at">          </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Range observed in the derivation cohort.</span></span>
+<span id="cb11-15"><a href="#cb11-15" tabindex="-1"></a><span class="at">          </span><span class="fu">_value_</span><span class="kw">:</span></span>
+<span id="cb11-16"><a href="#cb11-16" tabindex="-1"></a><span class="at">            </span><span class="fu">seq</span><span class="kw">:</span></span>
+<span id="cb11-17"><a href="#cb11-17" tabindex="-1"></a><span class="at">              </span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="fl">14.9</span></span>
+<span id="cb11-18"><a href="#cb11-18" tabindex="-1"></a><span class="at">              </span><span class="fu">to</span><span class="kw">:</span><span class="at"> </span><span class="dv">49</span></span>
+<span id="cb11-19"><a href="#cb11-19" tabindex="-1"></a><span class="at">              </span><span class="fu">by</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.1</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="annotating-individual-allowable-values">Annotating individual allowable values<a class="anchor" aria-label="anchor" href="#annotating-individual-allowable-values"></a>
+</h3>
+<p>Where a predictor’s allowable values are given as an explicit list,
+the whole list and each value in it can be annotated. Notes on the list
+as a whole describe the set of values:</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="fu">predictor_allowable_values</span><span class="kw">:</span></span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="at">  </span><span class="fu">diabx</span><span class="kw">:</span></span>
+<span id="cb12-3"><a href="#cb12-3" tabindex="-1"></a><span class="at">    </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Diabetes status, as coded in the CCHS.</span></span>
+<span id="cb12-4"><a href="#cb12-4" tabindex="-1"></a><span class="at">    </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="dv">1</span><span class="kw">,</span><span class="at"> </span><span class="dv">2</span><span class="kw">]</span></span></code></pre></div>
+<p>Notes on the individual values describe one value each, which is
+useful for recording what a category code means:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="fu">predictor_allowable_values</span><span class="kw">:</span></span>
+<span id="cb13-2"><a href="#cb13-2" tabindex="-1"></a><span class="at">  </span><span class="fu">diabx</span><span class="kw">:</span></span>
+<span id="cb13-3"><a href="#cb13-3" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> No diabetes.</span></span>
+<span id="cb13-4"><a href="#cb13-4" tabindex="-1"></a><span class="at">      </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="dv">1</span></span>
+<span id="cb13-5"><a href="#cb13-5" tabindex="-1"></a><span class="at">    </span><span class="kw">-</span><span class="at"> </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Diabetes.</span></span>
+<span id="cb13-6"><a href="#cb13-6" tabindex="-1"></a><span class="at">      </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span></code></pre></div>
+<p>Values may be annotated individually, as a set, or both, and any
+value in the list may be left unannotated. The allowable values
+themselves are unaffected either way: the two examples above define
+exactly the same values as <code>diabx: [1, 2]</code>.</p>
+</div>
+<div class="section level3">
+<h3 id="notes-and-_all_">Notes and <code>_all_</code><a class="anchor" aria-label="anchor" href="#notes-and-_all_"></a>
+</h3>
+<p>Notes travel with the values they annotate: when a value is copied
+out of <code>_all_</code> into a model, its notes are copied with it. A
+model that defines its own value at that path keeps its own value
+<strong>and</strong> its own notes, and inherits neither.</p>
+<div class="sourceCode" id="cb14"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb14-1"><a href="#cb14-1" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
+<span id="cb14-2"><a href="#cb14-2" tabindex="-1"></a><span class="at">  </span><span class="fu">male</span><span class="kw">:</span></span>
+<span id="cb14-3"><a href="#cb14-3" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Male</span></span>
+<span id="cb14-4"><a href="#cb14-4" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-male-model-export.csv</span></span>
+<span id="cb14-5"><a href="#cb14-5" tabindex="-1"></a><span class="at">  </span><span class="fu">female</span><span class="kw">:</span></span>
+<span id="cb14-6"><a href="#cb14-6" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Female</span></span>
+<span id="cb14-7"><a href="#cb14-7" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-female-model-export.csv</span></span>
+<span id="cb14-8"><a href="#cb14-8" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb14-9"><a href="#cb14-9" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span></span>
+<span id="cb14-10"><a href="#cb14-10" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Female-specific baseline age.</span></span>
+<span id="cb14-11"><a href="#cb14-11" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="dv">25</span></span>
+<span id="cb14-12"><a href="#cb14-12" tabindex="-1"></a><span class="at">  </span><span class="fu">_all_</span><span class="kw">:</span></span>
+<span id="cb14-13"><a href="#cb14-13" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb14-14"><a href="#cb14-14" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span></span>
+<span id="cb14-15"><a href="#cb14-15" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Youngest age in the derivation cohort.</span></span>
+<span id="cb14-16"><a href="#cb14-16" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="dv">20</span></span></code></pre></div>
+<p>Here <code>male</code> inherits <code>clc_age: 20</code> together
+with the note “Youngest age in the derivation cohort”, while
+<code>female</code> keeps <code>clc_age: 25</code> and its own note.</p>
+<p>This applies to <code>_all_</code>’s own <code>_notes_</code> key as
+well: a <code>_notes_</code> written directly in <code>_all_</code> is
+inherited as the note of every model that does not carry a note of its
+own. If you want a note that describes only the shared block, put it on
+a value inside <code>_all_</code> rather than on <code>_all_</code>
+itself.</p>
+</div>
+<div class="section level3">
+<h3 id="restrictions">Restrictions<a class="anchor" aria-label="anchor" href="#restrictions"></a>
+</h3>
+<ul>
+<li>
+<strong><code>_value_</code> is a reserved key.</strong> It may not
+be used as a model identifier or as a predictor variable name.
+<code>_notes_</code> is likewise reserved wherever notes are
+accepted.</li>
+<li>
+<strong>Notes must be strings.</strong> A single line, or a
+multi-line YAML block scalar (<code>_notes_: |</code>), is fine;
+structured values are rejected.</li>
+<li>
+<strong>File-level notes are not retained.</strong> A
+<code>_notes_</code> key at the very top of the file (a sibling of
+<code>meta</code> and <code>models</code>) is accepted but discarded;
+attach notes to <code>meta</code> instead.</li>
+</ul>
+</div>
+<div class="section level3">
+<h3 id="reading-notes-from-r">Reading notes from R<a class="anchor" aria-label="anchor" href="#reading-notes-from-r"></a>
+</h3>
+<p>Notes are separated from the values they annotate when the file is
+loaded, so the loaded model definitions hold plain values and gather
+every note under a <code>$notes</code> element whose structure mirrors
+the definitions. Developers extending the viewer look a note up with the
+same sequence of keys that leads to the value:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">info</span> <span class="op">&lt;-</span> <span class="fu">read_model_definitions</span><span class="op">(</span><span class="st">"path/to/algorithm.yaml"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">info</span><span class="op">$</span><span class="va">models</span><span class="op">$</span><span class="va">male</span><span class="op">$</span><span class="va">reference_group</span><span class="op">$</span><span class="va">clc_age</span></span>
+<span><span class="co">#&gt; 20</span></span>
+<span></span>
+<span><span class="fu">get_notes</span><span class="op">(</span><span class="va">info</span>, <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"male"</span>, <span class="st">"reference_group"</span>, <span class="st">"clc_age"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; "Youngest age in the derivation cohort."</span></span></code></pre></div>
+<p>A key may also be a <strong>number</strong>, addressing the value at
+that position instead of by name. This is how the entries of a list are
+reached, since they have no names of their own — the notes on the second
+allowable value of <code>diabx</code> are:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">get_notes</span><span class="op">(</span></span>
+<span>  <span class="va">info</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"male"</span>, <span class="st">"predictor_allowable_values"</span>, <span class="st">"diabx"</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Positions are 1-based, and work for named values too
+(<code>list("models", 1)</code> is the first model). Because
+<code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code> would turn a number given alongside names into a
+string, a path that mixes names and positions must be a
+<code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>.</p>
+<p>See <a href="howto-add-tab-and-plots.html">Add your own tab and
+plots</a> for reading notes from inside a plot module.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="complete-example">Complete example<a class="anchor" aria-label="anchor" href="#complete-example"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" tabindex="-1"></a><span class="fu">meta</span><span class="kw">:</span></span>
-<span id="cb8-2"><a href="#cb8-2" tabindex="-1"></a><span class="at">  </span><span class="fu">algorithm</span><span class="kw">:</span><span class="at"> HTNPoRT</span></span>
-<span id="cb8-3"><a href="#cb8-3" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="fl">1.0.0</span></span>
-<span id="cb8-4"><a href="#cb8-4" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
-<span id="cb8-6"><a href="#cb8-6" tabindex="-1"></a><span class="at">  </span><span class="fu">male</span><span class="kw">:</span></span>
-<span id="cb8-7"><a href="#cb8-7" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Male</span></span>
-<span id="cb8-8"><a href="#cb8-8" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-male-model-export.csv</span></span>
-<span id="cb8-9"><a href="#cb8-9" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
-<span id="cb8-10"><a href="#cb8-10" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span><span class="at"> </span><span class="dv">20</span></span>
-<span id="cb8-11"><a href="#cb8-11" tabindex="-1"></a><span class="at">      </span><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
-<span id="cb8-12"><a href="#cb8-12" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span><span class="at"> </span><span class="fl">13.83</span></span>
-<span id="cb8-13"><a href="#cb8-13" tabindex="-1"></a><span class="at">      </span><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
-<span id="cb8-14"><a href="#cb8-14" tabindex="-1"></a><span class="at">  </span><span class="fu">female</span><span class="kw">:</span></span>
-<span id="cb8-15"><a href="#cb8-15" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Female</span></span>
-<span id="cb8-16"><a href="#cb8-16" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-female-model-export.csv</span></span>
-<span id="cb8-17"><a href="#cb8-17" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
-<span id="cb8-18"><a href="#cb8-18" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span><span class="at"> </span><span class="dv">20</span></span>
-<span id="cb8-19"><a href="#cb8-19" tabindex="-1"></a><span class="at">      </span><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
-<span id="cb8-20"><a href="#cb8-20" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span><span class="at"> </span><span class="fl">14.9</span></span>
-<span id="cb8-21"><a href="#cb8-21" tabindex="-1"></a><span class="at">      </span><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
-<span id="cb8-22"><a href="#cb8-22" tabindex="-1"></a><span class="at">  </span><span class="fu">_all_</span><span class="kw">:</span></span>
-<span id="cb8-23"><a href="#cb8-23" tabindex="-1"></a><span class="at">    </span><span class="fu">predictor_allowable_values</span><span class="kw">:</span></span>
-<span id="cb8-24"><a href="#cb8-24" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
-<span id="cb8-25"><a href="#cb8-25" tabindex="-1"></a><span class="at">        </span><span class="fu">seq</span><span class="kw">:</span></span>
-<span id="cb8-26"><a href="#cb8-26" tabindex="-1"></a><span class="at">          </span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="dv">13</span></span>
-<span id="cb8-27"><a href="#cb8-27" tabindex="-1"></a><span class="at">          </span><span class="fu">to</span><span class="kw">:</span><span class="at"> </span><span class="dv">49</span></span>
-<span id="cb8-28"><a href="#cb8-28" tabindex="-1"></a><span class="at">          </span><span class="fu">by</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.01</span></span></code></pre></div>
+<div class="sourceCode" id="cb17"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb17-1"><a href="#cb17-1" tabindex="-1"></a><span class="fu">meta</span><span class="kw">:</span></span>
+<span id="cb17-2"><a href="#cb17-2" tabindex="-1"></a><span class="at">  </span><span class="fu">algorithm</span><span class="kw">:</span><span class="at"> HTNPoRT</span></span>
+<span id="cb17-3"><a href="#cb17-3" tabindex="-1"></a><span class="at">  </span><span class="fu">version</span><span class="kw">:</span><span class="at"> </span><span class="fl">1.0.0</span></span>
+<span id="cb17-4"><a href="#cb17-4" tabindex="-1"></a></span>
+<span id="cb17-5"><a href="#cb17-5" tabindex="-1"></a><span class="fu">models</span><span class="kw">:</span></span>
+<span id="cb17-6"><a href="#cb17-6" tabindex="-1"></a><span class="at">  </span><span class="fu">male</span><span class="kw">:</span></span>
+<span id="cb17-7"><a href="#cb17-7" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Male</span></span>
+<span id="cb17-8"><a href="#cb17-8" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-male-model-export.csv</span></span>
+<span id="cb17-9"><a href="#cb17-9" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb17-10"><a href="#cb17-10" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span><span class="at"> </span><span class="dv">20</span></span>
+<span id="cb17-11"><a href="#cb17-11" tabindex="-1"></a><span class="at">      </span><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb17-12"><a href="#cb17-12" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb17-13"><a href="#cb17-13" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Median BMI of the male derivation cohort.</span></span>
+<span id="cb17-14"><a href="#cb17-14" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="fl">13.83</span></span>
+<span id="cb17-15"><a href="#cb17-15" tabindex="-1"></a><span class="at">      </span><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb17-16"><a href="#cb17-16" tabindex="-1"></a><span class="at">  </span><span class="fu">female</span><span class="kw">:</span></span>
+<span id="cb17-17"><a href="#cb17-17" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> Female</span></span>
+<span id="cb17-18"><a href="#cb17-18" tabindex="-1"></a><span class="at">    </span><span class="fu">model_export</span><span class="kw">:</span><span class="at"> ./HTNPoRT-female-model-export.csv</span></span>
+<span id="cb17-19"><a href="#cb17-19" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb17-20"><a href="#cb17-20" tabindex="-1"></a><span class="at">      </span><span class="fu">clc_age</span><span class="kw">:</span><span class="at"> </span><span class="dv">20</span></span>
+<span id="cb17-21"><a href="#cb17-21" tabindex="-1"></a><span class="at">      </span><span class="fu">fmh_15</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb17-22"><a href="#cb17-22" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb17-23"><a href="#cb17-23" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Median BMI of the female derivation cohort.</span></span>
+<span id="cb17-24"><a href="#cb17-24" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="fl">14.9</span></span>
+<span id="cb17-25"><a href="#cb17-25" tabindex="-1"></a><span class="at">      </span><span class="fu">diabx</span><span class="kw">:</span><span class="at"> </span><span class="dv">2</span></span>
+<span id="cb17-26"><a href="#cb17-26" tabindex="-1"></a><span class="at">  </span><span class="fu">_all_</span><span class="kw">:</span></span>
+<span id="cb17-27"><a href="#cb17-27" tabindex="-1"></a><span class="at">    </span><span class="fu">predictor_allowable_values</span><span class="kw">:</span></span>
+<span id="cb17-28"><a href="#cb17-28" tabindex="-1"></a><span class="at">      </span><span class="fu">hwmdbmi</span><span class="kw">:</span></span>
+<span id="cb17-29"><a href="#cb17-29" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> BMI range observed across the derivation cohort.</span></span>
+<span id="cb17-30"><a href="#cb17-30" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span></span>
+<span id="cb17-31"><a href="#cb17-31" tabindex="-1"></a><span class="at">          </span><span class="fu">seq</span><span class="kw">:</span></span>
+<span id="cb17-32"><a href="#cb17-32" tabindex="-1"></a><span class="at">            </span><span class="fu">from</span><span class="kw">:</span><span class="at"> </span><span class="dv">13</span></span>
+<span id="cb17-33"><a href="#cb17-33" tabindex="-1"></a><span class="at">            </span><span class="fu">to</span><span class="kw">:</span><span class="at"> </span><span class="dv">49</span></span>
+<span id="cb17-34"><a href="#cb17-34" tabindex="-1"></a><span class="at">            </span><span class="fu">by</span><span class="kw">:</span><span class="at"> </span><span class="fl">0.01</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="related">Related<a class="anchor" aria-label="anchor" href="#related"></a>

@@ -298,36 +298,62 @@ it is the fastest way to start.</p>
 <span><span class="op">}</span></span></code></pre></div>
 <p>A few contracts to respect:</p>
 <ul>
-<li>
-<strong>The <code>id</code> must match</strong> between
+<li><p><strong>The <code>id</code> must match</strong> between
 <code>plotMyPlotUI()</code> and <code>plotMyPlotServer()</code>, and the
 input IDs you build with <code>shiny::NS(id, "predictor")</code> in the
 UI must match the <code>input$predictor</code> /
 <code>populate_dropdown_predictors(id = "predictor")</code> names in the
-server.</li>
-<li>
-<strong>The server function signature</strong> takes
+server.</p></li>
+<li><p><strong>The server function signature</strong> takes
 <code>selected_models</code>, <code>selected_reference_groups</code>,
 and <code>model_definitions</code> — all reactive expressions supplied
 by <code>app_server()</code>. <code>selected_models()</code> is the list
 of models the user has checked; <code>model_definitions()</code> is
 <code>NULL</code> when no algorithm is loaded (handle that case, as
-above).</li>
-<li>
-<strong>The calculation function returns a named list</strong> — the
-“curve data” — with at least <code>df</code>, <code>x_axis_label</code>,
-<code>y_axis_label</code>, <code>title</code>, <code>x_axis_type</code>,
-and <code>aes_args</code> (mapping plot aesthetics to columns of
-<code>df</code> via <code><a href="https://rlang.r-lib.org/reference/sym.html" class="external-link">rlang::sym()</a></code>).
-<code>make_general_plot()</code> binds every model’s <code>df</code>
-together and draws one curve per model. Optional fields such as
-<code>subtitle</code> are also supported.</li>
-<li>
-<strong>Wrap the render body in
+above).</p></li>
+<li><p><strong>The calculation function returns a named list</strong> —
+the “curve data” — with at least <code>df</code>,
+<code>x_axis_label</code>, <code>y_axis_label</code>,
+<code>title</code>, <code>x_axis_type</code>, and <code>aes_args</code>
+(mapping plot aesthetics to columns of <code>df</code> via
+<code><a href="https://rlang.r-lib.org/reference/sym.html" class="external-link">rlang::sym()</a></code>). <code>make_general_plot()</code> binds every
+model’s <code>df</code> together and draws one curve per model. Optional
+fields such as <code>subtitle</code> are also supported.</p></li>
+<li><p><strong>Wrap the render body in
 <code>plot_render_safely()</code></strong> so a computation error
 surfaces as a message in the plot area instead of a broken tab, and call
 <code>make_general_plot(NULL, ...)</code> early when no algorithm is
-loaded.</li>
+loaded.</p></li>
+<li>
+<p><strong>Notes live outside the values they describe.</strong> Any
+value in an algorithm YAML file may carry free-text <code>_notes_</code>
+(see the <a href="reference-algorithm-configuration.html">Algorithm
+configuration reference</a>). Those notes are stripped out of
+<code>model_definitions()$models</code> and collected under
+<code>model_definitions()$notes</code>, so the model data your
+calculation reads is never a <code>_notes_</code>/<code>_value_</code>
+pair. To show a note next to a control, look it up with
+<code>get_notes()</code>, passing the same keys that lead to the
+value:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">get_notes</span><span class="op">(</span></span>
+<span>  <span class="fu">model_definitions</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"male"</span>, <span class="st">"reference_group"</span>, <span class="st">"clc_age"</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>A key may also be a number, addressing the value at that position
+rather than by name — the way to reach the entries of a list, which have
+no names of their own:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">get_notes</span><span class="op">(</span></span>
+<span>  <span class="fu">model_definitions</span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="st">"models"</span>, <span class="st">"male"</span>, <span class="st">"predictor_allowable_values"</span>, <span class="st">"diabx"</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p>Positions are 1-based and work for named values too
+(<code>list("models", 1)</code> is the first model); mixed paths must be
+a <code><a href="https://rdrr.io/r/base/list.html" class="external-link">list()</a></code>, since <code><a href="https://rdrr.io/r/base/c.html" class="external-link">c()</a></code> would coerce the numbers
+to names. <code>get_notes()</code> returns <code>NULL</code> when the
+key path does not exist or has no notes attached.</p>
+</li>
 </ul>
 </div>
 <div class="section level2">
@@ -337,12 +363,12 @@ loaded.</li>
 a <code><a href="https://rdrr.io/pkg/shiny/man/tabPanel.html" class="external-link">shiny::tabPanel()</a></code> to the main-panel
 <code>tabsetPanel(id = "main_tabs", ...)</code>, next to the existing
 plot tabs:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a>shiny<span class="sc">::</span><span class="fu">tabPanel</span>(</span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>  <span class="st">"My Plot"</span>,</span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>  <span class="at">value =</span> <span class="st">"myplot"</span>,</span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a>  <span class="at">icon =</span> shiny<span class="sc">::</span><span class="fu">icon</span>(<span class="st">"chart-line"</span>),</span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a>  <span class="fu">plotMyPlotUI</span>(<span class="st">"myplot"</span>, .external_height)</span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a>),</span></code></pre></div>
+<div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a>shiny<span class="sc">::</span><span class="fu">tabPanel</span>(</span>
+<span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>  <span class="st">"My Plot"</span>,</span>
+<span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="at">value =</span> <span class="st">"myplot"</span>,</span>
+<span id="cb4-4"><a href="#cb4-4" tabindex="-1"></a>  <span class="at">icon =</span> shiny<span class="sc">::</span><span class="fu">icon</span>(<span class="st">"chart-line"</span>),</span>
+<span id="cb4-5"><a href="#cb4-5" tabindex="-1"></a>  <span class="fu">plotMyPlotUI</span>(<span class="st">"myplot"</span>, .external_height)</span>
+<span id="cb4-6"><a href="#cb4-6" tabindex="-1"></a>),</span></code></pre></div>
 <ul>
 <li>
 <code>value</code> is the tab’s internal id (used in URLs and in
@@ -364,7 +390,7 @@ register the module server inside <code>create_all_plot_servers()</code>
 (called once when the page loads), passing the same reactives the other
 plot servers receive and the <strong>same module id</strong> as in Step
 2:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">plotMyPlotServer</span><span class="op">(</span></span>
 <span>  <span class="st">"myplot"</span>,</span>
 <span>  <span class="va">selected_models</span>,</span>

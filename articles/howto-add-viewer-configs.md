@@ -76,10 +76,25 @@ Key points:
 - If the viewer cannot derive a predictor’s allowable values from your
   `variable-details.csv`, specify them under
   **`predictor_allowable_values`**.
+- Use **`_notes_`** to record where a value came from — the cohort a
+  reference group is based on, the reason a range stops where it does.
+  Notes can be attached to any value in the file and never change how
+  the algorithm is loaded or plotted.
 
-The full set of fields, inheritance rules, and the
-`predictor_allowable_values` formats are documented in the [Algorithm
-configuration
+For example, to document a reference-group value, replace the value with
+a `_notes_`/`_value_` pair:
+
+``` yaml
+    reference_group:
+      age: 40
+      bmi:
+        _notes_: Median BMI of the derivation cohort (see Table 1).
+        _value_: 25
+```
+
+The full set of fields, inheritance rules, the
+`predictor_allowable_values` formats, and the ways of writing notes are
+documented in the [Algorithm configuration
 reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md).
 
 ### Verify the file loads

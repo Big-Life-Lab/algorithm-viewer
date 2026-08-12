@@ -164,9 +164,21 @@ values override <code>_all_</code>.</li>
 <li>If the viewer cannot derive a predictor’s allowable values from your
 <code>variable-details.csv</code>, specify them under
 <strong><code>predictor_allowable_values</code></strong>.</li>
+<li>Use <strong><code>_notes_</code></strong> to record where a value
+came from — the cohort a reference group is based on, the reason a range
+stops where it does. Notes can be attached to any value in the file and
+never change how the algorithm is loaded or plotted.</li>
 </ul>
-<p>The full set of fields, inheritance rules, and the
-<code>predictor_allowable_values</code> formats are documented in the <a href="reference-algorithm-configuration.html">Algorithm configuration
+<p>For example, to document a reference-group value, replace the value
+with a <code>_notes_</code>/<code>_value_</code> pair:</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="at">    </span><span class="fu">reference_group</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="at">      </span><span class="fu">age</span><span class="kw">:</span><span class="at"> </span><span class="dv">40</span></span>
+<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="at">      </span><span class="fu">bmi</span><span class="kw">:</span></span>
+<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="at">        </span><span class="fu">_notes_</span><span class="kw">:</span><span class="at"> Median BMI of the derivation cohort (see Table 1).</span></span>
+<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a><span class="at">        </span><span class="fu">_value_</span><span class="kw">:</span><span class="at"> </span><span class="dv">25</span></span></code></pre></div>
+<p>The full set of fields, inheritance rules, the
+<code>predictor_allowable_values</code> formats, and the ways of writing
+notes are documented in the <a href="reference-algorithm-configuration.html">Algorithm configuration
 reference</a>.</p>
 <div class="section level3">
 <h3 id="verify-the-file-loads">Verify the file loads<a class="anchor" aria-label="anchor" href="#verify-the-file-loads"></a>
@@ -183,16 +195,16 @@ URL.</p>
 </h2>
 <p>If you want people to launch the app preloaded with your algorithm,
 add a <code>config.yaml</code>:</p>
-<div class="sourceCode" id="cb2"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">algorithms</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a><span class="at">  </span><span class="fu">my-algorithm</span><span class="kw">:</span></span>
-<span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> </span><span class="st">"My Algorithm"</span></span>
-<span id="cb2-4"><a href="#cb2-4" tabindex="-1"></a><span class="at">    </span><span class="fu">file</span><span class="kw">:</span><span class="at"> my-algorithm/my-algorithm.yaml</span></span>
-<span id="cb2-5"><a href="#cb2-5" tabindex="-1"></a></span>
-<span id="cb2-6"><a href="#cb2-6" tabindex="-1"></a><span class="fu">initial_algorithm_id</span><span class="kw">:</span><span class="at"> my-algorithm</span></span>
-<span id="cb2-7"><a href="#cb2-7" tabindex="-1"></a></span>
-<span id="cb2-8"><a href="#cb2-8" tabindex="-1"></a><span class="fu">allow_file_uploads</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb2-9"><a href="#cb2-9" tabindex="-1"></a><span class="fu">allow_algorithms_selection</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb2-10"><a href="#cb2-10" tabindex="-1"></a><span class="fu">allow_algorithm_in_url</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
+<div class="sourceCode" id="cb3"><pre class="sourceCode yaml"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="fu">algorithms</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a><span class="at">  </span><span class="fu">my-algorithm</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> </span><span class="st">"My Algorithm"</span></span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="at">    </span><span class="fu">file</span><span class="kw">:</span><span class="at"> my-algorithm/my-algorithm.yaml</span></span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="fu">initial_algorithm_id</span><span class="kw">:</span><span class="at"> my-algorithm</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="fu">allow_file_uploads</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a><span class="fu">allow_algorithms_selection</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a><span class="fu">allow_algorithm_in_url</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div>
 <p>The <code>file:</code> path is resolved relative to the config file’s
 location. Setting <code>allow_file_uploads: false</code> produces a
 “showcase” style deployment where visitors can only view the
@@ -200,7 +212,7 @@ algorithm(s) you bundled — appropriate for sharing a specific model. See
 the <a href="reference-app-configuration.html">Application configuration
 reference</a> for every field.</p>
 <p>Users then launch your algorithm with:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span>config <span class="op">=</span> <span class="st">"path/to/config.yaml"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
