@@ -118,8 +118,8 @@ automatically.
 ### Parameters
 
 `run_app()` accepts three parameters — `config` (the app configuration file),
-`port`, and `host`. For the defaults and full descriptions, see `?run_app` or
-the [`run_app()` reference
+`port`, and `host`. For the defaults and full descriptions, see the
+[`run_app()` reference
 page](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.html).
 
 Example — loading a custom app configuration (see

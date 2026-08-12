@@ -74,7 +74,7 @@ The next tutorial explains what each plot means and how to read it.
 ## 3. Optional: `run_app()` options
 
 `run_app()` accepts three arguments — `config` (the app configuration file),
-`port`, and `host`. For the defaults and full descriptions, see `?run_app` or
+`port`, and `host`. For the defaults and full descriptions, see
 the [`run_app()` reference page](../reference/run_app.html).
 
 For example, to load your own configuration and serve the app on your local
