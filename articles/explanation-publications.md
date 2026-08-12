@@ -80,14 +80,6 @@ See the [Application configuration
 reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-app-configuration.md)
 for the `allow_algorithm_in_url` and `algorithms` settings.
 
-> A centralized, citable hosting service for algorithms is part of the
-> project’s roadmap (the “hosted algorithm showcase”). Until such a
-> service is available at a stable public URL, prefer citing a
-> versioned, deposited copy of the algorithm files plus the viewer
-> software, so your reference does not depend on a particular deployment
-> staying online — that is, the CSVs and the algorithm YAML published
-> together.
-
 ## A reproducibility checklist
 
 Before submitting, confirm that a reader could reproduce your figures:
