@@ -149,7 +149,7 @@ values. Click **Reset** to restore all controls to those defaults.
 
 ### Logarithmic Scale
 
-The **Logarithmic** checkbox (in the Models tab) toggles the y-axis of the
-Odds Ratio plot between a log&#8321;&#8320; scale (useful when odds ratios
-span a wide range) and a linear scale (useful when odds ratios are close
+Each plot has its own **Logarithmic** checkbox in the row of controls above it.
+It toggles the plot's value axis between a log&#8321;&#8320; scale (useful when
+values span a wide range) and a linear scale (useful when values stay close
 to 1).

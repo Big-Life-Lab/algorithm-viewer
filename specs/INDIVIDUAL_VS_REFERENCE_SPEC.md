@@ -136,7 +136,7 @@ A separate dotted Overall reference line is drawn for each model, coloured to ma
 - **Multiple models:** One set of points per selected model, dodged vertically (`position_dodge`), coloured by model. The Overall reference dotted lines are also per-model.
 - **X-axis label:** `"Relative Risk"` (or `"Relative Risk (Logarithmic)"` when log scale is active).
 - **Y-axis label:** Omitted (comparison labels on the y-axis are self-explanatory).
-- **Logarithmic toggle:** Respects the sidebar's logarithmic checkbox.
+- **Logarithmic toggle:** Respects this tab's own **Logarithmic** checkbox, in the row of controls above the plot.
 
 ### 2.4 Y-Axis Label Format
 
@@ -281,9 +281,9 @@ After `make_general_plot()` renders the base plot, an additional `geom_vline` la
 
 | Control | Effect on this tab |
 |---|---|
-| **Predictor** dropdown | Not used. Hidden or ignored when this tab is active. |
-| **Interaction Predictor** dropdown | Not used. Hidden or ignored when this tab is active. |
-| **Logarithmic** checkbox | Applies to the main plot. |
+| **Predictor** dropdown | Not used. Each plot tab has its own controls, and this tab does not include this dropdown. |
+| **Interaction Predictor** dropdown | Not used. Each plot tab has its own controls, and this tab does not include this dropdown. |
+| **Logarithmic** checkbox | This tab's own checkbox, above the plot. Applies to the main plot. |
 | **Models** checkbox group | Selects which models contribute points. Multiple models produce dodged points and separate Overall reference lines. |
 | **Individual Profile controls** | Changing any control value invalidates the plot and redraws all rows. |
 | **Reference Profile controls** | Changing any control value invalidates the plot (denominator changes, so all RRs change). |
