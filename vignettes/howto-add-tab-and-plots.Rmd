@@ -225,6 +225,36 @@ A few contracts to respect:
 - **Wrap the render body in `plot_render_safely()`** so a computation error
   surfaces as a message in the plot area instead of a broken tab, and call
   `make_general_plot(NULL, ...)` early when no algorithm is loaded.
+- **Notes live outside the values they describe.** Any value in an algorithm
+  YAML file may carry free-text `_notes_` (see the
+  [Algorithm configuration reference](reference-algorithm-configuration.html)).
+  Those notes are stripped out of `model_definitions()$models` and collected
+  under `model_definitions()$notes`, so the model data your calculation reads is
+  never a `_notes_`/`_value_` pair. To show a note next to a control, look it up
+  with `get_notes()`, passing the same keys that lead to the value:
+
+  ```r
+  get_notes(
+    model_definitions(),
+    list("models", "male", "reference_group", "clc_age")
+  )
+  ```
+
+  A key may also be a number, addressing the value at that position rather than
+  by name — the way to reach the entries of a list, which have no names of their
+  own:
+
+  ```r
+  get_notes(
+    model_definitions(),
+    list("models", "male", "predictor_allowable_values", "diabx", 2)
+  )
+  ```
+
+  Positions are 1-based and work for named values too (`list("models", 1)` is
+  the first model); mixed paths must be a `list()`, since `c()` would coerce the
+  numbers to names. `get_notes()` returns `NULL` when the key path does not
+  exist or has no notes attached.
 
 ## Step 2 — Wire the tab into the UI
 

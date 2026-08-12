@@ -12,6 +12,7 @@ The YAML configuration file is the central configuration that defines:
 - Data files to load for each model
 - Default reference group values for odds ratio calculations
 - Predictor allowable values for visualization
+- Optional free-text notes describing any of the above
 
 ## File Structure
 
@@ -22,6 +23,7 @@ meta:
 
 models:
   <model_id>:
+    _notes_: <string>
     title: <string>
     model_export: <path>
     reference_group:
@@ -35,6 +37,9 @@ models:
       <variable>: <value_expression>
       ...
 ```
+
+Any value in the file may carry free-text notes under a `_notes_` key; see
+[Notes (`_notes_` and `_value_`)](#4-notes-_notes_-and-_value_).
 
 ---
 
@@ -73,6 +78,7 @@ is a model identifier. As many models as necessary can be specified.
 | `reference_group`            | object | Yes      | Default baseline values for odds ratio calculations                                                                         |
 | `model_color`                | string | No       | Color to use for plots representing this model (eg. "#ff0000" or "red"). If not specified then one is chosen automatically. |
 | `predictor_allowable_values` | object | No       | Override/specify allowable values for specific predictors                                                                   |
+| `_notes_`                    | string | No       | Free-text notes about this model (see [Notes](#4-notes-_notes_-and-_value_)). Every field above may also be annotated.      |
 
 **Example:**
 
@@ -167,6 +173,12 @@ pipeline.
    diabx: [1, 2]
    ```
 
+   The values of an array are used together, as one set, so they are read as a
+   single type: an array mixing whole and decimal numbers (`[18, 20.5, 23]`) is
+   read as numbers, and one containing any string (`[1, "2"]`) is read entirely
+   as strings. Values given in the type the pipeline expects are left in that
+   type.
+
 ---
 
 ### 3. `_all_` Special Model
@@ -254,6 +266,211 @@ models.
 
 - Settings in `_all_` are copied to each model
 - Model-specific settings take precedence over `_all_` settings
+- Notes are inherited along with the values they annotate (see
+  [Notes](#4-notes-_notes_-and-_value_))
+
+---
+
+### 4. Notes (`_notes_` and `_value_`)
+
+Any value in the configuration file may carry free-text notes under a `_notes_`
+key. Notes record where a value came from or why it was chosen — the study a
+reference group is based on, the reason a range stops where it does — inside the
+configuration file, next to the value they describe.
+
+Notes are documentation only. They are stripped out of the configuration before
+it is used, so adding them never changes how an algorithm is loaded, computed,
+or plotted. The Algorithm Viewer keeps them in a separate structure so they can
+be displayed in the UI beside the corresponding control. Displaying them is not
+yet implemented: notes are currently read and stored, but nothing in the
+interface shows them.
+
+#### Supported formats
+
+Notes may be written in either of two equivalent forms.
+
+1. **Beside the value** — replace the value with a two-key object holding the
+   notes under `_notes_` and the original value under `_value_`:
+
+   ```yaml
+   reference_group:
+     hwmdbmi:
+       _notes_: Median BMI of the CCHS 2015 cohort.
+       _value_: 14.9
+   ```
+
+   This form works for every value, and is the only form available for values
+   that are not objects (strings, numbers, and lists).
+
+2. **Inside the value** — where the value is itself an object (a model, `meta`,
+   a `reference_group`, a `seq` specification, and so on), add a `_notes_` key
+   alongside its other keys:
+
+   ```yaml
+   models:
+     male:
+       _notes_: Fitted on the male subsample only.
+       title: Male
+       model_export: ./HTNPoRT-male-model-export.csv
+   ```
+
+   The `_notes_` key annotates the object it appears in and is never one of that
+   object's own entries — it is not a model, not a predictor name, and not a
+   `seq` parameter.
+
+If both forms are used on the same value, the notes written beside the value
+(form 1) take precedence.
+
+#### Where notes can be attached
+
+| Location                                                    | Example                                                           |
+|-------------------------------------------------------------|-------------------------------------------------------------------|
+| `meta` and its fields                                       | `version: {_notes_: Bumped for the 2026 release, _value_: 1.0.0}` |
+| The `models` map                                            | a `_notes_` key directly under `models:`                          |
+| A model, and each of its fields                             | `title`, `model_export`, `model_color`                            |
+| A `reference_group`, and each variable in it                | `clc_age: {_notes_: Youngest age in the cohort, _value_: 20}`     |
+| Each value of an explicit list of allowable values          | see "Annotating individual allowable values" below                |
+| A `predictor_allowable_values` map, and each variable in it | see the example below                                             |
+| A `seq` specification, and each of its parameters           | `by: {_notes_: 0.1 keeps the slider responsive, _value_: 0.1}`    |
+| The `_all_` block, and anything inside it                   | see "Notes and `_all_`" below                                     |
+
+**Example** annotating several levels at once:
+
+```yaml
+models:
+  female:
+    _notes_: Female model from Table 2 of the derivation paper.
+    _value_:
+      title: Female
+      model_export: ./HTNPoRT-female-model-export.csv
+      reference_group:
+        _notes_: Reference patient agreed on with the clinical team.
+        hwmdbmi:
+          _notes_: Median BMI of the female cohort.
+          _value_: 14.9
+      predictor_allowable_values:
+        hwmdbmi:
+          _notes_: Range observed in the derivation cohort.
+          _value_:
+            seq:
+              from: 14.9
+              to: 49
+              by: 0.1
+```
+
+#### Annotating individual allowable values
+
+Where a predictor's allowable values are given as an explicit list, notes may be
+attached to the list as a whole, describing the set of values:
+
+```yaml
+predictor_allowable_values:
+  diabx:
+    _notes_: Diabetes status, as coded in the CCHS.
+    _value_: [1, 2]
+```
+
+or to the individual values, describing one value each, which is useful for
+recording what a category code means:
+
+```yaml
+predictor_allowable_values:
+  diabx:
+    - _notes_: No diabetes.
+      _value_: 1
+    - _notes_: Diabetes.
+      _value_: 2
+```
+
+Values may be annotated individually, as a set, or both, and any value in the
+list may be left unannotated. The allowable values are unaffected either way:
+both examples above define the same values as `diabx: [1, 2]`.
+
+#### Notes and `_all_`
+
+Notes travel with the values they annotate: a value copied out of `_all_` into a
+model brings its notes with it. A model that defines its own value at that path
+keeps its own value *and* its own notes, and inherits neither.
+
+```yaml
+models:
+  male:
+    title: Male
+    model_export: ./HTNPoRT-male-model-export.csv
+  female:
+    title: Female
+    model_export: ./HTNPoRT-female-model-export.csv
+    reference_group:
+      clc_age:
+        _notes_: Female-specific baseline age.
+        _value_: 25
+  _all_:
+    reference_group:
+      clc_age:
+        _notes_: Youngest age in the derivation cohort.
+        _value_: 20
+```
+
+The `male` model inherits `clc_age: 20` together with the note "Youngest age in
+the derivation cohort". The `female` model keeps `clc_age: 25` and its own note.
+
+The same applies to `_all_`'s own `_notes_` key: a `_notes_` written directly in
+`_all_` becomes the note of every model that does not carry a note of its own.
+To describe the shared block itself without that happening, attach the note to a
+value inside `_all_` rather than to `_all_`.
+
+#### Restrictions
+
+- `_value_` is a reserved key: it may not be used as a model identifier or as a
+  predictor variable name. `_notes_` is likewise reserved wherever notes are
+  accepted.
+- Notes must be strings. A single line or a multi-line YAML block scalar
+  (`_notes_: |`) is accepted; structured values are rejected by the schema.
+- A `_notes_` key at the very top of the file (a sibling of `meta` and `models`)
+  is accepted but discarded. Attach file-level notes to `meta` instead.
+
+#### How notes are processed
+
+`read_model_definitions()` (in `R/fct_model_definitions.R`) normalizes both
+forms into a uniform tree of `_notes_`/`_value_` nodes, merges the `_all_` block
+on that tree so notes stay attached to their values, and then splits the notes
+back out. The definitions it returns therefore hold plain values, with all the
+notes gathered under a `$notes` element whose structure mirrors the definitions.
+A sequence whose values carry notes is read as a list of the mappings those
+notes are written as, so it is collapsed back to a vector as the notes are split
+off, leaving it in the same form as the sequence written without notes.
+
+Look a note up with the same sequence of keys that leads to the value:
+
+```r
+info <- read_model_definitions("path/to/algorithm.yaml")
+
+info$models$male$reference_group$clc_age
+#> 20
+
+get_notes(info, list("models", "male", "reference_group", "clc_age"))
+#> "Youngest age in the derivation cohort."
+```
+
+A key may also be a number, addressing the value at that position rather than by
+name. This is the only way to reach the entries of an unnamed list, which have
+no names of their own — the notes on the second allowable value of `diabx` are:
+
+```r
+get_notes(
+  info,
+  list("models", "male", "predictor_allowable_values", "diabx", 2)
+)
+```
+
+Positions are 1-based and work for named values too, so `list("models", 1)`
+reaches the notes on the first model. A path that mixes names and positions must
+be a `list()`: `c()` would coerce the numbers to strings, and they would then be
+looked up as names.
+
+`get_notes()` returns `NULL` when the key path does not exist — including a
+position outside the node it is applied to — or when the value it names has no
+notes.
 
 ---
 
@@ -271,7 +488,9 @@ models:
     reference_group:
       clc_age: 20
       fmh_15: 2
-      hwmdbmi: 13.83
+      hwmdbmi:
+        _notes_: Median BMI of the male derivation cohort.
+        _value_: 13.83
       diabx: 2
   female:
     title: Female
@@ -279,13 +498,17 @@ models:
     reference_group:
       clc_age: 20
       fmh_15: 2
-      hwmdbmi: 14.9
+      hwmdbmi:
+        _notes_: Median BMI of the female derivation cohort.
+        _value_: 14.9
       diabx: 2
   _all_:
     predictor_allowable_values:
       hwmdbmi:
-        seq:
-          from: 13
-          to: 49
-          by: 0.01
+        _notes_: BMI range observed across the derivation cohort.
+        _value_:
+          seq:
+            from: 13
+            to: 49
+            by: 0.01
 ```

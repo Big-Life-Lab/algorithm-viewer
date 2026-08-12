@@ -147,8 +147,9 @@ plotPRServer <- function(
 #' @param predictor Character string specifying the variable name.
 #' @param model_data A model definition named list as returned by the model
 #'   definitions utilities.
-#' @param predictor_allowable_values Numeric vector of predictor values to
-#'   evaluate. If NULL, uses the allowable values from model_data.
+#' @param predictor_allowable_values Vector of predictor values to evaluate,
+#'   numeric for a continuous predictor and numeric or character for a
+#'   categorical one. If NULL, uses the allowable values from model_data.
 #' @param reference_group Named list of reference values for all predictors.
 #'   If NULL, uses the reference group from model_data.
 #'

@@ -2,165 +2,508 @@
   "$schema": "http://json-schema.org/draft-07/schema",
   "$id": "algorithm.schema.json",
   "title": "Algorithm Definition",
-  "description": "Schema for an algorithm definition YAML file, which specifies meta information and one or more statistical models.",
-  "type": "object",
-  "additionalProperties": false,
-  "required": ["meta", "models"],
-  "properties": {
+  "description": "Schema for an algorithm definition YAML file, which specifies meta information and one or more statistical models.\n\nAnnotations: any value in this file may carry free-text notes under '_notes_'. Notes are stripped out before the definitions are used and are kept separately for display in the UI. There are two equivalent ways to write them:\n\n1. Beside the value: replace the value with an object holding the value under '_value_' and the notes under '_notes_'. For example 'version: 1.0.0' may be written as 'version: {_notes_: Bumped for the 2026 release, _value_: 1.0.0}'. This form works for every value, and is the only form available for values that are not objects (strings, numbers and lists).\n\n2. Inside the value: where the value is itself an object (a model, 'meta', a reference group, a seq specification, ...), add a '_notes_' key alongside its other keys. For example a model may be written as 'male: {_notes_: Male notes, title: Male, model_export: ./male.csv}'. The '_notes_' key annotates the object it appears in and is never treated as one of that object's own entries.\n\nSchema definitions below whose name ends in '_annotated' accept either the plain value or form 1; object definitions additionally accept form 2 through their optional '_notes_' property.",
+  "if": {
+    "type": "object",
+    "required": ["_value_"]
+  },
+  "then": {
+    "type": "object",
+    "description": "Annotated form of the whole algorithm definition.",
+    "additionalProperties": false,
+    "required": ["_value_"],
+    "properties": {
+      "_value_": {"$ref": "#/$defs/algorithm"},
+      "_notes_": {"$ref": "#/$defs/notes"}
+    }
+  },
+  "else": {
+    "$ref": "#/$defs/algorithm"
+  },
+  "$defs": {
+    "notes": {
+      "type": "string",
+      "description": "Free-text notes describing the accompanying value. Notes are stripped out of the value itself and kept separately for display in the UI.",
+      "examples": ["This is the BMI note"]
+    },
+
+    "algorithm": {
+      "type": "object",
+      "description": "The algorithm definition: meta information plus the models it contains.",
+      "additionalProperties": false,
+      "required": ["meta", "models"],
+      "properties": {
+        "meta": {"$ref": "#/$defs/meta_annotated"},
+        "models": {"$ref": "#/$defs/models_annotated"},
+        "_notes_": {"$ref": "#/$defs/notes"}
+      }
+    },
+
     "meta": {
       "type": "object",
       "description": "Meta information about the algorithm.",
       "additionalProperties": false,
       "required": ["algorithm", "version"],
       "properties": {
-        "algorithm": {
-          "type": "string",
-          "description": "Human-readable name of the algorithm.",
-          "examples": ["HTNPoRT Full", "HTNPoRT Reduced"]
-        },
-        "version": {
-          "type": "string",
-          "description": "Version of the algorithm definition.",
-          "examples": ["1.0.0"]
-        }
+        "algorithm": {"$ref": "#/$defs/algorithm_name_annotated"},
+        "version": {"$ref": "#/$defs/version_annotated"},
+        "_notes_": {"$ref": "#/$defs/notes"}
       }
     },
-    "models": {
-      "type": "object",
-      "description": "Map of model entries. Keys are arbitrary model identifiers. The special key '_all_' defines shared configuration that is merged into every other model (without overwriting values already set on the model).",
-      "minProperties": 1,
-      "properties": {
-        "_all_": {
-          "$ref": "#/$defs/shared_model_config",
-          "description": "Shared configuration applied to all models. Values here are copied to each named model unless that model already defines them."
+    "meta_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the meta information under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/meta"},
+          "_notes_": {"$ref": "#/$defs/notes"}
         }
       },
-      "additionalProperties": {
-        "$ref": "#/$defs/model_entry"
-      }
-    }
-  },
-  "$defs": {
-    "seq_spec": {
-      "type": "object",
-      "description": "Parameters for R's seq() function. Must include 'from' and 'to'; use either 'by' (step size) or 'length.out' (number of values).",
-      "additionalProperties": false,
-      "required": ["from", "to"],
-      "properties": {
-        "from": {
-          "type": "number",
-          "description": "Start of the sequence."
-        },
-        "to": {
-          "type": "number",
-          "description": "End of the sequence."
-        },
-        "by": {
-          "type": "number",
-          "description": "Step size between values. May be negative when 'from' > 'to'. Mutually exclusive with 'length.out'.",
-          "not": {"enum": [0]}
-        },
-        "length.out": {
-          "type": "number",
-          "description": "Desired number of values in the sequence. Mutually exclusive with 'by'.",
-          "minimum": 1
-        }
-      }
+      "else": {"$ref": "#/$defs/meta"}
     },
-    "predictor_allowable_values": {
-      "type": "object",
-      "description": "Map of predictor variable names to their allowable input values. If omitted for a predictor, allowable values are derived from the variable-details CSV. Specified values take precedence over the CSV-derived ones.",
-      "additionalProperties": {
-        "oneOf": [
-          {
-            "type": "object",
-            "description": "A seq() specification that generates a numeric sequence.",
-            "additionalProperties": false,
-            "required": ["seq"],
-            "properties": {
-              "seq": {
-                "$ref": "#/$defs/seq_spec"
-              }
-            }
-          },
-          {
-            "type": "array",
-            "description": "An explicit list of allowable values. Use numbers for continuous variables and numbers or strings for categorical variables.",
-            "items": {
-              "oneOf": [
-                {"type": "number"},
-                {"type": "string"}
-              ]
-            },
-            "minItems": 1
-          }
-        ]
-      }
-    },
-    "reference_group": {
-      "type": "object",
-      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs (e.g. odds ratios). These set the initial slider/radio-button values in the UI.",
-      "additionalProperties": {
-        "oneOf": [
-          {
-            "type": "number",
-            "description": "Reference value for a continuous predictor variable."
-          },
-          {
-            "type": "string",
-            "description": "Reference value for a categorical predictor variable."
-          }
-        ]
-      }
-    },
-    "model_color": {
+
+    "algorithm_name": {
       "type": "string",
-      "description": "Color used when displaying this model. Accepts CSS hex colors (e.g. '#440154FF', '#21908C') or CSS named colors (e.g. 'red'). If omitted, a color is assigned automatically from the viridis palette.",
-      "pattern": "^(#([0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})|[A-Za-z]+)$",
-      "examples": ["#440154FF", "#21908CFF", "red", "steelblue"]
+      "description": "Human-readable name of the algorithm.",
+      "examples": ["HTNPoRT Full", "HTNPoRT Reduced"]
     },
-    "shared_model_config": {
+    "algorithm_name_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the algorithm name under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/algorithm_name"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/algorithm_name"}
+    },
+
+    "version": {
+      "type": "string",
+      "description": "Version of the algorithm definition.",
+      "examples": ["1.0.0"]
+    },
+    "version_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the version under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/version"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/version"}
+    },
+
+    "models": {
       "type": "object",
-      "description": "Configuration fields that can appear on an individual model or in the '_all_' shared block.",
-      "additionalProperties": false,
+      "description": "Map of model entries. Keys are arbitrary model identifiers ('_value_' is reserved and may not be used as a model identifier, and '_notes_' annotates the map itself). The special key '_all_' defines shared configuration that is merged into every other model (without overwriting values already set on the model).",
+      "propertyNames": {
+        "not": {"const": "_value_"}
+      },
       "properties": {
-        "predictor_allowable_values": {
-          "$ref": "#/$defs/predictor_allowable_values"
+        "_all_": {
+          "$ref": "#/$defs/shared_model_config_annotated",
+          "description": "Shared configuration applied to all models. Values here are copied to each named model unless that model already defines them."
         },
-        "reference_group": {
-          "$ref": "#/$defs/reference_group"
-        },
-        "model_color": {
-          "$ref": "#/$defs/model_color"
+        "_notes_": {"$ref": "#/$defs/notes"}
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/model_entry_annotated"
+      },
+      "not": {
+        "type": "object",
+        "description": "At least one model must be defined, in addition to any shared '_all_' block and any notes.",
+        "additionalProperties": false,
+        "properties": {
+          "_all_": true,
+          "_notes_": true
         }
       }
     },
+    "models_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the map of models under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/models"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/models"}
+    },
+
     "model_entry": {
       "type": "object",
       "description": "A named model within the algorithm. Defines the display title, path to the model export CSV, and optional predictor configuration.",
       "additionalProperties": false,
       "required": ["title", "model_export"],
       "properties": {
-        "title": {
-          "type": "string",
-          "description": "Human-readable display name for this model, shown in radio buttons and headings.",
-          "examples": ["Female", "Male"]
-        },
-        "model_export": {
-          "type": "string",
-          "description": "Relative path (from this YAML file's directory) to the model export CSV file.",
-          "examples": ["./female-full/HTNPoRT-full-female-model-export.csv"]
-        },
-        "model_color": {
-          "$ref": "#/$defs/model_color"
-        },
+        "title": {"$ref": "#/$defs/model_title_annotated"},
+        "model_export": {"$ref": "#/$defs/model_export_annotated"},
+        "model_color": {"$ref": "#/$defs/model_color_annotated"},
         "predictor_allowable_values": {
-          "$ref": "#/$defs/predictor_allowable_values"
+          "$ref": "#/$defs/predictor_allowable_values_annotated"
         },
-        "reference_group": {
-          "$ref": "#/$defs/reference_group"
-        }
+        "reference_group": {"$ref": "#/$defs/reference_group_annotated"},
+        "_notes_": {"$ref": "#/$defs/notes"}
       }
+    },
+    "model_entry_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the model under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/model_entry"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/model_entry"}
+    },
+
+    "shared_model_config": {
+      "type": "object",
+      "description": "Configuration fields that can appear in the '_all_' shared block. These are copied into each model that does not already define them.",
+      "additionalProperties": false,
+      "properties": {
+        "model_color": {"$ref": "#/$defs/model_color_annotated"},
+        "predictor_allowable_values": {
+          "$ref": "#/$defs/predictor_allowable_values_annotated"
+        },
+        "reference_group": {"$ref": "#/$defs/reference_group_annotated"},
+        "_notes_": {"$ref": "#/$defs/notes"}
+      }
+    },
+    "shared_model_config_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the shared configuration under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/shared_model_config"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/shared_model_config"}
+    },
+
+    "model_title": {
+      "type": "string",
+      "description": "Human-readable display name for this model, shown in radio buttons and headings.",
+      "examples": ["Female", "Male"]
+    },
+    "model_title_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the title under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/model_title"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/model_title"}
+    },
+
+    "model_export": {
+      "type": "string",
+      "description": "Relative path (from this YAML file's directory) to the model export CSV file.",
+      "examples": ["./female-full/HTNPoRT-full-female-model-export.csv"]
+    },
+    "model_export_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the model export path under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/model_export"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/model_export"}
+    },
+
+    "model_color": {
+      "type": "string",
+      "description": "Color used when displaying this model. Accepts CSS hex colors (e.g. '#440154FF', '#21908C') or CSS named colors (e.g. 'red'). If omitted, a color is assigned automatically from the viridis palette.",
+      "pattern": "^(#([0-9A-Fa-f]{8}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{4}|[0-9A-Fa-f]{3})|[A-Za-z]+)$",
+      "examples": ["#440154FF", "#21908CFF", "red", "steelblue"]
+    },
+    "model_color_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the color under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/model_color"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/model_color"}
+    },
+
+    "predictor_allowable_values": {
+      "type": "object",
+      "description": "Map of predictor variable names to their allowable input values. If omitted for a predictor, allowable values are derived from the variable-details CSV. Specified values take precedence over the CSV-derived ones. '_value_' is reserved and may not be used as a predictor name, and '_notes_' annotates the map itself.",
+      "propertyNames": {
+        "not": {"const": "_value_"}
+      },
+      "properties": {
+        "_notes_": {"$ref": "#/$defs/notes"}
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/predictor_allowable_values_value_annotated"
+      }
+    },
+    "predictor_allowable_values_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the map of allowable values under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/predictor_allowable_values"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/predictor_allowable_values"}
+    },
+
+    "predictor_allowable_values_value": {
+      "description": "The allowable input values for a single predictor variable: either a seq() specification, or an explicit list of values.",
+      "anyOf": [
+        {
+          "type": "object",
+          "description": "A seq() specification that generates a numeric sequence.",
+          "additionalProperties": false,
+          "required": ["seq"],
+          "properties": {
+            "seq": {"$ref": "#/$defs/seq_spec_annotated"},
+            "_notes_": {"$ref": "#/$defs/notes"}
+          }
+        },
+        {
+          "type": "array",
+          "description": "An explicit list of allowable values. Use numbers for continuous variables and numbers or strings for categorical variables.",
+          "items": {"$ref": "#/$defs/allowable_value_annotated"},
+          "minItems": 1
+        },
+        {
+          "$ref": "#/$defs/allowable_value",
+          "description": "A single allowable value. A one-element YAML list is unboxed to a scalar before validation, so this also covers lists such as '[1]'."
+        }
+      ]
+    },
+    "predictor_allowable_values_value_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the allowable values under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/predictor_allowable_values_value"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/predictor_allowable_values_value"}
+    },
+
+    "allowable_value": {
+      "description": "A single allowable input value for a predictor variable.",
+      "type": ["number", "string"]
+    },
+    "allowable_value_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the allowable value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/allowable_value"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/allowable_value"}
+    },
+
+    "seq_spec": {
+      "type": "object",
+      "description": "Parameters for R's seq() function. Must include 'from' and 'to'; use either 'by' (step size) or 'length.out' (number of values).",
+      "additionalProperties": false,
+      "required": ["from", "to"],
+      "properties": {
+        "from": {"$ref": "#/$defs/seq_from_annotated"},
+        "to": {"$ref": "#/$defs/seq_to_annotated"},
+        "by": {"$ref": "#/$defs/seq_by_annotated"},
+        "length.out": {"$ref": "#/$defs/seq_length_out_annotated"},
+        "_notes_": {"$ref": "#/$defs/notes"}
+      }
+    },
+    "seq_spec_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the seq() parameters under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/seq_spec"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/seq_spec"}
+    },
+
+    "seq_from": {
+      "type": "number",
+      "description": "Start of the sequence."
+    },
+    "seq_from_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/seq_from"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/seq_from"}
+    },
+
+    "seq_to": {
+      "type": "number",
+      "description": "End of the sequence."
+    },
+    "seq_to_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/seq_to"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/seq_to"}
+    },
+
+    "seq_by": {
+      "type": "number",
+      "description": "Step size between values. May be negative when 'from' > 'to'. Mutually exclusive with 'length.out'.",
+      "not": {"enum": [0]}
+    },
+    "seq_by_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/seq_by"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/seq_by"}
+    },
+
+    "seq_length_out": {
+      "type": "number",
+      "description": "Desired number of values in the sequence. Mutually exclusive with 'by'.",
+      "minimum": 1
+    },
+    "seq_length_out_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/seq_length_out"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/seq_length_out"}
+    },
+
+    "reference_group": {
+      "type": "object",
+      "description": "Map of predictor variable names to their reference (baseline) values used when computing model outputs (e.g. odds ratios). These set the initial slider/radio-button values in the UI. '_value_' is reserved and may not be used as a predictor name, and '_notes_' annotates the map itself.",
+      "propertyNames": {
+        "not": {"const": "_value_"}
+      },
+      "properties": {
+        "_notes_": {"$ref": "#/$defs/notes"}
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/reference_group_value_annotated"
+      }
+    },
+    "reference_group_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the map of reference values under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/reference_group"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/reference_group"}
+    },
+
+    "reference_group_value": {
+      "description": "The reference (baseline) value for a single predictor variable. Use a number for continuous predictors and a number or string for categorical predictors.",
+      "type": ["number", "string"]
+    },
+    "reference_group_value_annotated": {
+      "if": {"type": "object", "required": ["_value_"]},
+      "then": {
+        "type": "object",
+        "description": "Annotated form: the reference value under '_value_', with optional notes under '_notes_'.",
+        "additionalProperties": false,
+        "required": ["_value_"],
+        "properties": {
+          "_value_": {"$ref": "#/$defs/reference_group_value"},
+          "_notes_": {"$ref": "#/$defs/notes"}
+        }
+      },
+      "else": {"$ref": "#/$defs/reference_group_value"}
     }
   }
 }
