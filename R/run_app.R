@@ -1,3 +1,9 @@
+# NOTE: The roxygen block below is the single source of truth for the
+# run_app() parameter documentation. README.md and
+# vignettes/tutorial-running.Rmd link to the generated reference page rather
+# than repeating the parameters, so only this block needs updating when the
+# arguments or their defaults change (run devtools::document() afterwards).
+
 #' Launch the Algorithm Viewer Shiny Application
 #'
 #' Main entry point for the Algorithm Viewer app. Initializes configuration
@@ -7,7 +13,8 @@
 #'   the built-in example HTNPoRT configuration file (located at
 #'   inst/extdata/config.yaml).
 #' @param port Port number for the Shiny server. Defaults to
-#'   \code{getOption("shiny.port")}.
+#'   \code{getOption("shiny.port")}. If \code{NULL} (the default when the
+#'   \code{shiny.port} option is not set), a random available port is chosen.
 #' @param host Host address for the Shiny server. Defaults to
 #'   \code{getOption("shiny.host", "127.0.0.1")}.
 #'

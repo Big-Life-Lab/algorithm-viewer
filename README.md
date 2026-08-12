@@ -117,13 +117,10 @@ automatically.
 
 ### Parameters
 
-`run_app()` accepts the following parameters:
-
-| Parameter | Default | Description |
-| --------- | ------- | ----------- |
-| `config` | `NULL` | Path to a YAML configuration file. When `NULL`, the built-in example HTNPoRT configuration (`inst/extdata/config.yaml`) is used. |
-| `port` | `getOption("shiny.port")` | Port number for the Shiny server. |
-| `host` | `getOption("shiny.host", "127.0.0.1")` | Host address for the Shiny server. |
+`run_app()` accepts three parameters — `config` (the app configuration file),
+`port`, and `host`. For the defaults and full descriptions, see `?run_app` or
+the [`run_app()` reference
+page](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.html).
 
 Example — loading a custom app configuration (see
 [Configuration](#configuration) for the file format):

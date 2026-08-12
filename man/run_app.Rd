@@ -16,7 +16,8 @@ the built-in example HTNPoRT configuration file (located at
 inst/extdata/config.yaml).}
 
 \item{port}{Port number for the Shiny server. Defaults to
-\code{getOption("shiny.port")}.}
+\code{getOption("shiny.port")}. If \code{NULL} (the default when the
+\code{shiny.port} option is not set), a random available port is chosen.}
 
 \item{host}{Host address for the Shiny server. Defaults to
 \code{getOption("shiny.host", "127.0.0.1")}.}
