@@ -126,14 +126,21 @@ You do not need to memorize the variable codes — the viewer labels the
 controls for you.</p>
 </div>
 <div class="section level2">
-<h2 id="the-idea-behind-every-plot-the-reference-patient">The idea behind every plot: the reference patient<a class="anchor" aria-label="anchor" href="#the-idea-behind-every-plot-the-reference-patient"></a>
+<h2 id="the-idea-behind-most-plots-the-reference-patient">The idea behind most plots: the reference patient<a class="anchor" aria-label="anchor" href="#the-idea-behind-most-plots-the-reference-patient"></a>
 </h2>
-<p>Every plot answers the same underlying question:</p>
+<p>The <strong>Odds Ratio</strong>, <strong>Predicted Risk</strong>, and
+<strong>Relative Risk</strong> tabs all answer the same underlying
+question:</p>
 <blockquote>
 <p><em>If I take a baseline “reference patient” and change
 <strong>one</strong> predictor across its whole range, what happens to
 their predicted outcome?</em></p>
 </blockquote>
+<p>(The <strong>Me vs Ref</strong> tab works differently — it compares
+two fully specified profiles instead of varying a single predictor, and
+it defines its own “Ref” profile rather than using the reference patient
+described here. See <a href="#the-me-vs-ref-tab">The Me vs Ref tab</a>
+below.)</p>
 <p>The <strong>reference patient</strong> is defined in the
 <strong>Reference</strong> tab in the sidebar. Each model has its own
 set of controls: sliders for continuous variables (age, BMI) and radio
@@ -147,7 +154,8 @@ predictor stays fixed at its reference value. This is why the reference
 patient matters: it is the “everything else” the plot holds
 constant.</p>
 <p>Try this now: set <strong>Predictor</strong> to <strong>Age</strong>
-and watch any of the plots redraw as a curve over age.</p>
+and watch the Odds Ratio, Predicted Risk, or Relative Risk plot redraw
+as a curve over age.</p>
 </div>
 <div class="section level2">
 <h2 id="the-odds-ratio-tab">The Odds Ratio tab<a class="anchor" aria-label="anchor" href="#the-odds-ratio-tab"></a>
@@ -250,7 +258,9 @@ profile (“Me”)</strong> against a <strong>reference profile
 (“Ref”)</strong>, broken down to show which predictors drive the
 difference between them. Unlike the other tabs — which vary one
 predictor across its full range — this tab compares two fully specified
-people.</p>
+people. It also does not use the <strong>Predictor</strong> dropdown or
+the reference patient from the <strong>Reference</strong> tab: both
+profiles are set from this tab’s own controls.</p>
 <p><strong>Setting the two profiles.</strong> When this tab is active,
 the sidebar changes to a single panel with paired controls: a “Me” and a
 “Ref” value for every predictor. Continuous variables get two sliders
