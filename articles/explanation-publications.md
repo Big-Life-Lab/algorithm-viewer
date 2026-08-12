@@ -42,12 +42,22 @@ possible:
 - **Version the algorithm.** Set a clear `version` in the algorithm
   YAML’s `meta` block and reference that version in the paper, so
   readers explore the same model you reported.
-- **Publish the algorithm’s files.** Because the viewer reads files from
-  disk rather than from a URL, readers need the Model Parameters files
-  to view the algorithm locally. Deposit them somewhere durable — a
-  tagged release of a repository, or an archive with a DOI — and link to
-  it. See [Add Algorithm Viewer configurations to your own Model
-  Parameters
+- **Publish all of the algorithm’s files together, in one repository.**
+  Because the viewer reads files from disk rather than from a URL,
+  readers need *both* parts to view the algorithm locally:
+  - the **Model Parameters CSV files** — the model export CSV(s) and the
+    supporting variable and coefficient files they reference, and
+  - the **algorithm YAML configuration file** (and, optionally, an app
+    config file), whose `model_export` paths are *relative to the YAML
+    file’s own directory*.
+
+  Commit the algorithm YAML alongside the CSVs in the same repository
+  rather than distributing it separately — the relative paths only
+  resolve if the two travel together, and a reader who clones the
+  repository then has everything needed to open the algorithm. Deposit
+  that repository somewhere durable — a tagged release, or an archive
+  with a DOI — and link to it. See [Add Algorithm Viewer configurations
+  to your own Model Parameters
   repository](https://big-life-lab.github.io/algorithm-viewer/articles/howto-add-viewer-configs.md).
 - **Pin the reference group.** The reference-group defaults determine
   what every plot is calculated against. If your paper’s figures assume
@@ -75,7 +85,8 @@ for the `allow_algorithm_in_url` and `algorithms` settings.
 > service is available at a stable public URL, prefer citing a
 > versioned, deposited copy of the algorithm files plus the viewer
 > software, so your reference does not depend on a particular deployment
-> staying online.
+> staying online — that is, the CSVs and the algorithm YAML published
+> together.
 
 ## A reproducibility checklist
 
@@ -85,8 +96,9 @@ The Algorithm Viewer is cited, with the version you used.
 
 The algorithm is cited as its own artifact.
 
-The algorithm’s Model Parameters files are deposited somewhere durable
-and linked, with a specific version or tag.
+The algorithm’s Model Parameters CSV files **and** its algorithm YAML
+configuration file are deposited together in the same repository,
+somewhere durable and linked, with a specific version or tag.
 
 The algorithm YAML records the `version` and the `reference_group` used
 for your figures.

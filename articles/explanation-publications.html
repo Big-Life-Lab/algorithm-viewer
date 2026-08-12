@@ -142,13 +142,25 @@ possible:</p>
 reference that version in the paper, so readers explore the same model
 you reported.</li>
 <li>
-<strong>Publish the algorithm’s files.</strong> Because the viewer
-reads files from disk rather than from a URL, readers need the Model
-Parameters files to view the algorithm locally. Deposit them somewhere
-durable — a tagged release of a repository, or an archive with a DOI —
-and link to it. See <a href="howto-add-viewer-configs.html">Add
-Algorithm Viewer configurations to your own Model Parameters
-repository</a>.</li>
+<strong>Publish all of the algorithm’s files together, in one
+repository.</strong> Because the viewer reads files from disk rather
+than from a URL, readers need <em>both</em> parts to view the algorithm
+locally:
+<ul>
+<li>the <strong>Model Parameters CSV files</strong> — the model export
+CSV(s) and the supporting variable and coefficient files they reference,
+and</li>
+<li>the <strong>algorithm YAML configuration file</strong> (and,
+optionally, an app config file), whose <code>model_export</code> paths
+are <em>relative to the YAML file’s own directory</em>.</li>
+</ul>
+Commit the algorithm YAML alongside the CSVs in the same repository
+rather than distributing it separately — the relative paths only resolve
+if the two travel together, and a reader who clones the repository then
+has everything needed to open the algorithm. Deposit that repository
+somewhere durable — a tagged release, or an archive with a DOI — and
+link to it. See <a href="howto-add-viewer-configs.html">Add Algorithm
+Viewer configurations to your own Model Parameters repository</a>.</li>
 <li>
 <strong>Pin the reference group.</strong> The reference-group
 defaults determine what every plot is calculated against. If your
@@ -176,7 +188,8 @@ reference</a> for the <code>allow_algorithm_in_url</code> and
 project’s roadmap (the “hosted algorithm showcase”). Until such a
 service is available at a stable public URL, prefer citing a versioned,
 deposited copy of the algorithm files plus the viewer software, so your
-reference does not depend on a particular deployment staying online.</p>
+reference does not depend on a particular deployment staying online —
+that is, the CSVs and the algorithm YAML published together.</p>
 </blockquote>
 </div>
 <div class="section level2">
@@ -189,9 +202,10 @@ figures:</p>
 the version you used.</label></li>
 <li><label><input type="checkbox">The algorithm is cited as its own
 artifact.</label></li>
-<li><label><input type="checkbox">The algorithm’s Model Parameters
-files are deposited somewhere durable and linked, with a specific
-version or tag.</label></li>
+<li><label><input type="checkbox">The algorithm’s Model Parameters CSV
+files <strong>and</strong> its algorithm YAML configuration file are
+deposited together in the same repository, somewhere durable and linked,
+with a specific version or tag.</label></li>
 <li><label><input type="checkbox">The algorithm YAML records the
 <code>version</code> and the <code>reference_group</code> used for your
 figures.</label></li>
