@@ -232,12 +232,12 @@ For a working example, see the built-in configuration at
 Each algorithm is defined in its own YAML file, referenced from the app
 configuration above. The algorithm YAML specifies model metadata, data file
 paths, reference group defaults, and predictor allowable values. Any value in
-the file may also carry free-text notes under a `_notes_` key, documenting where
-that value came from. The data
-files it references are CSV files that conform to the [Model
-Parameters](https://github.com/Big-Life-Lab/model-parameters/) format
-developed by Big Life Lab, which specifies how input variables are transformed
-to obtain the final output values that are plotted.
+the file may also carry free-text notes under a `_notes_` key (eg. to document
+where that value came from). The data files it references are CSV files that
+conform to the [Model
+Parameters](https://github.com/Big-Life-Lab/model-parameters/) format developed
+by Big Life Lab, which specifies how input variables are transformed to obtain
+the final output values that are plotted.
 
 See the [Algorithm Viewer Configuration
 Specification](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/specs/CONFIG_SPECIFICATION.md)
