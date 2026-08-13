@@ -20,6 +20,10 @@ The file is validated on startup against a JSON Schema
 (`inst/extdata/schema/config.schema.json`); unknown fields are rejected. When
 `config = NULL`, the built-in example at `inst/extdata/config.yaml` is used.
 
+To see what a complete application configuration file looks like, see
+[`inst/extdata/config.yaml`](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/inst/extdata/config.yaml)
+in the GitHub repository.
+
 **Paths are relative to the configuration file.** Every relative path in an
 application configuration file (`initial_algorithm_file` and each algorithm's
 `file`) is resolved relative to the directory containing the configuration file
