@@ -14,6 +14,12 @@ Each algorithm file is validated against a JSON Schema
 (`inst/extdata/schema/algorithm.schema.json`); unknown fields are
 rejected.
 
+To see what complete algorithm configuration files look like, see
+[`htnport-reduced.yaml`](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/inst/extdata/models/htnport-reduced/htnport-reduced.yaml)
+and
+[`htnport-full.yaml`](https://github.com/Big-Life-Lab/algorithm-viewer/blob/main/inst/extdata/models/htnport-full/htnport-full.yaml)
+in the GitHub repository.
+
 ------------------------------------------------------------------------
 
 ## File structure
