@@ -116,7 +116,8 @@ flag.
 Default `true`. When `true` **and** algorithms are defined, a user can
 choose which preloaded algorithm to load by adding an `algorithm` query
 parameter to the URL, whose value is an algorithm identifier (a key in
-`algorithms`):
+`algorithms`). Whenever an algorithm is selected from the algorithms
+dropdown, the query parameter will be automatically set:
 
     http://example.com/?algorithm=htnport-reduced
 
