@@ -98,13 +98,22 @@ passed to <code><a href="../reference/run_app.html">run_app()</a></code>.</p>
 <p>This page documents the <strong>application configuration</strong>
 file — the YAML file passed as <code>run_app(config = ...)</code> that
 declares which algorithms are available and sets the viewer’s feature
-flags. For the format of an individual algorithm’s definition, see the
-<a href="reference-algorithm-configuration.html">Algorithm configuration
+flags. For the format of an individual algorithm’s definition, which the
+application configuration points to to specify which algorithm to
+display, see the <a href="reference-algorithm-configuration.html">Algorithm configuration
 reference</a>.</p>
 <p>The file is validated on startup against a JSON Schema
 (<code>inst/extdata/schema/config.schema.json</code>); unknown fields
 are rejected. When <code>config = NULL</code>, the built-in example at
 <code>inst/extdata/config.yaml</code> is used.</p>
+<p><strong>Paths are relative to the configuration file.</strong> Every
+relative path in an application configuration file
+(<code>initial_algorithm_file</code> and each algorithm’s
+<code>file</code>) is resolved relative to the directory containing the
+configuration file itself — <em>not</em> the R working directory.
+Absolute paths are used as given. This means you can move or copy a
+configuration file together with the files it references and the paths
+keep working.</p>
 <hr>
 <div class="section level2">
 <h2 id="top-level-fields">Top-level fields<a class="anchor" aria-label="anchor" href="#top-level-fields"></a>
@@ -138,8 +147,9 @@ Keys are algorithm identifiers.</td>
 <td>string</td>
 <td>No</td>
 <td>—</td>
-<td>Path to an algorithm file to load on startup. If set,
-<code>initial_algorithm_id</code> is ignored.</td>
+<td>Path to an algorithm file to load on startup, relative to the
+configuration file. If set, <code>initial_algorithm_id</code> is
+ignored.</td>
 </tr>
 <tr class="odd">
 <td><code>initial_algorithm_id</code></td>
@@ -210,7 +220,8 @@ entry describing a preloaded algorithm. Define as many as you like.</p>
 <td><code>file</code></td>
 <td>string</td>
 <td>Yes</td>
-<td>Path to the algorithm’s YAML definition file.</td>
+<td>Path to the algorithm’s YAML definition file, relative to the
+configuration file.</td>
 </tr>
 </tbody>
 </table>
@@ -221,8 +232,9 @@ entry describing a preloaded algorithm. Define as many as you like.</p>
 <span id="cb1-5"><a href="#cb1-5" tabindex="-1"></a><span class="at">  </span><span class="fu">htnport-reduced</span><span class="kw">:</span></span>
 <span id="cb1-6"><a href="#cb1-6" tabindex="-1"></a><span class="at">    </span><span class="fu">title</span><span class="kw">:</span><span class="at"> </span><span class="st">"HTNPoRT Reduced Model"</span></span>
 <span id="cb1-7"><a href="#cb1-7" tabindex="-1"></a><span class="at">    </span><span class="fu">file</span><span class="kw">:</span><span class="at"> models/htnport-reduced/htnport-reduced.yaml</span></span></code></pre></div>
-<p><strong>Path resolution.</strong> A relative <code>file:</code> path
-is resolved relative to the directory containing the config file itself.
+<p><strong>Path resolution.</strong> As with every path in the
+configuration file, a relative <code>file:</code> path is resolved
+relative to the directory containing the configuration file itself.
 Absolute paths are used as given. The referenced files must exist on the
 local filesystem — the viewer does not read algorithm files from remote
 URLs.</p>
@@ -239,7 +251,8 @@ disambiguates duplicate titles automatically, but keys must be unique
 <p>The algorithm loaded on startup is resolved in this order:</p>
 <ol style="list-style-type: decimal">
 <li>
-<code>initial_algorithm_file</code>, if set (an explicit path).</li>
+<code>initial_algorithm_file</code>, if set (an explicit path,
+relative to the configuration file unless absolute).</li>
 <li>otherwise <code>initial_algorithm_id</code>, if set (a key in
 <code>algorithms</code>).</li>
 <li>otherwise the <strong>first</strong> algorithm defined in

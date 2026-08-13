@@ -6,7 +6,9 @@
 This page documents the **application configuration** file — the YAML
 file passed as `run_app(config = ...)` that declares which algorithms
 are available and sets the viewer’s feature flags. For the format of an
-individual algorithm’s definition, see the [Algorithm configuration
+individual algorithm’s definition, which the application configuration
+points to to specify which algorithm to display, see the [Algorithm
+configuration
 reference](https://big-life-lab.github.io/algorithm-viewer/articles/reference-algorithm-configuration.md).
 
 The file is validated on startup against a JSON Schema
@@ -14,18 +16,25 @@ The file is validated on startup against a JSON Schema
 When `config = NULL`, the built-in example at `inst/extdata/config.yaml`
 is used.
 
+**Paths are relative to the configuration file.** Every relative path in
+an application configuration file (`initial_algorithm_file` and each
+algorithm’s `file`) is resolved relative to the directory containing the
+configuration file itself — *not* the R working directory. Absolute
+paths are used as given. This means you can move or copy a configuration
+file together with the files it references and the paths keep working.
+
 ------------------------------------------------------------------------
 
 ## Top-level fields
 
-| Field                        | Type    | Required | Default | Description                                                                                                           |
-|------------------------------|---------|----------|---------|-----------------------------------------------------------------------------------------------------------------------|
-| `algorithms`                 | map     | No       | —       | Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.                    |
-| `initial_algorithm_file`     | string  | No       | —       | Path to an algorithm file to load on startup. If set, `initial_algorithm_id` is ignored.                              |
-| `initial_algorithm_id`       | string  | No       | —       | Key of an algorithm in `algorithms` to load on startup. Ignored if `initial_algorithm_file` is set.                   |
-| `allow_file_uploads`         | boolean | No       | `false` | If `true`, show the control that lets users upload their own algorithm archives.                                      |
-| `allow_algorithms_selection` | boolean | No       | `true`  | If `true` **and** at least one algorithm is defined, show a “Preloaded Algorithms” dropdown.                          |
-| `allow_algorithm_in_url`     | boolean | No       | `true`  | If `true` **and** algorithms are defined, allow selecting an algorithm via the `?algorithm=<id>` URL query parameter. |
+| Field                        | Type    | Required | Default | Description                                                                                                                  |
+|------------------------------|---------|----------|---------|------------------------------------------------------------------------------------------------------------------------------|
+| `algorithms`                 | map     | No       | —       | Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.                           |
+| `initial_algorithm_file`     | string  | No       | —       | Path to an algorithm file to load on startup, relative to the configuration file. If set, `initial_algorithm_id` is ignored. |
+| `initial_algorithm_id`       | string  | No       | —       | Key of an algorithm in `algorithms` to load on startup. Ignored if `initial_algorithm_file` is set.                          |
+| `allow_file_uploads`         | boolean | No       | `false` | If `true`, show the control that lets users upload their own algorithm archives.                                             |
+| `allow_algorithms_selection` | boolean | No       | `true`  | If `true` **and** at least one algorithm is defined, show a “Preloaded Algorithms” dropdown.                                 |
+| `allow_algorithm_in_url`     | boolean | No       | `true`  | If `true` **and** algorithms are defined, allow selecting an algorithm via the `?algorithm=<id>` URL query parameter.        |
 
 All fields are optional. A config file may legitimately define no
 algorithms at all (for example, an upload-only deployment with
@@ -36,10 +45,10 @@ algorithms at all (for example, an upload-only deployment with
 A map from an **algorithm identifier** (the key) to an entry describing
 a preloaded algorithm. Define as many as you like.
 
-| Field   | Type   | Required | Description                                          |
-|---------|--------|----------|------------------------------------------------------|
-| `title` | string | Yes      | Human-readable display name (shown in the dropdown). |
-| `file`  | string | Yes      | Path to the algorithm’s YAML definition file.        |
+| Field   | Type   | Required | Description                                                                       |
+|---------|--------|----------|-----------------------------------------------------------------------------------|
+| `title` | string | Yes      | Human-readable display name (shown in the dropdown).                              |
+| `file`  | string | Yes      | Path to the algorithm’s YAML definition file, relative to the configuration file. |
 
 ``` yaml
 algorithms:
@@ -51,10 +60,11 @@ algorithms:
     file: models/htnport-reduced/htnport-reduced.yaml
 ```
 
-**Path resolution.** A relative `file:` path is resolved relative to the
-directory containing the config file itself. Absolute paths are used as
-given. The referenced files must exist on the local filesystem — the
-viewer does not read algorithm files from remote URLs.
+**Path resolution.** As with every path in the configuration file, a
+relative `file:` path is resolved relative to the directory containing
+the configuration file itself. Absolute paths are used as given. The
+referenced files must exist on the local filesystem — the viewer does
+not read algorithm files from remote URLs.
 
 **Identifiers.** The key (e.g. `htnport-full`) is the value used in the
 `?algorithm=` URL parameter and in `initial_algorithm_id`. Titles may
@@ -65,7 +75,8 @@ keys must be unique (they are YAML map keys).
 
 The algorithm loaded on startup is resolved in this order:
 
-1.  `initial_algorithm_file`, if set (an explicit path).
+1.  `initial_algorithm_file`, if set (an explicit path, relative to the
+    configuration file unless absolute).
 2.  otherwise `initial_algorithm_id`, if set (a key in `algorithms`).
 3.  otherwise the **first** algorithm defined in `algorithms`.
 
