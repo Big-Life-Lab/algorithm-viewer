@@ -27,14 +27,14 @@ file together with the files it references and the paths keep working.
 
 ## Top-level fields
 
-| Field                        | Type    | Required | Default | Description                                                                                                                  |
-|------------------------------|---------|----------|---------|------------------------------------------------------------------------------------------------------------------------------|
-| `algorithms`                 | map     | No       | —       | Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.                           |
-| `initial_algorithm_file`     | string  | No       | —       | Path to an algorithm file to load on startup, relative to the configuration file. If set, `initial_algorithm_id` is ignored. |
-| `initial_algorithm_id`       | string  | No       | —       | Key of an algorithm in `algorithms` to load on startup. Ignored if `initial_algorithm_file` is set.                          |
-| `allow_file_uploads`         | boolean | No       | `false` | If `true`, show the control that lets users upload their own algorithm archives.                                             |
-| `allow_algorithms_selection` | boolean | No       | `true`  | If `true` **and** at least one algorithm is defined, show a “Preloaded Algorithms” dropdown.                                 |
-| `allow_algorithm_in_url`     | boolean | No       | `true`  | If `true` **and** algorithms are defined, allow selecting an algorithm via the `?algorithm=<id>` URL query parameter.        |
+| Field                        | Type    | Required | Default | Description                                                                                                                                                                                                                     |
+|------------------------------|---------|----------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `algorithms`                 | map     | No       | —       | Preloaded algorithms available for selection or URL-based loading. Keys are algorithm identifiers.                                                                                                                              |
+| `initial_algorithm_file`     | string  | No       | —       | Path to an algorithm file to load on startup, relative to the configuration file. If set, `initial_algorithm_id` is ignored.                                                                                                    |
+| `initial_algorithm_id`       | string  | No       | —       | Key of an algorithm in `algorithms` to load on startup. Ignored if `initial_algorithm_file` is set.                                                                                                                             |
+| `allow_file_uploads`         | boolean | No       | `false` | If `true`, show the control that lets users upload their own algorithm archives.                                                                                                                                                |
+| `allow_algorithms_selection` | boolean | No       | `true`  | If `true` **and** at least one algorithm is defined, show a “Preloaded Algorithms” dropdown so that the user can select from the algorithms listed in the `algorithms` field.                                                   |
+| `allow_algorithm_in_url`     | boolean | No       | `true`  | If `true` **and** algorithms are defined, allow selecting an algorithm via the `?algorithm=<id>` URL query parameter. The query parameter will automatically be set whenever an algorithm is selected (useful for bookmarking). |
 
 All fields are optional. A config file may legitimately define no
 algorithms at all (for example, an upload-only deployment with

@@ -173,7 +173,9 @@ own algorithm archives.</td>
 <td>No</td>
 <td><code>true</code></td>
 <td>If <code>true</code> <strong>and</strong> at least one algorithm is
-defined, show a “Preloaded Algorithms” dropdown.</td>
+defined, show a “Preloaded Algorithms” dropdown so that the user can
+select from the algorithms listed in the <code>algorithms</code>
+field.</td>
 </tr>
 <tr class="even">
 <td><code>allow_algorithm_in_url</code></td>
@@ -182,7 +184,8 @@ defined, show a “Preloaded Algorithms” dropdown.</td>
 <td><code>true</code></td>
 <td>If <code>true</code> <strong>and</strong> algorithms are defined,
 allow selecting an algorithm via the <code>?algorithm=&lt;id&gt;</code>
-URL query parameter.</td>
+URL query parameter. The query parameter will automatically be set
+whenever an algorithm is selected (useful for bookmarking).</td>
 </tr>
 </tbody>
 </table>
