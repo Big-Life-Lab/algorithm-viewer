@@ -20,8 +20,8 @@ When you run
 [`run_app()`](https://big-life-lab.github.io/algorithm-viewer/reference/run_app.md)
 with no arguments, the viewer loads the [Hypertension Population Risk
 Tool (HTNPoRT)](https://github.com/Big-Life-Lab/htnport) — an algorithm
-that predicts a person’s risk of developing hypertension. HTNPoRT ships
-as two models:
+that predicts the risk of having hypertension at present time. HTNPoRT
+ships as two models:
 
 - **Female**
 - **Male**
@@ -29,12 +29,11 @@ as two models:
 Both are selected in the **Models** tab by default, so every plot shows
 one curve per model, each in its own colour.
 
-HTNPoRT uses predictors such as **age**, **body mass index (BMI)**,
-**family history of hypertension**, and **diabetes status**. The full
-model adds many more (marital status, education, physical activity,
-smoking, sleep, and others); the reduced model uses a smaller subset.
-You do not need to memorize the variable codes — the viewer labels the
-controls for you.
+The reduced HTNPoRT model uses the predictors **age**, **body mass index
+(BMI)**, **family history of hypertension**, and **diabetes status**.
+The full model adds many more (marital status, education, physical
+activity, smoking, sleep, and others). You do not need to memorize the
+variable codes — the viewer labels the controls for you.
 
 ## The idea behind most plots: the reference patient
 
@@ -54,7 +53,8 @@ sidebar. Each model has its own set of controls: sliders for continuous
 variables (age, BMI) and radio buttons for categorical variables
 (diabetes status, family history). The values that load by default come
 from the algorithm’s configuration — for HTNPoRT, a young reference
-patient (age 20) with a low BMI and no diabetes.
+patient (age 20) with a low BMI, no family history of hypertension, and
+no diabetes.
 
 The **Predictor** dropdown above the plot chooses which single variable
 is varied along the x-axis. Every *other* predictor stays fixed at its
@@ -92,6 +92,25 @@ does. The **Logarithmic** checkbox (above the plot) switches the y-axis
 to a log₁₀ scale, which places 0.5 and 2.0 an equal distance from 1.0
 and makes wide-ranging curves easier to read. Use the linear scale when
 the odds ratios stay close to 1.
+
+## The Relative Risk tab
+
+**What it shows.** The predicted risk at each x-axis value **divided
+by** the predicted risk at the reference values.
+
+**How to read it.**
+
+- A value of **1.0** means no difference from the reference patient.
+- Above **1.0** means higher risk; below **1.0** means lower risk.
+- Like the Odds Ratio tab, this is a ratio — but a ratio of
+  *probabilities* (risks), not of *odds*.
+
+**Odds ratio vs. relative risk.** They answer subtly different questions
+and are only close to each other when the outcome is rare. When risks
+are high, an odds ratio and a relative risk for the same comparison can
+differ noticeably. If you care about “how many times more likely,”
+relative risk is the more direct reading; odds ratios are reported
+because they are the natural output of the logistic models underneath.
 
 ## The Interaction Predictor
 
@@ -131,25 +150,6 @@ effect.
 **Worked example.** Compare the Female and Male curves at the same age.
 The vertical gap between them is the difference in absolute predicted
 risk between the two models at that age.
-
-## The Relative Risk tab
-
-**What it shows.** The predicted risk at each x-axis value **divided
-by** the predicted risk at the reference values.
-
-**How to read it.**
-
-- A value of **1.0** means no difference from the reference patient.
-- Above **1.0** means higher risk; below **1.0** means lower risk.
-- Like the Odds Ratio tab, this is a ratio — but a ratio of
-  *probabilities* (risks), not of *odds*.
-
-**Odds ratio vs. relative risk.** They answer subtly different questions
-and are only close to each other when the outcome is rare. When risks
-are high, an odds ratio and a relative risk for the same comparison can
-differ noticeably. If you care about “how many times more likely,”
-relative risk is the more direct reading; odds ratios are reported
-because they are the natural output of the logistic models underneath.
 
 ## The Me vs Ref tab
 

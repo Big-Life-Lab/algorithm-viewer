@@ -108,22 +108,20 @@ example.</p>
 </h2>
 <p>When you run <code><a href="../reference/run_app.html">run_app()</a></code> with no arguments, the viewer
 loads the <a href="https://github.com/Big-Life-Lab/htnport" class="external-link">Hypertension
-Population Risk Tool (HTNPoRT)</a> — an algorithm that predicts a
-person’s risk of developing hypertension. HTNPoRT ships as two
-models:</p>
+Population Risk Tool (HTNPoRT)</a> — an algorithm that predicts the risk
+of having hypertension at present time. HTNPoRT ships as two models:</p>
 <ul>
 <li><strong>Female</strong></li>
 <li><strong>Male</strong></li>
 </ul>
 <p>Both are selected in the <strong>Models</strong> tab by default, so
 every plot shows one curve per model, each in its own colour.</p>
-<p>HTNPoRT uses predictors such as <strong>age</strong>, <strong>body
-mass index (BMI)</strong>, <strong>family history of
+<p>The reduced HTNPoRT model uses the predictors <strong>age</strong>,
+<strong>body mass index (BMI)</strong>, <strong>family history of
 hypertension</strong>, and <strong>diabetes status</strong>. The full
 model adds many more (marital status, education, physical activity,
-smoking, sleep, and others); the reduced model uses a smaller subset.
-You do not need to memorize the variable codes — the viewer labels the
-controls for you.</p>
+smoking, sleep, and others). You do not need to memorize the variable
+codes — the viewer labels the controls for you.</p>
 </div>
 <div class="section level2">
 <h2 id="the-idea-behind-most-plots-the-reference-patient">The idea behind most plots: the reference patient<a class="anchor" aria-label="anchor" href="#the-idea-behind-most-plots-the-reference-patient"></a>
@@ -146,8 +144,8 @@ below.)</p>
 set of controls: sliders for continuous variables (age, BMI) and radio
 buttons for categorical variables (diabetes status, family history). The
 values that load by default come from the algorithm’s configuration —
-for HTNPoRT, a young reference patient (age 20) with a low BMI and no
-diabetes.</p>
+for HTNPoRT, a young reference patient (age 20) with a low BMI, no
+family history of hypertension, and no diabetes.</p>
 <p>The <strong>Predictor</strong> dropdown above the plot chooses which
 single variable is varied along the x-axis. Every <em>other</em>
 predictor stays fixed at its reference value. This is why the reference
@@ -190,6 +188,29 @@ an equal distance from 1.0 and makes wide-ranging curves easier to read.
 Use the linear scale when the odds ratios stay close to 1.</p>
 </div>
 <div class="section level2">
+<h2 id="the-relative-risk-tab">The Relative Risk tab<a class="anchor" aria-label="anchor" href="#the-relative-risk-tab"></a>
+</h2>
+<p><strong>What it shows.</strong> The predicted risk at each x-axis
+value <strong>divided by</strong> the predicted risk at the reference
+values.</p>
+<p><strong>How to read it.</strong></p>
+<ul>
+<li>A value of <strong>1.0</strong> means no difference from the
+reference patient.</li>
+<li>Above <strong>1.0</strong> means higher risk; below
+<strong>1.0</strong> means lower risk.</li>
+<li>Like the Odds Ratio tab, this is a ratio — but a ratio of
+<em>probabilities</em> (risks), not of <em>odds</em>.</li>
+</ul>
+<p><strong>Odds ratio vs. relative risk.</strong> They answer subtly
+different questions and are only close to each other when the outcome is
+rare. When risks are high, an odds ratio and a relative risk for the
+same comparison can differ noticeably. If you care about “how many times
+more likely,” relative risk is the more direct reading; odds ratios are
+reported because they are the natural output of the logistic models
+underneath.</p>
+</div>
+<div class="section level2">
 <h2 id="the-interaction-predictor">The Interaction Predictor<a class="anchor" aria-label="anchor" href="#the-interaction-predictor"></a>
 </h2>
 <p>The <strong>Interaction Predictor</strong> dropdown (next to
@@ -225,29 +246,6 @@ corresponds to a large <em>absolute</em> effect.</p>
 <p><strong>Worked example.</strong> Compare the Female and Male curves
 at the same age. The vertical gap between them is the difference in
 absolute predicted risk between the two models at that age.</p>
-</div>
-<div class="section level2">
-<h2 id="the-relative-risk-tab">The Relative Risk tab<a class="anchor" aria-label="anchor" href="#the-relative-risk-tab"></a>
-</h2>
-<p><strong>What it shows.</strong> The predicted risk at each x-axis
-value <strong>divided by</strong> the predicted risk at the reference
-values.</p>
-<p><strong>How to read it.</strong></p>
-<ul>
-<li>A value of <strong>1.0</strong> means no difference from the
-reference patient.</li>
-<li>Above <strong>1.0</strong> means higher risk; below
-<strong>1.0</strong> means lower risk.</li>
-<li>Like the Odds Ratio tab, this is a ratio — but a ratio of
-<em>probabilities</em> (risks), not of <em>odds</em>.</li>
-</ul>
-<p><strong>Odds ratio vs. relative risk.</strong> They answer subtly
-different questions and are only close to each other when the outcome is
-rare. When risks are high, an odds ratio and a relative risk for the
-same comparison can differ noticeably. If you care about “how many times
-more likely,” relative risk is the more direct reading; odds ratios are
-reported because they are the natural output of the logistic models
-underneath.</p>
 </div>
 <div class="section level2">
 <h2 id="the-me-vs-ref-tab">The Me vs Ref tab<a class="anchor" aria-label="anchor" href="#the-me-vs-ref-tab"></a>

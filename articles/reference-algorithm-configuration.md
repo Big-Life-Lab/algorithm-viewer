@@ -269,7 +269,7 @@ holding the notes under `_notes_` and the original value under
 ``` yaml
 reference_group:
   hwmdbmi:
-    _notes_: Median BMI of the CCHS 2015 cohort.
+    _notes_: Median BMI of the CHMS 2015 cohort.
     _value_: 14.9
 ```
 
@@ -354,7 +354,7 @@ whole describe the set of values:
 ``` yaml
 predictor_allowable_values:
   diabx:
-    _notes_: Diabetes status, as coded in the CCHS.
+    _notes_: Diabetes status, as coded in the CHMS.
     _value_: [1, 2]
 ```
 
