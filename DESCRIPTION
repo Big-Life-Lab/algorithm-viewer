@@ -10,8 +10,20 @@ License: MIT + file LICENSE
 Authors@R: c(
   person(given = "Martin", 
          family = "Wellman",
-         role = c("aut", "cre", "cph"),
-         email = "mwellman@ohri.ca")
+         role = "aut",
+         email = "mwellman@ohri.ca"),
+  person(given = "Rafidul",
+         family = "Islam",
+         role = "aut",
+         email = "raislam@ohri.ca"),
+  person(given = "Yulric",
+         family = "Sequeira",
+         role = "aut",
+         email = "ysequeira@ohri.ca"),
+  person(given = "Douglas",
+         family = "Manuel",
+         role = c("aut", "cph"),
+         email = "dmanuel@ohri.ca")
   )
 Depends:
   R (>= 4.1)
