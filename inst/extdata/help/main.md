@@ -1,7 +1,7 @@
 ## Algorithm Viewer Help
 
 The Algorithm Viewer visualizes clinical prediction algorithms by plotting
-effect measure (odds ratio or sub-distribution hazard ratio) and predicted
+effect measure (odds ratio or subdistribution hazard ratio) and predicted
 risk curves. You can upload one or more algorithm archives, compare models
 side by side, and explore how individual predictors affect predicted outcomes.
 
@@ -49,7 +49,7 @@ the same axes.
 - **Predictor** &mdash; the variable plotted on the x-axis.
 - **Interaction Predictor** &mdash; an optional second variable that shows
   how a one-unit change in that variable modifies the effect measure (odds
-  ratio or sub-distribution hazard ratio) of the primary predictor at each
+  ratio or subdistribution hazard ratio) of the primary predictor at each
   x-axis value. Has no effect on the Predicted Risk plot.
 
 ---
@@ -66,7 +66,7 @@ the ratio of odds of the outcome at each predictor value versus the
 reference value.
 
 For **Fine and Gray** competing risk models, this tab displays the
-**sub-distribution hazard ratio (SHR)**: the ratio of sub-distribution
+**subdistribution hazard ratio (SHR)**: the ratio of sub-distribution
 hazards, which directly reflects the model coefficients (exp(&beta;)).
 
 ---

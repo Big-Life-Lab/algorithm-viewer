@@ -1,4 +1,4 @@
-#' Odds Ratio / Sub-distribution Hazard Ratio Curve
+#' Odds Ratio / Subdistribution Hazard Ratio Curve
 #'
 #' Functions for computing and rendering odds ratio (OR) curves for logistic
 #' regression models, or sub-distribution hazard ratio (SHR) curves for
@@ -282,7 +282,7 @@ plotORServer <- function(
     escape_html = TRUE
   )
 
-  effect_label <- if (is_fg) "Sub-distribution Hazard Ratio" else "Odds Ratio"
+  effect_label <- if (is_fg) "Subdistribution Hazard Ratio" else "Odds Ratio"
 
   list(
     df = output_df,
@@ -436,7 +436,7 @@ plotORServer <- function(
   )
   title <- predictor_label
   subtitle <- paste0("Interaction = ", interaction_predictor_label)
-  effect_label <- if (is_fg) "Sub-distribution Hazard Ratio" else "Odds Ratio"
+  effect_label <- if (is_fg) "Subdistribution Hazard Ratio" else "Odds Ratio"
 
   list(
     df = output_df,

@@ -153,7 +153,7 @@ app_server <- function(input, output, session) {
   })
 
   # Update the effect measure tab title based on the model type. Fine and Gray
-  # models show "Sub-distribution Hazard Ratio"; logistic models show
+  # models show "Subdistribution Hazard Ratio"; logistic models show
   # "Odds Ratio".
   shiny::observe({
     models <- model_definitions()
@@ -163,7 +163,7 @@ app_server <- function(input, output, session) {
       is_fg <- !is.null(steps) && nrow(steps) > 0 &&
         steps$step[nrow(steps)] == "fine-and-gray"
       tab_label <- if (is_fg) {
-        "Sub-distribution Hazard Ratio"
+        "Subdistribution Hazard Ratio"
       } else {
         "Odds Ratio"
       }
