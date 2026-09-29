@@ -168,7 +168,7 @@ app_server <- function(input, output, session) {
         "Odds Ratio"
       }
       shinyjs::runjs(sprintf(
-        "var tab = document.querySelector('#main_tabs a[data-value=\"or\"]'); if (tab) { var icon = tab.querySelector('i'); tab.textContent = ' %s'; if (icon) tab.prepend(icon); }",
+        "setTimeout(function() { var tabs = document.querySelectorAll('#main_tabs a[data-value=\"or\"]'); tabs.forEach(function(tab) { var icon = tab.querySelector('i'); tab.textContent = ' %s'; if (icon) tab.prepend(icon); }); }, 100);",
         tab_label
       ))
     }
