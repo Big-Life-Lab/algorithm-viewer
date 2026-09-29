@@ -1,11 +1,26 @@
-#' Odds Ratio Curve
+#' Odds Ratio / Sub-distribution Hazard Ratio Curve
 #'
-#' Functions for computing and rendering odds ratio (OR) curves.
+#' Functions for computing and rendering odds ratio (OR) curves for logistic
+#' regression models, or sub-distribution hazard ratio (SHR) curves for
+#' Fine and Gray competing risk models.
 #'
 #' @name mod_plot_or
 #' @noRd
 #' @keywords internal
 NULL
+
+#' Check if a model uses Fine and Gray competing risk
+#'
+#' @param model_data A model definition named list.
+#' @return Logical, TRUE if the final pipeline step is "fine-and-gray".
+#' @noRd
+#' @keywords internal
+.is_fine_and_gray <- function(model_data) {
+  steps <- model_data$model_steps
+  if (is.null(steps) || nrow(steps) == 0) return(FALSE)
+  final_step <- steps$step[nrow(steps)]
+  identical(final_step, "fine-and-gray")
+}
 
 #' Build an Odds Ratio Plot Module Server
 #'
@@ -213,21 +228,29 @@ plotORServer <- function(
   df[predictor] <- append(predictor_allowable_values, predictor_reference_value)
   rownames(df) <- seq_len(nrow(df))
 
-  # Run the pipeline with the input matrix and calculate the odds ratios.
-  # The odds ratio is odds / reference_group_odds, where odds is calculated
-  # as predicted_risk / (1 - predicted_risk)
+  # Run the pipeline with the input matrix and calculate the effect measure.
   # Note that the reference group is located at row output_rows + 1
   dat <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
     x = df
   )
 
-  # Odds ratio is the predicted risk for each row, divided by the predicted
-  # risk of the last row (last row is the unmodified reference group)
   predicted_col <- colnames(dat)[[1]]
-  or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
-    (dat[[predicted_col]][output_rows + 1] /
-    (1 - dat[[predicted_col]][output_rows + 1]))
+  is_fg <- .is_fine_and_gray(model_data)
+
+  if (is_fg) {
+    # Sub-distribution hazard ratio: SHR = exp(LP) / exp(LP_ref)
+    # From CIF = 1 - exp(-H0*exp(LP)), we get exp(LP) = -log(1-CIF)/H0
+    # SHR = log(1 - CIF_ref) / log(1 - CIF_target)  (H0 cancels)
+    cif <- dat[[predicted_col]]
+    cif_ref <- cif[output_rows + 1]
+    or <- log(1 - cif_ref) / log(1 - cif)
+  } else {
+    # Odds ratio: (risk/(1-risk)) / (risk_ref/(1-risk_ref))
+    or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
+      (dat[[predicted_col]][output_rows + 1] /
+      (1 - dat[[predicted_col]][output_rows + 1]))
+  }
 
   labels <- convert_df_variable_to_label(
     df, model_data, predictor, predictor,
@@ -259,10 +282,12 @@ plotORServer <- function(
     escape_html = TRUE
   )
 
+  effect_label <- if (is_fg) "Sub-distribution Hazard Ratio" else "Odds Ratio"
+
   list(
     df = output_df,
     x_axis_label = predictor_label,
-    y_axis_label = "Odds Ratio",
+    y_axis_label = effect_label,
     title = predictor_label,
     x_axis_type = ifelse(
       is_variable_categorical(model_data, predictor),
@@ -357,9 +382,7 @@ plotORServer <- function(
     df1[[interaction_predictor]] <- df1[[interaction_predictor]] + 1
   }
 
-  # Run the pipeline with the input matrix and calculate the odds ratios.
-  # The odds ratio is odds / reference_group_odds, where odds is calculated
-  # as predicted_risk / (1 - predicted_risk)
+  # Run the pipeline with the input matrix and calculate the effect measure.
   dat1 <- model.parameters.pipeline::run_model_pipeline(
     model_data$model_pipeline,
     x = df1
@@ -371,8 +394,15 @@ plotORServer <- function(
 
   predicted_col_1 <- colnames(dat1)[[1]]
   predicted_col_2 <- colnames(dat2)[[1]]
-  or <- (dat1[[predicted_col_1]] / (1 - dat1[[predicted_col_1]])) /
-    (dat2[[predicted_col_2]] / (1 - dat2[[predicted_col_2]]))
+  is_fg <- .is_fine_and_gray(model_data)
+
+  if (is_fg) {
+    # Sub-distribution hazard ratio: log(1 - CIF_ref) / log(1 - CIF_target)
+    or <- log(1 - dat2[[predicted_col_2]]) / log(1 - dat1[[predicted_col_1]])
+  } else {
+    or <- (dat1[[predicted_col_1]] / (1 - dat1[[predicted_col_1]])) /
+      (dat2[[predicted_col_2]] / (1 - dat2[[predicted_col_2]]))
+  }
 
   # Convert the variable IDs (eg. clc_age) to the variable labels
   # (eg. Age)
@@ -406,11 +436,12 @@ plotORServer <- function(
   )
   title <- predictor_label
   subtitle <- paste0("Interaction = ", interaction_predictor_label)
+  effect_label <- if (is_fg) "Sub-distribution Hazard Ratio" else "Odds Ratio"
 
   list(
     df = output_df,
     x_axis_label = predictor_label,
-    y_axis_label = "Odds Ratio",
+    y_axis_label = effect_label,
     title = title,
     subtitle = subtitle,
     x_axis_type = ifelse(

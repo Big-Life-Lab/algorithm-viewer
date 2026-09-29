@@ -152,6 +152,28 @@ app_server <- function(input, output, session) {
     }
   })
 
+  # Update the effect measure tab title based on the model type. Fine and Gray
+  # models show "Sub-distribution Hazard Ratio"; logistic models show
+  # "Odds Ratio".
+  shiny::observe({
+    models <- model_definitions()
+    if (!is.null(models) && length(models$models) > 0) {
+      first_model <- models$models[[1]]
+      steps <- first_model$model_steps
+      is_fg <- !is.null(steps) && nrow(steps) > 0 &&
+        steps$step[nrow(steps)] == "fine-and-gray"
+      tab_label <- if (is_fg) {
+        "Sub-distribution Hazard Ratio"
+      } else {
+        "Odds Ratio"
+      }
+      shinyjs::runjs(sprintf(
+        "var tab = document.querySelector('#main_tabs a[data-value=\"or\"]'); if (tab) { var icon = tab.querySelector('i'); tab.textContent = ' %s'; if (icon) tab.prepend(icon); }",
+        tab_label
+      ))
+    }
+  })
+
   # Filters reference_groups to only the groups corresponding to selected
   # models.
   # Use selected_models to get the corresponding models for each selected

@@ -1,9 +1,9 @@
 ## Algorithm Viewer Help
 
 The Algorithm Viewer visualizes clinical prediction algorithms by plotting
-odds ratio and predicted risk curves. You can upload one or more algorithm
-archives, compare models side by side, and explore how individual predictors
-affect predicted outcomes.
+effect measure (odds ratio or sub-distribution hazard ratio) and predicted
+risk curves. You can upload one or more algorithm archives, compare models
+side by side, and explore how individual predictors affect predicted outcomes.
 
 For full documentation — including how to create algorithm archives and
 configure models — visit the
@@ -48,18 +48,26 @@ the same axes.
 
 - **Predictor** &mdash; the variable plotted on the x-axis.
 - **Interaction Predictor** &mdash; an optional second variable that shows
-  how a one-unit change in that variable modifies the odds ratio of the
-  primary predictor at each x-axis value. Has no effect on the Predicted
-  Risk plot.
+  how a one-unit change in that variable modifies the effect measure (odds
+  ratio or sub-distribution hazard ratio) of the primary predictor at each
+  x-axis value. Has no effect on the Predicted Risk plot.
 
 ---
 
-### Odds Ratio Tab
+### Hazard / Odds Ratio Tab
 
-Shows how the odds of the outcome change as the selected predictor varies,
-relative to the reference group values. A dashed line marks an odds ratio of
-1.0. Values above 1.0 indicate increased risk; values below 1.0 indicate
+Shows how the effect measure changes as the selected predictor varies,
+relative to the reference group values. A dashed line marks a value of 1.0.
+Values above 1.0 indicate increased risk; values below 1.0 indicate
 decreased risk. Hover over the plot to see exact values.
+
+For **logistic regression** models, this tab displays the **odds ratio**:
+the ratio of odds of the outcome at each predictor value versus the
+reference value.
+
+For **Fine and Gray** competing risk models, this tab displays the
+**sub-distribution hazard ratio (SHR)**: the ratio of sub-distribution
+hazards, which directly reflects the model coefficients (exp(&beta;)).
 
 ---
 
@@ -68,8 +76,8 @@ decreased risk. Hover over the plot to see exact values.
 Shows the predicted risk at each x-axis value divided by the predicted risk
 at the reference group values. A value of 1.0 means no difference from the
 reference; values above 1.0 indicate higher risk and values below 1.0
-indicate lower risk. Unlike the Odds Ratio tab, this expresses risk as a
-ratio of probabilities rather than a ratio of odds.
+indicate lower risk. This expresses risk as a ratio of predicted
+probabilities.
 
 ---
 
