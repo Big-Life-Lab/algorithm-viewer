@@ -239,12 +239,12 @@ plotORServer <- function(
   is_fg <- .is_fine_and_gray(model_data)
 
   if (is_fg) {
-    # Sub-distribution hazard ratio: SHR = exp(LP) / exp(LP_ref)
-    # From CIF = 1 - exp(-H0*exp(LP)), we get exp(LP) = -log(1-CIF)/H0
-    # SHR = log(1 - CIF_ref) / log(1 - CIF_target)  (H0 cancels)
+    # Subdistribution hazard ratio: SHR = H(t|x) / H(t|ref)
+    # From CIF = 1 - exp(-H0*exp(LP)), cumulative hazard H = -log(1-CIF)
+    # SHR = log(1 - CIF_target) / log(1 - CIF_ref)  (H0 cancels)
     cif <- dat[[predicted_col]]
     cif_ref <- cif[output_rows + 1]
-    or <- log(1 - cif_ref) / log(1 - cif)
+    or <- log(1 - cif) / log(1 - cif_ref)
   } else {
     # Odds ratio: (risk/(1-risk)) / (risk_ref/(1-risk_ref))
     or <- (dat[[predicted_col]] / (1 - dat[[predicted_col]])) /
@@ -397,8 +397,8 @@ plotORServer <- function(
   is_fg <- .is_fine_and_gray(model_data)
 
   if (is_fg) {
-    # Sub-distribution hazard ratio: log(1 - CIF_ref) / log(1 - CIF_target)
-    or <- log(1 - dat2[[predicted_col_2]]) / log(1 - dat1[[predicted_col_1]])
+    # Subdistribution hazard ratio: H(target) / H(ref) = log(1-CIF_target) / log(1-CIF_ref)
+    or <- log(1 - dat1[[predicted_col_1]]) / log(1 - dat2[[predicted_col_2]])
   } else {
     or <- (dat1[[predicted_col_1]] / (1 - dat1[[predicted_col_1]])) /
       (dat2[[predicted_col_2]] / (1 - dat2[[predicted_col_2]]))

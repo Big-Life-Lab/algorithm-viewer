@@ -226,7 +226,7 @@ get_variable_label_from_value <- function(model_data,
     model_data, variable,
     escape_html = escape_html
   )
-  unname(unlist(values_to_labels)[value])
+  unname(unlist(values_to_labels)[as.character(value)])
 }
 
 #' Get Variable Label with Units

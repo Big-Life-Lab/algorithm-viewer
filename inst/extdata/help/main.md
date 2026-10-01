@@ -66,7 +66,7 @@ the ratio of odds of the outcome at each predictor value versus the
 reference value.
 
 For **Fine and Gray** competing risk models, this tab displays the
-**subdistribution hazard ratio (SHR)**: the ratio of sub-distribution
+**subdistribution hazard ratio (SHR)**: the ratio of subdistribution
 hazards, which directly reflects the model coefficients (exp(&beta;)).
 
 ---
@@ -76,8 +76,13 @@ hazards, which directly reflects the model coefficients (exp(&beta;)).
 Shows the predicted risk at each x-axis value divided by the predicted risk
 at the reference group values. A value of 1.0 means no difference from the
 reference; values above 1.0 indicate higher risk and values below 1.0
-indicate lower risk. This expresses risk as a ratio of predicted
-probabilities.
+indicate lower risk.
+
+For **logistic regression** models, this is the ratio of predicted
+probabilities of the outcome.
+
+For **Fine and Gray** competing risk models, this is the ratio of 10-year
+cumulative incidence functions (CIF).
 
 ---
 
@@ -87,6 +92,12 @@ Shows the absolute predicted probability (0–100%) of the outcome as the
 selected predictor varies, with all other predictors held at their reference
 values. Useful for understanding the clinical magnitude of a predictor's
 effect.
+
+For **logistic regression** models, this is the predicted probability of the
+outcome.
+
+For **Fine and Gray** competing risk models, this is the 10-year cumulative
+incidence of the outcome, accounting for competing events (e.g. death).
 
 ---
 
@@ -117,7 +128,9 @@ profiles are set in the sidebar (see below).
 
 **Summary panel (top).** For each selected model, a line shows:
 
-- **Your estimated risk** &mdash; the predicted risk of the Me profile.
+- **Your estimated risk** &mdash; the predicted risk of the Me profile
+  (predicted probability for logistic regression; 10-year cumulative
+  incidence for Fine and Gray models).
 - **Reference risk** &mdash; the predicted risk of the Ref profile.
 - **Overall RR** &mdash; the Me risk divided by the Ref risk (e.g. `1.5×`),
   followed by the absolute difference in percentage points (e.g. `+8.0 pts`).

@@ -638,8 +638,8 @@ plotRRAvsBServer <- function(
       new_line <- "\n"
     }
     if (
-      !is.null(b_value) && stringr::str_length(b_value) > 0 &&
-      !is.null(a_value) && stringr::str_length(a_value) > 0
+      !is.null(b_value) && !is.na(b_value) && stringr::str_length(b_value) > 0 &&
+      !is.null(a_value) && !is.na(a_value) && stringr::str_length(a_value) > 0
     ) {
       label <- paste0(label, new_line, b_value, arrow, a_value)
     }
